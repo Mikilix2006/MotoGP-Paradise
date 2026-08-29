@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getMadridTimestamp } from "@/utils/date";
 
 interface CountdownProps {
 targetDate: string;
@@ -16,7 +17,7 @@ seconds: number;
 function calculateTimeRemaining(
 targetDate: string
 ): TimeRemaining {
-const target = new Date(`${targetDate}T00:00:00`).getTime();
+const target = getMadridTimestamp(targetDate);
 const now = new Date().getTime();
 
 const difference = Math.max(target - now, 0);

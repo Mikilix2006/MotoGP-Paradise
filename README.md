@@ -1,7 +1,5 @@
 # MotoGP Stats
 
-Primer esqueleto visual de una aplicación de estadísticas de MotoGP.
-
 ## Stack
 - Node.js
 - TypeScript
@@ -16,4 +14,35 @@ npm install
 npm run dev
 ```
 
-La primera fase utiliza datos de ejemplo. La siguiente fase conectará los servicios Node.js con la API de MotoGP.
+## API
+### [MotoGP API](https://github.com/robschmitt/MotoGP-API)
+
+
+## Flujos
+
+### Countown
+/api/next-gp <br>
+      ▼ <br>
+Temporada actual <br>
+MotoGPSeason.id <br>
+      ▼ <br>
+/results/events?seasonUuid={seasonId} <br>
+      ▼ <br>
+Localizar evento por Circuit.id <br>
+      ▼ <br>
+event.id = eventUuid <br>
+      ▼ <br>
+categoryUuid de MotoGP <br>
+      ▼ <br>
+/results/sessions?eventUuid={eventUuid}&categoryUuid={categoryUuid} <br>
+      ▼ <br>
+Localizar: <br>
+type === "R" <br>
+      ▼ <br>
+Validar domingo si hay varias carreras <br>
+      ▼ <br>
+session.id = sessionUuid <br>
+      ▼ <br>
+Obtener fecha y hora exactas <br>
+      ▼ <br>
+Countdown

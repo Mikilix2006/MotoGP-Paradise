@@ -39,6 +39,16 @@ name: string;
 place: string;
 nation: string;
 };
+
+nextMotoGPRace: string;
+
+race: {
+  seasonUuid: string;
+  eventUuid: string;
+  categoryUuid: string;
+  sessionUuid: string;
+};
+
 }
 
 interface ApiResponse {
@@ -219,7 +229,9 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
             Cuenta atrás para el Gran Premio
         </p>
 
-        <Countdown targetDate={grandPrix.date_start} />
+        <Countdown
+          targetDate={grandPrix.nextMotoGPRace}
+        />
     </div>
 
     <div className="mt-8 flex items-center gap-2 border-t border-white/10 pt-6 text-sm text-zinc-500">

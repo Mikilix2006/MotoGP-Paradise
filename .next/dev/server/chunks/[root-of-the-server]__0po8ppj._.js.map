@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 52, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/minim/Desktop/vscode/motogp-stats/src/app/api/next-gp/route.ts"],"sourcesContent":["import { NextResponse } from \"next/server\";\r\n\r\nimport {\r\ngetNextGrandPrix,\r\n} from \"@/services/grandPrixService\";\r\n\r\nexport async function GET() {\r\ntry {\r\nconst grandPrix =\r\nawait getNextGrandPrix();\r\n\r\n```\r\nif (!grandPrix) {\r\n  return NextResponse.json(\r\n    {\r\n      error:\r\n        \"No se pudo detectar el próximo Gran Premio\",\r\n    },\r\n    {\r\n      status: 404,\r\n    }\r\n  );\r\n}\r\n\r\nreturn NextResponse.json({\r\n  data: grandPrix,\r\n});\r\n```\r\n\r\n} catch (error) {\r\nconsole.error(\r\n\"Error obteniendo el próximo GP:\",\r\nerror\r\n);\r\n\r\n```\r\nreturn NextResponse.json(\r\n  {\r\n    error:\r\n      \"Error al consultar la API de MotoGP\",\r\n  },\r\n  {\r\n    status: 500,\r\n  }\r\n);\r\n```\r\n\r\n}\r\n}\r\n"],"names":["GET","grandPrix","error","console"],"mappings":";;;;AAEA;;AAIO,eAAeA;IACtB,IAAI;QACJ,MAAMC,YACN,MAAM,IAAA,yJAAgB;QAEtB,EAAE,CAAC;;;;;;;;;;;;;;;;AAgBH,CAAC,CAAC,CAAC;IAEH,EAAE,OAAOC,OAAO;QAChBC,QAAQD,KAAK,CACb,mCACAA;QAGA,EAAE,CAAC;;;;;;;;;;AAUH,CAAC,CAAC,CAAC;IAEH;AACA"}}]
-}

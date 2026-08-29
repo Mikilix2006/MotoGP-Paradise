@@ -1,9 +1,0 @@
-{"timestamp":"00:00:35.057","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:38.241","source":"Server","level":"LOG","message":"○ Compiling / ..."}
-{"timestamp":"00:00:56.670","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:01:07.985","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}
-{"timestamp":"00:01:08.025","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}
-{"timestamp":"00:01:08.035","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}
-{"timestamp":"00:01:08.047","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}
-{"timestamp":"00:01:08.068","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}
-{"timestamp":"00:01:08.089","source":"Server","level":"ERROR","message":"TypeError: fetch failed"}

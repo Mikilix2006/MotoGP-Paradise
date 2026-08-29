@@ -46,25 +46,17 @@ export interface MotoGPEvent {
 id: string;
 
 country: Country;
-event_files: EventFiles;
 circuit: Circuit;
-
-test: boolean;
 
 sponsored_name: string;
 additional_name: string;
 name: string;
+short_name: string;
 
 date_start: string;
 date_end: string;
 
-toad_api_uuid: string;
-
 legacy_id: LegacyEventId[];
 
-season: EventSeason;
-
-short_name: string;
-
-status: EventStatus;
+status: string;
 }
