@@ -41,6 +41,8 @@ interface CircuitTrack {
   totalCorners: number | null;
   laps: number | null;
   infoImageUrl: string | null;
+  sprintDate: string | null;
+  sprintLaps: number | null;
 }
 
 interface GrandPrixData {
@@ -61,6 +63,23 @@ interface GrandPrixApiResponse {
 
 interface ChampionshipStatsData {
   leader: MotoGPRider;
+}
+
+function formatSprintDate(
+  date: string | null
+): string {
+  if (!date) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-ES",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }
+  ).format(new Date(date));
 }
 
 export default function ChampionshipStats() {
@@ -296,9 +315,40 @@ export default function ChampionshipStats() {
         </div>
       </div>
 
-      {/* CUARTA CARD - INFO DE LA SPRINT */}
-      <div className="card flex items-center justify-center p-5">
-        
+      {/* SPRINT */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+            Sprint
+          </span>
+
+          <Flag
+            size={18}
+            className="text-red-500"
+          />
+        </div>
+
+        <div className="mt-5">
+          <p className="text-2xl font-black capitalize text-white">
+            {formatSprintDate(
+              track?.sprintDate ?? null
+            )}
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-500">
+            Día de la Sprint
+          </p>
+        </div>
+
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="text-3xl font-black text-white">
+            {track?.sprintLaps ?? "—"}
+          </p>
+
+          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
+            Vueltas
+          </p>
+        </div>
       </div>
 
     </div>

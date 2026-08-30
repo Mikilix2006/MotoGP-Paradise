@@ -6,6 +6,26 @@ export interface CircuitTrackDetails {
   totalCorners: number | null;
   laps: number | null;
   infoImageUrl: string | null;
+
+  sprintDate: string | null;
+  sprintLaps: number | null;
+}
+
+interface BroadcastSession {
+  shortname?: string;
+
+  name?: string;
+
+  date_start?: string;
+
+  num_laps?: number | null;
+
+  category?: {
+    id?: string;
+    acronym?: string;
+    name?: string;
+    timing_id?: number;
+  };
 }
 
 interface Track {
@@ -66,6 +86,8 @@ interface MotoGPEventDetails {
   track?: Track;
 
   event_categories?: EventCategory[];
+
+  broadcasts?: BroadcastSession[];
 }
 
 function normalizeText(value?: string): string {
@@ -177,8 +199,13 @@ export async function getCircuitTrackDetails(
   /*
    * Vueltas de la carrera principal MotoGP.
    */
-const laps =
-  getMotoGPLaps(event);
+  const laps =
+    getMotoGPLaps(event);
+
+  const {
+    sprintDate,
+    sprintLaps,
+  } = getMotoGPSprint(event);
 
   const track = getTrackFromEvent(event);
 
@@ -189,6 +216,8 @@ const laps =
       totalCorners: null,
       laps,
       infoImageUrl: null,
+      sprintDate: null,
+      sprintLaps: null
     };
   }
 
@@ -242,13 +271,40 @@ const laps =
 
   return {
     eventUuid: event.id,
-
     lengthKm,
-
     totalCorners,
-
     laps,
-
     infoImageUrl,
+    sprintDate,
+    sprintLaps,
+  };
+}
+
+function getMotoGPSprint(
+  event: MotoGPEventDetails
+): {
+  sprintDate: string | null;
+  sprintLaps: number | null;
+} {
+  const sprintSession =
+    event.broadcasts?.find(
+      (session) =>
+        session.shortname === "SPR" &&
+        session.category?.timing_id === 3
+    );
+
+  if (!sprintSession) {
+    return {
+      sprintDate: null,
+      sprintLaps: null,
+    };
+  }
+
+  return {
+    sprintDate:
+      sprintSession.date_start ?? null,
+
+    sprintLaps:
+      sprintSession.num_laps ?? null,
   };
 }
