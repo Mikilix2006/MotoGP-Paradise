@@ -183,7 +183,7 @@ export default function ChampionshipStats() {
     grandPrix?.circuit.track;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
       {/* LÍDER */}
       <div className="card p-5">
@@ -230,25 +230,55 @@ export default function ChampionshipStats() {
         </p>
       </div>
 
-      {/* CIRCUITO */}
+      {/* DATOS DEL CIRCUITO */}
       <div className="card p-5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Circuito
           </span>
+
+          <Map
+            size={18}
+            className="text-red-500"
+          />
         </div>
 
-        <p className="mt-4 text-xl font-black text-white">
-          {grandPrix?.circuit.name ?? "—"}
-        </p>
+        <div className="mt-5 grid grid-cols-1 gap-3">
 
-        <p className="mt-1 text-sm text-zinc-500">
-          {track?.lengthKm ?? "—"} km
-          {" · "}
-          {track?.totalCorners ?? "—"} curvas
-          {" · "}
-          {track?.laps ?? "—"} vueltas
-        </p>
+          {/* KILÓMETROS */}
+          <div>
+            <p className="text-2xl font-black text-white">
+              {track?.lengthKm ?? "—"}
+            </p>
+
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
+              KM
+            </p>
+          </div>
+
+          {/* CURVAS */}
+          <div>
+            <p className="text-2xl font-black text-white">
+              {track?.totalCorners ?? "—"}
+            </p>
+
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
+              Curvas
+            </p>
+          </div>
+
+          {/* VUELTAS */}
+          <div>
+            <p className="text-2xl font-black text-white">
+              {track?.laps ?? "—"}
+            </p>
+
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
+              Vueltas
+            </p>
+          </div>
+
+        </div>
       </div>
 
       {/* VICTORIAS DEL LÍDER */}
