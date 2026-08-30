@@ -4,14 +4,6 @@ import { CalendarDays, MapPin, Trophy, ArrowUpRight } from "lucide-react";
 import { NextGrandPrix } from "@/components/NextGrandPrix";
 import RiderStandings from "@/components/RiderStandings";
 
-const riders = [
-  ["1", "Francesco Bagnaia", "Ducati Lenovo Team", "282", "+18"],
-  ["2", "Marc Márquez", "Ducati Lenovo Team", "264", "+11"],
-  ["3", "Jorge Martín", "Aprilia Racing", "241", "+6"],
-  ["4", "Fabio Quartararo", "Monster Energy Yamaha", "196", "+2"],
-  ["5", "Pedro Acosta", "Red Bull KTM", "184", "+9"]
-];
-
 export default function Home() {
   return (
     <main className="min-h-screen grid-bg">
