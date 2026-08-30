@@ -82,6 +82,24 @@ function formatSprintDate(
   ).format(new Date(date));
 }
 
+function formatSprintTime(
+  date: string | null
+): string {
+  if (!date) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-ES",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Europe/Madrid",
+    }
+  ).format(new Date(date));
+}
+
 export default function ChampionshipStats() {
   const [stats, setStats] =
     useState<ChampionshipStatsData | null>(
@@ -328,8 +346,9 @@ export default function ChampionshipStats() {
           />
         </div>
 
+        {/* FECHA */}
         <div className="mt-5">
-          <p className="text-2xl font-black capitalize text-white">
+          <p className="text-xl font-black capitalize text-white">
             {formatSprintDate(
               track?.sprintDate ?? null
             )}
@@ -340,6 +359,20 @@ export default function ChampionshipStats() {
           </p>
         </div>
 
+        {/* HORA */}
+        <div className="mt-4">
+          <p className="text-3xl font-black text-white">
+            {formatSprintTime(
+              track?.sprintDate ?? null
+            )}
+          </p>
+
+          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
+            Hora peninsular
+          </p>
+        </div>
+
+        {/* VUELTAS */}
         <div className="mt-4 border-t border-white/10 pt-4">
           <p className="text-3xl font-black text-white">
             {track?.sprintLaps ?? "—"}
