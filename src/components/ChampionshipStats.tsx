@@ -40,6 +40,7 @@ interface CircuitTrack {
   lengthKm: number | null;
   totalCorners: number | null;
   laps: number | null;
+  infoImageUrl: string | null;
 }
 
 interface GrandPrixData {
@@ -245,6 +246,20 @@ export default function ChampionshipStats() {
 
         <div className="mt-5 grid grid-cols-1 gap-3">
 
+          {/* IMAGEN */}
+          <div className="flex items-center justify-center">
+            {track?.infoImageUrl ? (
+              <img
+                src={track.infoImageUrl}
+                alt="Información del circuito"
+                className="max-h-40 w-auto max-w-full object-contain"
+              />
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Información del circuito no disponible
+              </p>
+            )}
+          </div>
           {/* KILÓMETROS */}
           <div>
             <p className="text-2xl font-black text-white">
@@ -281,26 +296,9 @@ export default function ChampionshipStats() {
         </div>
       </div>
 
-      {/* VICTORIAS DEL LÍDER */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
-            Victorias del líder
-          </span>
-
-          <Flag
-            size={18}
-            className="text-red-500"
-          />
-        </div>
-
-        <p className="mt-4 text-3xl font-black text-white">
-          {stats.leader.statistics.first_position}
-        </p>
-
-        <p className="mt-1 text-sm text-zinc-500">
-          victorias esta temporada
-        </p>
+      {/* CUARTA CARD - INFO DE LA SPRINT */}
+      <div className="card flex items-center justify-center p-5">
+        
       </div>
 
     </div>

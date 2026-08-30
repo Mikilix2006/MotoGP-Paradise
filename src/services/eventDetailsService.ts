@@ -5,12 +5,11 @@ export interface CircuitTrackDetails {
   lengthKm: number | null;
   totalCorners: number | null;
   laps: number | null;
+  infoImageUrl: string | null;
 }
 
 interface Track {
   id?: string;
-
-  lenght?: string | number;
 
   lenght_units?: {
     kiloMeters?: number;
@@ -19,6 +18,18 @@ interface Track {
   left_corners?: string | number;
 
   right_corners?: string | number;
+
+  is_active?: boolean;
+
+  assets?: {
+    info?: {
+      id?: string;
+      name?: string;
+      type?: string;
+      path?: string;
+      mimetype?: string;
+    };
+  };
 }
 
 interface EventCategory {
@@ -49,17 +60,9 @@ interface MotoGPEventDetails {
     id?: string;
     name?: string;
 
-    /*
-     * En algunos eventos la información del
-     * circuito puede estar anidada aquí.
-     */
-    track?: Track;
+    tracks?: Track[];
   };
 
-  /*
-   * En otros casos puede estar directamente
-   * en el evento.
-   */
   track?: Track;
 
   event_categories?: EventCategory[];
@@ -74,23 +77,23 @@ function normalizeText(value?: string): string {
 function getTrackFromEvent(
   event: MotoGPEventDetails
 ): Track | undefined {
-  /*
-   * Primera posibilidad:
-   * event.track
-   */
+  // El track principal del evento
   if (event.track) {
     return event.track;
   }
 
-  /*
-   * Segunda posibilidad:
-   * event.circuit.track
-   */
-  if (event.circuit?.track) {
-    return event.circuit.track;
+  // Buscar primero el track activo dentro del circuito
+  const activeTrack =
+    event.circuit?.tracks?.find(
+      (track) => track.is_active === true
+    );
+
+  if (activeTrack) {
+    return activeTrack;
   }
 
-  return undefined;
+  // Como último recurso, usar el primer track disponible
+  return event.circuit?.tracks?.[0];
 }
 
 function getMotoGPLaps(
@@ -171,8 +174,27 @@ export async function getCircuitTrackDetails(
     return null;
   }
 
-  const track =
-    getTrackFromEvent(event);
+  /*
+   * Vueltas de la carrera principal MotoGP.
+   */
+const laps =
+  getMotoGPLaps(event);
+
+  const track = getTrackFromEvent(event);
+
+  if (!track) {
+    return {
+      eventUuid: event.id,
+      lengthKm: null,
+      totalCorners: null,
+      laps,
+      infoImageUrl: null,
+    };
+  }
+
+  const infoImageUrl =
+  track?.assets?.info?.path ??
+  null;
 
   /*
    * Longitud.
@@ -191,7 +213,7 @@ export async function getCircuitTrackDetails(
       : null;
 
   const rightCorners =
-    track?.right_corners !== undefined &&
+    track.right_corners !== undefined &&
     track.right_corners !== ""
       ? Number(track.right_corners)
       : null;
@@ -204,12 +226,6 @@ export async function getCircuitTrackDetails(
     rightCorners !== null
       ? leftCorners + rightCorners
       : null;
-
-  /*
-   * Vueltas de la carrera principal MotoGP.
-   */
-const laps =
-  getMotoGPLaps(event);
 
   console.log(
     "Datos del circuito encontrados:",
@@ -226,8 +242,13 @@ const laps =
 
   return {
     eventUuid: event.id,
+
     lengthKm,
+
     totalCorners,
+
     laps,
+
+    infoImageUrl,
   };
 }
