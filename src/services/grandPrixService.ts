@@ -15,10 +15,23 @@ seasonId: string
 ): Promise<MotoGPEvent | null> {
 const events = await getEventsBySeason(seasonId);
 
-return (
-events.find((event) => event.status === "CURRENT") ??
-null
+const currentEvent = events.find(
+  (event) => event.status === "CURRENT"
 );
+
+const nextEvent = events.find(
+  (event) => event.status === "NOT-STARTED"
+);
+
+const selectedEvent = currentEvent ?? nextEvent;
+
+if (!selectedEvent) {
+  throw new Error(
+    "No se encontró ningún Gran Premio actual ni próximo"
+  );
+}
+
+return selectedEvent;
 }
 
 export function findEventByCircuitId(
