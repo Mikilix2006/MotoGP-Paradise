@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { StatCard } from "@/components/StatCard";
 import { CalendarDays, MapPin, Trophy, ArrowUpRight } from "lucide-react";
 import { NextGrandPrix } from "@/components/NextGrandPrix";
+import RiderStandings from "@/components/RiderStandings";
 
 const riders = [
   ["1", "Francesco Bagnaia", "Ducati Lenovo Team", "282", "+18"],
@@ -52,6 +53,8 @@ export default function Home() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
           <div className="card overflow-hidden">
+          <RiderStandings />
+          {/*
             <div className="flex items-center justify-between border-b border-white/10 p-6">
               <div><p className="text-xs uppercase tracking-widest text-zinc-500">Campeonato 2026</p><h2 className="mt-1 text-2xl font-black">Clasificación de pilotos</h2></div>
               <button className="flex items-center gap-1 text-sm text-red-500">Ver tabla <ArrowUpRight size={15}/></button>
@@ -62,6 +65,7 @@ export default function Home() {
                 <tbody>{riders.map(r => <tr key={r[0]} className="border-t border-white/5 hover:bg-white/[.025]"><td className="p-5 font-bold">{r[0]}</td><td className="font-bold">{r[1]}</td><td className="text-zinc-500">{r[2]}</td><td className="text-right font-bold">{r[3]}</td><td className="p-5 text-right text-emerald-400">{r[4]}</td></tr>)}</tbody>
               </table>
             </div>
+          */}
           </div>
 
           <aside className="card p-6">
