@@ -1,83 +1,127 @@
 import { NextResponse } from "next/server";
 
 import {
-getCurrentGrandPrixData,
+  getCurrentGrandPrixData,
 } from "@/services/currentGrandPrixService";
 
 import {
-getNextMotoGPRace,
+  getNextMotoGPRace,
 } from "@/services/nextMotoGPRaceService";
 
+import {
+  getCurrentSeason,
+} from "@/services/seasonService";
+
+import {
+  getCircuitTrackDetails,
+} from "@/services/eventDetailsService";
+
 export async function GET() {
-try {
-const grandPrix =
-await getCurrentGrandPrixData();
+  try {
+    const [
+      season,
+      grandPrix,
+      race,
+    ] = await Promise.all([
+      getCurrentSeason(),
+      getCurrentGrandPrixData(),
+      getNextMotoGPRace(),
+    ]);
 
-const race =
-  await getNextMotoGPRace();
-
-if (!grandPrix) {
-  return NextResponse.json(
-    {
-      error:
-        "No se encontró ningún Gran Premio actual",
-    },
-    {
-      status: 404,
+    if (!season) {
+      return NextResponse.json(
+        {
+          error:
+            "No se encontró la temporada actual",
+        },
+        {
+          status: 404,
+        }
+      );
     }
-  );
-}
 
-if (!race) {
-  return NextResponse.json(
-    {
-      error:
-        "No se encontró la carrera principal de MotoGP",
-    },
-    {
-      status: 404,
+    if (!grandPrix) {
+      return NextResponse.json(
+        {
+          error:
+            "No se encontró ningún Gran Premio actual o próximo",
+        },
+        {
+          status: 404,
+        }
+      );
     }
-  );
-}
 
-return NextResponse.json({
-  data: {
-    ...grandPrix,
+    if (!race) {
+      return NextResponse.json(
+        {
+          error:
+            "No se encontró la carrera principal de MotoGP",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
 
-    nextMotoGPRace:
-      race.nextMotoGPRace,
+    let circuitTrack = null;
 
-    race: {
-      seasonUuid:
-        race.seasonUuid,
+    try {
+      circuitTrack =
+        await getCircuitTrackDetails(
+          season.year,
+          grandPrix.circuit.id,
+          grandPrix.circuit.name
+        );
+    } catch (error) {
+      console.error(
+        "Error obteniendo datos del circuito:",
+        error
+      );
+    }
 
-      eventUuid:
-        race.eventUuid,
+    return NextResponse.json({
+      data: {
+        ...grandPrix,
 
-      categoryUuid:
-        race.categoryUuid,
+        circuit: {
+          ...grandPrix.circuit,
 
-      sessionUuid:
-        race.sessionUuid,
-    },
-  },
-});
+          track: circuitTrack,
+        },
 
-} catch (error) {
-console.error(
-"Error obteniendo el próximo GP:",
-error
-);
+        nextMotoGPRace:
+          race.nextMotoGPRace,
 
-return NextResponse.json(
-  {
-    error:
-      "No se pudo obtener la información del próximo GP",
-  },
-  {
-    status: 500,
+        race: {
+          seasonUuid:
+            race.seasonUuid,
+
+          eventUuid:
+            race.eventUuid,
+
+          categoryUuid:
+            race.categoryUuid,
+
+          sessionUuid:
+            race.sessionUuid,
+        },
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Error obteniendo el próximo GP:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo obtener la información del próximo GP",
+      },
+      {
+        status: 500,
+      }
+    );
   }
-);
-
-}
 }

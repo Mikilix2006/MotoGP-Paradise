@@ -3,6 +3,7 @@ import { StatCard } from "@/components/StatCard";
 import { CalendarDays, MapPin, Trophy, ArrowUpRight } from "lucide-react";
 import { NextGrandPrix } from "@/components/NextGrandPrix";
 import RiderStandings from "@/components/RiderStandings";
+import ChampionshipStats from "@/components/ChampionshipStats";
 
 export default function Home() {
   return (
@@ -11,18 +12,15 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
 
         <div className="grid gap-5 lg:grid-cols-[1.65fr_.85fr]">
+          {/* HERO / PRÓXIMO GP */}
           <NextGrandPrix />
-          
 
-          <div className="grid grid-cols-2 gap-5">
-            <StatCard label="Líder del mundial" value="282 pts" note="Francesco Bagnaia" />
-            <StatCard label="Victorias" value="6" note="Esta temporada" />
-            <StatCard label="Última carrera" value="P1" note="Ganador reciente" />
-            <StatCard label="Circuito" value="4.63 km" note="14 curvas" />
-          </div>
+          {/* ESTADÍSTICAS REALES */}
+          <ChampionshipStats />
         </div>
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
+          {/* CLASIFICACIÓN */}
           <div className="card overflow-hidden">
           <RiderStandings />
           </div>
