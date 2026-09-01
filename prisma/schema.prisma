@@ -1,0 +1,676 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApiSource {
+  RESULTS
+  BROADCAST
+  TIMING
+}
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+model Country {
+  id        String   @id @default(uuid())
+  iso       String   @unique @db.VarChar(8)
+  name      String   @db.VarChar(100)
+  regionIso String?  @map("region_iso") @db.VarChar(32)
+
+  circuits  Circuit[]
+  events    Event[]
+  riders    Rider[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("countries")
+}
+
+model Season {
+  id          String   @id @default(uuid())
+  motogpUuid  String?  @unique @map("motogp_uuid") @db.Uuid
+  year        Int      @unique
+  name        String?
+  current     Boolean  @default(false)
+
+  events              Event[]
+  riderSeasonEntries  RiderSeasonEntry[]
+  riderStatistics     RiderSeasonStatistics[]
+  championshipStandings ChampionshipStanding[]
+  bmwAwardStandings   BmwAwardStanding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([current])
+  @@map("seasons")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  motogpUuid String? @unique @map("motogp_uuid") @db.Uuid
+  legacyId  Int?     @map("legacy_id")
+  name      String
+  acronym   String?
+  timingId  String?  @map("timing_id")
+  priority  Int?
+  active    Boolean  @default(true)
+
+  eventCategories       EventCategory[]
+  sessions              Session[]
+  riderSeasonEntries    RiderSeasonEntry[]
+  riderStatistics       RiderSeasonStatistics[]
+  championshipStandings ChampionshipStanding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([legacyId])
+  @@index([timingId])
+  @@map("categories")
+}
+
+model Circuit {
+  id         String   @id @default(uuid())
+  motogpUuid String?  @unique @map("motogp_uuid") @db.Uuid
+  legacyId   Int?     @map("legacy_id")
+  name       String
+  place      String?
+  nation     String?
+  countryId  String?  @map("country_id")
+  latitude   Decimal? @db.Decimal(10, 7)
+  longitude  Decimal? @db.Decimal(10, 7)
+
+  country      Country?             @relation(fields: [countryId], references: [id])
+  events       Event[]
+  tracks       CircuitTrack[]
+  descriptions CircuitDescription[]
+  assets       CircuitAsset[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([legacyId])
+  @@index([countryId])
+  @@map("circuits")
+}
+
+model CircuitTrack {
+  id                    String   @id @default(uuid())
+  motogpUuid            String?  @unique @map("motogp_uuid") @db.Uuid
+  circuitId             String   @map("circuit_id")
+  name                  String?
+  lengthMeters          Int?     @map("length_meters")
+  lengthKm              Decimal? @map("length_km") @db.Decimal(8, 3)
+  lengthMiles           Decimal? @map("length_miles") @db.Decimal(8, 3)
+  lengthFeet            Int?     @map("length_feet")
+  widthMeters           Decimal? @map("width_meters") @db.Decimal(6, 2)
+  longestStraightMeters Int?     @map("longest_straight_meters")
+  leftCorners           Int?     @map("left_corners")
+  rightCorners          Int?     @map("right_corners")
+  totalCorners          Int?     @map("total_corners")
+  firstGrid             String?  @map("first_grid")
+  boxEntry              String?  @map("box_entry")
+  boxExit               String?  @map("box_exit")
+
+  circuit Circuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  assets  CircuitAsset[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([circuitId])
+  @@map("circuit_tracks")
+}
+
+model CircuitDescription {
+  id             String  @id @default(uuid())
+  motogpUuid     String? @map("motogp_uuid") @db.Uuid
+  circuitId      String  @map("circuit_id")
+  language       String  @db.VarChar(10)
+  businessUnitId String? @map("business_unit_id")
+  description    String?
+
+  circuit Circuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([circuitId, language, businessUnitId])
+  @@map("circuit_descriptions")
+}
+
+model CircuitAsset {
+  id         String  @id @default(uuid())
+  motogpUuid String? @map("motogp_uuid") @db.Uuid
+  circuitId  String  @map("circuit_id")
+  trackId    String? @map("track_id")
+  name       String
+  type       String
+  path       String
+  mimeType   String? @map("mime_type")
+
+  circuit Circuit      @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  track   CircuitTrack? @relation(fields: [trackId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([circuitId])
+  @@index([trackId])
+  @@map("circuit_assets")
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  resultsUuid   String?  @unique @map("results_uuid") @db.Uuid
+  broadcastUuid String?  @unique @map("broadcast_uuid") @db.Uuid
+  toadApiUuid   String?  @unique @map("toad_api_uuid") @db.Uuid
+
+  seasonId  String   @map("season_id")
+  circuitId String?  @map("circuit_id")
+  countryId String?  @map("country_id")
+
+  name          String
+  sponsoredName String? @map("sponsored_name")
+  additionalName String? @map("additional_name")
+  shortName     String? @map("short_name") @db.VarChar(20)
+
+  dateStart DateTime? @map("date_start") @db.Date
+  dateEnd   DateTime? @map("date_end") @db.Date
+
+  status   String?
+  sequence Int?
+  isTest   Boolean  @default(false) @map("is_test")
+  timeZone String?  @map("time_zone")
+
+  season    Season   @relation(fields: [seasonId], references: [id])
+  circuit   Circuit? @relation(fields: [circuitId], references: [id])
+  country   Country? @relation(fields: [countryId], references: [id])
+
+  legacyMappings EventLegacyMapping[]
+  categories     EventCategory[]
+  scheduleDays   EventScheduleDay[]
+  documents      EventDocument[]
+  urls           EventUrl[]
+  sessions       Session[]
+  riderStatistics RiderSeasonStatistics[]
+  championshipStandings ChampionshipStanding[]
+  bmwAwardStandings BmwAwardStanding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([seasonId])
+  @@index([circuitId])
+  @@index([countryId])
+  @@index([status])
+  @@index([dateStart])
+  @@map("events")
+}
+
+model EventLegacyMapping {
+  id               String @id @default(uuid())
+  eventId          String @map("event_id")
+  categoryLegacyId Int    @map("category_legacy_id")
+  eventLegacyId    Int    @map("event_legacy_id")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, categoryLegacyId])
+  @@map("event_legacy_mappings")
+}
+
+model EventCategory {
+  id                String   @id @default(uuid())
+  eventId           String   @map("event_id")
+  categoryId        String   @map("category_id")
+  numLaps           Int?     @map("num_laps")
+  sprintNumLaps     Int?     @map("sprint_num_laps")
+  distanceMeters    Int?     @map("distance_meters")
+  distanceKm        Decimal? @map("distance_km") @db.Decimal(10, 3)
+  redFlagLaps       Int?     @map("red_flag_laps")
+  sprintRedFlagLaps Int?     @map("sprint_red_flag_laps")
+  sequence          Int?
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, categoryId])
+  @@index([categoryId])
+  @@map("event_categories")
+}
+
+model EventScheduleDay {
+  id        String   @id @default(uuid())
+  eventId   String   @map("event_id")
+  dateStart DateTime? @map("date_start")
+  name      String?
+  day       Int?
+  month     Int?
+  daySuffix String?  @map("day_suffix")
+  gpDay     String?  @map("gp_day")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([eventId])
+  @@index([dateStart])
+  @@map("event_schedule_days")
+}
+
+model EventDocument {
+  id           String @id @default(uuid())
+  eventId      String @map("event_id")
+  type         String
+  url          String
+  menuPosition Int?   @map("menu_position")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, type])
+  @@map("event_documents")
+}
+
+model EventUrl {
+  id       String  @id @default(uuid())
+  eventId  String  @map("event_id")
+  language String?
+  type     String
+  url      String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([eventId])
+  @@map("event_urls")
+}
+
+model Session {
+  id             String @id @default(uuid())
+  resultsUuid    String? @unique @map("results_uuid") @db.Uuid
+  broadcastUuid  String? @unique @map("broadcast_uuid") @db.Uuid
+
+  eventId    String @map("event_id")
+  categoryId String @map("category_id")
+
+  shortname String?
+  name      String?
+  type      String?
+  kind      String?
+  status    String?
+
+  dateStart DateTime? @map("date_start")
+  dateEnd   DateTime? @map("date_end")
+
+  numLaps     Int?     @map("num_laps")
+  progressive Boolean?
+  gpDay       String?  @map("gp_day")
+  timingId    String?  @map("timing_id")
+
+  hasTiming     Boolean? @map("has_timing")
+  hasLive       Boolean? @map("has_live")
+  hasReport     Boolean? @map("has_report")
+  hasResults    Boolean? @map("has_results")
+  hasOnDemand   Boolean? @map("has_on_demand")
+  isLive        Boolean? @map("is_live")
+  isLiveTiming  Boolean? @map("is_live_timing")
+
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id])
+  results     SessionResult[]
+  liveSnapshots LiveTimingSnapshot[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([eventId])
+  @@index([categoryId])
+  @@index([dateStart])
+  @@index([status])
+  @@index([timingId])
+  @@index([eventId, categoryId, type, dateStart])
+  @@map("sessions")
+}
+
+model Rider {
+  id             String  @id @default(uuid())
+  motogpUuid     String? @unique @map("motogp_uuid") @db.Uuid
+  legacyId       Int?    @map("legacy_id")
+  ridersApiUuid  String? @map("riders_api_uuid") @db.Uuid
+  ridersId       String? @map("riders_id") @db.Uuid
+
+  firstName String? @map("first_name")
+  lastName  String? @map("last_name")
+  fullName  String? @map("full_name")
+
+  birthDate DateTime? @map("birth_date") @db.Date
+  birthCity String?   @map("birth_city")
+  countryId String?   @map("country_id")
+  startYear Int?      @map("start_year")
+  legend    Boolean?  @default(false)
+
+  country          Country?                 @relation(fields: [countryId], references: [id])
+  seasonEntries    RiderSeasonEntry[]
+  statistics       RiderSeasonStatistics[]
+  sessionResults   SessionResult[]
+  championshipStandings ChampionshipStanding[]
+  bmwAwardStandings BmwAwardStanding[]
+  liveTiming       LiveRiderTiming[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([legacyId])
+  @@index([ridersApiUuid])
+  @@index([ridersId])
+  @@index([countryId])
+  @@map("riders")
+}
+
+model Team {
+  id                String  @id @default(uuid())
+  motogpUuid        String? @unique @map("motogp_uuid") @db.Uuid
+  legacyId          Int?    @map("legacy_id")
+  name              String
+  type              String?
+  color             String?
+  textColor         String? @map("text_color")
+  backgroundPicture String? @map("background_picture")
+  picture           String?
+
+  seasonEntries          RiderSeasonEntry[]
+  sessionResults         SessionResult[]
+  championshipStandings  ChampionshipStanding[]
+  bmwAwardStandings      BmwAwardStanding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([legacyId])
+  @@map("teams")
+}
+
+model Constructor {
+  id         String  @id @default(uuid())
+  motogpUuid String? @unique @map("motogp_uuid") @db.Uuid
+  legacyId   Int?    @map("legacy_id")
+  name       String
+
+  seasonEntries         RiderSeasonEntry[]
+  statistics            RiderSeasonStatistics[]
+  sessionResults        SessionResult[]
+  championshipStandings ChampionshipStanding[]
+  bmwAwardStandings     BmwAwardStanding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([legacyId])
+  @@map("constructors")
+}
+
+model RiderSeasonEntry {
+  id            String  @id @default(uuid())
+  motogpUuid    String? @unique @map("motogp_uuid") @db.Uuid
+  riderId       String  @map("rider_id")
+  seasonId      String  @map("season_id")
+  categoryId    String  @map("category_id")
+  teamId        String? @map("team_id")
+  constructorId String? @map("constructor_id")
+
+  number        Int?
+  sponsoredTeam String? @map("sponsored_team")
+  inGrid        Boolean? @map("in_grid")
+  current       Boolean? @default(false)
+  shortNickname String? @map("short_nickname")
+  type          String?
+
+  rider       Rider        @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  season      Season       @relation(fields: [seasonId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
+  team        Team?        @relation(fields: [teamId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+  images      RiderSeasonImage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([riderId, seasonId, categoryId])
+  @@index([seasonId, categoryId])
+  @@index([teamId])
+  @@index([constructorId])
+  @@map("rider_season_entries")
+}
+
+model RiderSeasonImage {
+  id                 String @id @default(uuid())
+  riderSeasonEntryId String @map("rider_season_entry_id")
+  type               String
+  mainUrl            String? @map("main_url")
+  secondaryUrl       String? @map("secondary_url")
+
+  riderSeasonEntry RiderSeasonEntry @relation(fields: [riderSeasonEntryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([riderSeasonEntryId, type])
+  @@map("rider_season_images")
+}
+
+model RiderSeasonStatistics {
+  id             String  @id @default(uuid())
+  riderId        String  @map("rider_id")
+  seasonId       String  @map("season_id")
+  categoryId     String  @map("category_id")
+  constructorId  String? @map("constructor_id")
+  eventId        String? @map("event_id")
+
+  starts         Int?
+  wins           Int?
+  secondPlaces   Int? @map("second_places")
+  thirdPlaces    Int? @map("third_places")
+  podiums        Int?
+  poles          Int?
+  points         Int?
+  championshipPosition Int? @map("championship_position")
+
+  rider       Rider        @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  season      Season       @relation(fields: [seasonId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+  event       Event?       @relation(fields: [eventId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([riderId, seasonId, categoryId])
+  @@index([seasonId, categoryId])
+  @@index([eventId])
+  @@map("rider_season_statistics")
+}
+
+model SessionResult {
+  id           String @id @default(uuid())
+  sessionId    String @map("session_id")
+  riderId      String @map("rider_id")
+  teamId       String? @map("team_id")
+  constructorId String? @map("constructor_id")
+
+  position     Int?
+  positionText String? @map("position_text")
+  points       Decimal? @db.Decimal(10, 3)
+  lapsCompleted Int? @map("laps_completed")
+
+  time         String?
+  gap          String?
+  status       String?
+
+  fastestLap   String? @map("fastest_lap")
+  averageSpeed Decimal? @map("average_speed") @db.Decimal(10, 3)
+  topSpeed     Decimal? @map("top_speed") @db.Decimal(10, 3)
+  gridPosition Int? @map("grid_position")
+
+  session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rider       Rider        @relation(fields: [riderId], references: [id])
+  team        Team?        @relation(fields: [teamId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sessionId, riderId])
+  @@index([riderId])
+  @@index([teamId])
+  @@index([constructorId])
+  @@map("session_results")
+}
+
+model ChampionshipStanding {
+  id            String   @id @default(uuid())
+  seasonId      String   @map("season_id")
+  categoryId    String   @map("category_id")
+  eventId       String?  @map("event_id")
+  riderId       String   @map("rider_id")
+  teamId        String?  @map("team_id")
+  constructorId String?  @map("constructor_id")
+
+  position   Int?
+  points     Decimal? @db.Decimal(10, 3)
+  snapshotAt DateTime @default(now()) @map("snapshot_at")
+
+  season      Season       @relation(fields: [seasonId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
+  event       Event?       @relation(fields: [eventId], references: [id])
+  rider       Rider        @relation(fields: [riderId], references: [id])
+  team        Team?        @relation(fields: [teamId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([seasonId, categoryId, eventId])
+  @@index([riderId])
+  @@map("championship_standings")
+}
+
+model BmwAwardStanding {
+  id            String   @id @default(uuid())
+  seasonId      String   @map("season_id")
+  eventId       String?  @map("event_id")
+  riderId       String   @map("rider_id")
+  teamId        String?  @map("team_id")
+  constructorId String?  @map("constructor_id")
+
+  position Int?
+
+  points Decimal? @db.Decimal(10, 3)
+
+  fetchedAt DateTime @default(now()) @map("fetched_at")
+
+  season      Season       @relation(fields: [seasonId], references: [id])
+  event       Event?       @relation(fields: [eventId], references: [id])
+  rider       Rider        @relation(fields: [riderId], references: [id])
+  team        Team?        @relation(fields: [teamId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([seasonId, riderId])
+
+  @@index([seasonId, eventId])
+  @@index([riderId])
+
+  @@map("bmw_award_standings")
+}
+
+model LiveTimingSnapshot {
+  id          String   @id @default(uuid())
+  sessionId   String   @map("session_id")
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+  payload     Json
+  payloadHash String?  @map("payload_hash")
+
+  session      Session           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  riderTimings LiveRiderTiming[]
+
+  @@index([sessionId, fetchedAt])
+  @@map("live_timing_snapshots")
+}
+
+model LiveRiderTiming {
+  id         String @id @default(uuid())
+  snapshotId String @map("snapshot_id")
+  riderId    String? @map("rider_id")
+
+  position    Int?
+  lap         Int?
+  lapTime     String? @map("lap_time")
+  gapFirst    String? @map("gap_first")
+  gapPrevious String? @map("gap_previous")
+  lastLapTime String? @map("last_lap_time")
+  lastLap     Int? @map("last_lap")
+  onPit       Boolean? @map("on_pit")
+  status      String?
+
+  snapshot LiveTimingSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  rider    Rider?             @relation(fields: [riderId], references: [id])
+
+  @@index([snapshotId])
+  @@index([riderId])
+  @@map("live_rider_timings")
+}
+
+model ApiSnapshot {
+  id               String    @id @default(uuid())
+  source           ApiSource
+  endpoint         String
+  requestParameters Json?    @map("request_parameters")
+  entityType       String?   @map("entity_type")
+  entityExternalId String?   @map("entity_external_id")
+  fetchedAt        DateTime  @default(now()) @map("fetched_at")
+  payload          Json
+  payloadHash      String?   @map("payload_hash")
+
+  @@index([source, endpoint, entityExternalId])
+  @@index([fetchedAt])
+  @@map("api_snapshots")
+}
+
+model SyncRun {
+  id               String     @id @default(uuid())
+  source           ApiSource
+  endpoint         String
+  startedAt        DateTime   @default(now()) @map("started_at")
+  finishedAt       DateTime?  @map("finished_at")
+  status           SyncStatus @default(RUNNING)
+  recordsProcessed Int        @default(0) @map("records_processed")
+  recordsCreated   Int        @default(0) @map("records_created")
+  recordsUpdated   Int        @default(0) @map("records_updated")
+  errorMessage     String?    @map("error_message")
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  @@index([source, endpoint])
+  @@index([status])
+  @@map("sync_runs")
+}

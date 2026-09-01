@@ -16,4 +16,22 @@
 # logs
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
+
+# testing
+/coverage
+
+# typescript
+*.tsbuildinfo
+
+# vercel
+.vercel
+
+# os
+.DS_Store
+Thumbs.db
+*.pem
+
+# claude code local settings
+.claude/settings.local.json

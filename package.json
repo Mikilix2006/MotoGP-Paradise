@@ -6,9 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:seasons": "tsx scripts/import-seasons.ts",
+    "import:events": "tsx scripts/import-events.ts",
+    "import:event-categories": "tsx scripts/import-event-categories.ts",
+    "import:sessions": "tsx scripts/import-sessions.ts",
+    "import:session-results": "tsx scripts/import-session-results.ts",
+    "import:rider-statistics": "tsx scripts/import-rider-statistics.ts",
+    "import:bmw-award": "tsx scripts/import-bmw-award.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.12.0",
     "lucide-react": "^0.468.0",
     "next": "^16.3.3",
     "react": "^19.0.0",
@@ -20,7 +28,17 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
+    "prisma": "^6.12.0",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "msgpackr-extract@3.0.4": true,
+    "workerd@1.20260704.1": true,
+    "@prisma/engines@6.12.0": true,
+    "prisma@6.12.0": true,
+    "@prisma/client@6.12.0": true
   }
 }
