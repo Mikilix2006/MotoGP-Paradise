@@ -1,22 +1,47 @@
 import { prisma } from "../src/lib/prisma";
 
 import {
+  importChampionshipStandings,
+} from "../src/services/importers/championshipStandingImporter";
+
+import {
   trackSyncRun,
 } from "../src/services/importers/syncTracking";
 
-import {
-  importBmwAwardStandings,
-} from "../src/services/importers/bmwAwardImporter";
+/*
+ * Permite acotar la importación a una temporada:
+ *
+ *   npm run import:championship-standings -- 2024
+ */
+function getSeasonYear(): number | undefined {
+  const argument = process.argv[2];
+
+  if (!argument) {
+    return undefined;
+  }
+
+  const year = Number(argument);
+
+  if (!Number.isInteger(year)) {
+    throw new Error(
+      `Temporada no válida: ${argument}`
+    );
+  }
+
+  return year;
+}
 
 async function main() {
+  const seasonYear = getSeasonYear();
+
   console.log(
-    "🏁 Iniciando importación de BMW Award..."
+    "🏆 Iniciando importación de clasificaciones del campeonato..."
   );
 
   const result = await trackSyncRun(
     {
       source: "RESULTS",
-      endpoint: "/standings/bmwaward",
+      endpoint: "/standings",
 
       getStats: (value) => ({
         processed: value.standingsProcessed,
@@ -24,11 +49,11 @@ async function main() {
         updated: value.standingsUpdated,
       }),
     },
-    importBmwAwardStandings
+    () => importChampionshipStandings({ seasonYear })
   );
 
   console.log("\n=================================");
-  console.log("🏆 IMPORTACIÓN BMW AWARD COMPLETADA");
+  console.log("🏆 CLASIFICACIONES COMPLETADAS");
   console.log("=================================\n");
 
   console.log(
@@ -36,7 +61,11 @@ async function main() {
   );
 
   console.log(
-    `Temporadas omitidas: ${result.seasonsSkipped}`
+    `Combinaciones procesadas: ${result.combinationsProcessed}`
+  );
+
+  console.log(
+    `Combinaciones omitidas: ${result.combinationsSkipped}`
   );
 
   console.log(
@@ -59,7 +88,7 @@ async function main() {
 main()
   .catch((error) => {
     console.error(
-      "\n❌ Error durante la importación BMW Award:"
+      "\n❌ Error durante la importación de clasificaciones:"
     );
 
     console.error(error);

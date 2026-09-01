@@ -47,9 +47,25 @@ interface ApiClassificationResult {
 
   top_speed?: number | string | null;
 
+  /*
+   * Las sesiones de carrera (RAC/SPR) devuelven estos
+   * tres campos, mientras que las de entrenamientos y
+   * clasificación devuelven best_lap y top_speed.
+   *
+   * La respuesta no es la misma para todos los tipos
+   * de sesión, por lo que se mapean todos y cada uno
+   * queda a null cuando no aplica.
+   */
+  points?: number | null;
+
+  time?: string | null;
+
+  average_speed?: number | string | null;
+
   gap?: {
     first?: string | null;
     prev?: string | null;
+    lap?: string | null;
   } | null;
 
   status?: string | null;
@@ -219,18 +235,14 @@ export async function importSessionResults(): Promise<SessionResultImportResult>
       }
 
       /*
-       * El campo countryId es nullable en el scalar,
-       * pero la relación Rider.country es obligatoria en
-       * el schema actual.
-       *
-       * Por tanto, no podemos crear un Rider sin país.
+       * Rider.countryId es opcional en el schema, por lo que
+       * un piloto sin país se importa igualmente. Descartarlo
+       * supondría perder su resultado en la sesión.
        */
       if (!countryId) {
         console.warn(
-          `⚠️ Piloto sin país: ${item.rider.full_name ?? item.rider.id}`
+          `⚠️ Piloto sin país: ${item.rider.full_name ?? item.rider.id}. Se importa sin país.`
         );
-
-        continue;
       }
 
       const existingRider = await prisma.rider.findUnique({
@@ -401,18 +413,18 @@ export async function importSessionResults(): Promise<SessionResultImportResult>
         });
 
       /*
-       * En la respuesta tenemos:
+       * Mapeo de la respuesta:
        *
-       * best_lap.time → fastestLap
-       * total_laps    → lapsCompleted
-       * top_speed     → topSpeed
-       * gap.first     → gap
+       * best_lap.time  → fastestLap
+       * total_laps     → lapsCompleted
+       * top_speed      → topSpeed
+       * gap.first      → gap
+       * points         → points        (solo RAC/SPR)
+       * time           → time          (solo RAC/SPR)
+       * average_speed  → averageSpeed  (solo RAC/SPR)
        *
-       * La respuesta mostrada no contiene:
-       * points
-       * time total
-       * average speed
-       * grid position
+       * La respuesta no incluye la posición de salida,
+       * por lo que gridPosition permanece a null.
        */
       const resultData = {
         teamId,
@@ -427,12 +439,14 @@ export async function importSessionResults(): Promise<SessionResultImportResult>
             ? String(item.position)
             : null,
 
-        points: null,
+        points:
+          item.points ?? null,
 
         lapsCompleted:
           item.total_laps ?? null,
 
-        time: null,
+        time:
+          item.time ?? null,
 
         gap:
           item.gap?.first ??
@@ -445,7 +459,8 @@ export async function importSessionResults(): Promise<SessionResultImportResult>
         fastestLap:
           item.best_lap?.time ?? null,
 
-        averageSpeed: null,
+        averageSpeed:
+          toNumber(item.average_speed),
 
         topSpeed:
           toNumber(item.top_speed),

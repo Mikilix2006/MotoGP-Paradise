@@ -1,10 +1,26 @@
 import { importSessions } from "../src/services/importers/sessionImporter";
 import { prisma } from "../src/lib/prisma";
 
+import {
+  trackSyncRun,
+} from "../src/services/importers/syncTracking";
+
 async function main() {
   console.log("🏁 Iniciando importación de sesiones...");
 
-  const result = await importSessions();
+  const result = await trackSyncRun(
+    {
+      source: "RESULTS",
+      endpoint: "/sessions",
+
+      getStats: (value) => ({
+        processed: value.sessionsProcessed,
+        created: value.sessionsCreated,
+        updated: value.sessionsUpdated,
+      }),
+    },
+    importSessions
+  );
 
   console.log("\n✅ Importación completada");
   console.log(

@@ -1,4 +1,8 @@
 import { prisma } from "../src/lib/prisma";
+
+import {
+  trackSyncRun,
+} from "../src/services/importers/syncTracking";
 import {
   importSessionResults,
 } from "../src/services/importers/sessionResultImporter";
@@ -8,7 +12,19 @@ async function main() {
     "🏁 Iniciando importación de pilotos y resultados..."
   );
 
-  const result = await importSessionResults();
+  const result = await trackSyncRun(
+    {
+      source: "RESULTS",
+      endpoint: "/session/{uuid}/classification",
+
+      getStats: (value) => ({
+        processed: value.resultsProcessed,
+        created: value.resultsCreated,
+        updated: value.resultsUpdated,
+      }),
+    },
+    importSessionResults
+  );
 
   console.log("\n✅ Importación completada");
 

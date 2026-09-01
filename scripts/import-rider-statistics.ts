@@ -1,4 +1,8 @@
 import { prisma } from "../src/lib/prisma";
+
+import {
+  trackSyncRun,
+} from "../src/services/importers/syncTracking";
 import {
   importRiderStatistics,
 } from "../src/services/importers/riderStatisticsImporter";
@@ -8,8 +12,19 @@ async function main() {
     "🏁 Iniciando importación de estadísticas históricas de pilotos..."
   );
 
-  const result =
-    await importRiderStatistics();
+  const result = await trackSyncRun(
+    {
+      source: "BROADCAST",
+      endpoint: "/riders/{id}/statistics",
+
+      getStats: (value) => ({
+        processed: value.statisticsProcessed,
+        created: value.statisticsCreated,
+        updated: value.statisticsUpdated,
+      }),
+    },
+    importRiderStatistics
+  );
 
   console.log("\n✅ Importación completada");
 

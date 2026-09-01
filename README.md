@@ -239,12 +239,23 @@ npm run import:seasons
 npm run import:events
 npm run import:event-categories
 npm run import:sessions
+npm run import:event-details
 npm run import:session-results
+npm run import:riders
 npm run import:rider-statistics
+npm run import:championship-standings
 npm run import:bmw-award
 ```
 
-Para una primera prueba se recomienda dejar que termine con el histórico completo de una única temporada antes de lanzar una importación masiva de todas las temporadas.
+Los tres importadores más recientes admiten acotar la importación a una sola temporada, lo que es muy recomendable para una primera prueba:
+
+```bash
+npm run import:event-details -- 2024
+npm run import:riders -- 2024
+npm run import:championship-standings -- 2024
+```
+
+El orden importa: `import:event-details` debe ejecutarse **después** de `import:sessions`, ya que completa las sesiones existentes en lugar de crearlas de nuevo.
 
 > Nota: el proyecto no cuenta actualmente con una suite de tests automatizados.
 
@@ -1036,25 +1047,7 @@ Incluye datos como:
 
 ---
 
-## Fase 4 — Información enriquecida de circuitos
-
-Importar:
-
-```text
-CircuitTrack
-CircuitDescription
-CircuitAsset
-```
-
-Esta fase alimenta datos visuales como:
-
-- kilómetros;
-- curvas;
-- imágenes SVG.
-
----
-
-## Fase 5 — Sesiones
+## Fase 4 — Sesiones
 
 Importar:
 
@@ -1063,6 +1056,42 @@ Session
 ```
 
 Las sesiones deben existir antes de importar clasificaciones.
+
+---
+
+## Fase 5 — Detalles del evento y circuitos
+
+```bash
+npm run import:event-details
+```
+
+Fuente: `MOTOGP_API_URL` `/events?seasonYear={year}`.
+
+Importar:
+
+```text
+CircuitTrack
+CircuitDescription
+CircuitAsset
+EventScheduleDay
+EventUrl
+```
+
+Además completa datos que la API de resultados no proporciona:
+
+- coordenadas del circuito;
+- zona horaria y orden del evento;
+- acrónimo, prioridad y `timing_id` de las categorías;
+- nombre, tipo, vueltas, día de GP y flags de cada sesión.
+
+Se ejecuta después de las sesiones porque las completa en lugar de duplicarlas. La correspondencia entre ambas APIs se resuelve así:
+
+```text
+Event.toadApiUuid  ==  id del evento en /events
+Category.legacyId  ==  category.timing_id
+```
+
+Las sesiones no se emparejan por hora, porque `/results/sessions` devuelve la hora **estándar** del circuito (sin horario de verano) mientras que `/events` devuelve la hora real. El emparejamiento se hace por UUID, hora exacta, tipo base y orden cronológico.
 
 ---
 
@@ -1081,19 +1110,43 @@ El endpoint de clasificación de sesión puede aportar datos necesarios para cre
 
 ---
 
-## Fase 7 — Estadísticas de pilotos
+## Fase 7 — Pilotos y entradas por temporada
+
+```bash
+npm run import:riders
+```
+
+Fuentes: `/riders?seasonUuid={uuid}` y `/riders/{uuid}`.
 
 Importar:
 
 ```text
 RiderSeasonEntry
-RiderSeasonStatistics
 RiderSeasonImage
+```
+
+También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda) y del equipo (tipo, colores e imágenes).
+
+Importante: el `current_career_step` del listado por temporada corresponde **siempre** a la temporada actual, no a la consultada. El historial real está en el `career[]` de la ficha individual, que es lo que se importa.
+
+---
+
+## Fase 8 — Estadísticas de pilotos
+
+Importar:
+
+```text
+RiderSeasonStatistics
 ```
 
 ---
 
-## Fase 8 — Clasificaciones
+## Fase 9 — Clasificaciones
+
+```bash
+npm run import:championship-standings
+npm run import:bmw-award
+```
 
 Importar:
 
@@ -1101,6 +1154,8 @@ Importar:
 ChampionshipStanding
 BmwAwardStanding
 ```
+
+Las categorías se recorren a partir de las asociadas a los eventos de cada temporada, porque el UUID de categoría de la API de resultados no es el mismo en todas las temporadas.
 
 ---
 
@@ -1114,14 +1169,22 @@ Ejemplo de patrón:
 npm run import:seasons
 ```
 
-Otros importadores deben seguir una estructura equivalente:
+Scripts disponibles, en orden de ejecución:
 
-```text
-scripts/
-    import-seasons.ts
-    import-events.ts
-    import-...
-```
+| Script | Importador | Rellena |
+|---|---|---|
+| `import:seasons` | `seasonImporter` | `Season` |
+| `import:events` | `eventImporter` | `Country`, `Circuit`, `Event`, `EventLegacyMapping`, `EventDocument` |
+| `import:event-categories` | `eventCategoryImporter` | `Category`, `EventCategory` |
+| `import:sessions` | `sessionImporter` | `Session` (incluidas condiciones de pista) |
+| `import:event-details` | `eventDetailsImporter` | `CircuitTrack`, `CircuitAsset`, `CircuitDescription`, `EventScheduleDay`, `EventUrl` y completa `Circuit`, `Event`, `Category` y `Session` |
+| `import:session-results` | `sessionResultImporter` | `Rider`, `Team`, `Constructor`, `SessionResult` |
+| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider` y `Team` |
+| `import:rider-statistics` | `riderStatisticsImporter` | `RiderSeasonStatistics` |
+| `import:championship-standings` | `championshipStandingImporter` | `ChampionshipStanding` |
+| `import:bmw-award` | `bmwAwardImporter` | `BmwAwardStanding` |
+
+Todos los scripts registran su ejecución en `SyncRun` mediante `trackSyncRun`, y los importadores que consultan endpoints de listado guardan la respuesta original en `ApiSnapshot`.
 
 La lógica de importación debe vivir preferiblemente en:
 

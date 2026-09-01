@@ -336,6 +336,12 @@ model Session {
   isLive        Boolean? @map("is_live")
   isLiveTiming  Boolean? @map("is_live_timing")
 
+  conditionTrack    String? @map("condition_track")
+  conditionAir      String? @map("condition_air")
+  conditionHumidity String? @map("condition_humidity")
+  conditionGround   String? @map("condition_ground")
+  conditionWeather  String? @map("condition_weather")
+
   event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   category    Category    @relation(fields: [categoryId], references: [id])
   results     SessionResult[]
@@ -569,6 +575,7 @@ model ChampionshipStanding {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@unique([seasonId, categoryId, riderId])
   @@index([seasonId, categoryId, eventId])
   @@index([riderId])
   @@map("championship_standings")

@@ -11,8 +11,11 @@
     "import:events": "tsx scripts/import-events.ts",
     "import:event-categories": "tsx scripts/import-event-categories.ts",
     "import:sessions": "tsx scripts/import-sessions.ts",
+    "import:event-details": "tsx scripts/import-event-details.ts",
     "import:session-results": "tsx scripts/import-session-results.ts",
+    "import:riders": "tsx scripts/import-riders.ts",
     "import:rider-statistics": "tsx scripts/import-rider-statistics.ts",
+    "import:championship-standings": "tsx scripts/import-championship-standings.ts",
     "import:bmw-award": "tsx scripts/import-bmw-award.ts"
   },
   "dependencies": {

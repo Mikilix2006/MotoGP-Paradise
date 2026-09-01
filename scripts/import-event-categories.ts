@@ -1,10 +1,26 @@
 import { importEventCategories } from "../src/services/importers/eventCategoryImporter";
 import { prisma } from "../src/lib/prisma";
 
+import {
+  trackSyncRun,
+} from "../src/services/importers/syncTracking";
+
 async function main() {
   console.log("🏁 Iniciando importación de categorías por evento...");
 
-  const result = await importEventCategories();
+  const result = await trackSyncRun(
+    {
+      source: "RESULTS",
+      endpoint: "/categories",
+
+      getStats: (value) => ({
+        processed: value.categoriesProcessed,
+        created: value.eventCategoriesCreated,
+        updated: value.eventCategoriesUpdated,
+      }),
+    },
+    importEventCategories
+  );
 
   console.log("\n✅ Importación completada");
   console.log(`Eventos procesados: ${result.eventsProcessed}`);

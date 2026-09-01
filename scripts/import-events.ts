@@ -1,10 +1,26 @@
 import { importEvents } from "../src/services/importers/eventImporter";
 import { prisma } from "../src/lib/prisma";
 
+import {
+  trackSyncRun,
+} from "../src/services/importers/syncTracking";
+
 async function main() {
   console.log("🏁 Iniciando importación de eventos...");
 
-  const result = await importEvents();
+  const result = await trackSyncRun(
+    {
+      source: "RESULTS",
+      endpoint: "/events",
+
+      getStats: (value) => ({
+        processed: value.eventsProcessed,
+        created: value.eventsCreated,
+        updated: value.eventsUpdated,
+      }),
+    },
+    importEvents
+  );
 
   console.log("\n✅ Importación completada");
   console.log(`Temporadas procesadas: ${result.seasonsProcessed}`);
@@ -13,6 +29,7 @@ async function main() {
   console.log(`Eventos actualizados: ${result.eventsUpdated}`);
   console.log(`Circuitos creados: ${result.circuitsCreated}`);
   console.log(`Circuitos actualizados: ${result.circuitsUpdated}`);
+  console.log(`Documentos del evento: ${result.documentsProcessed}`);
 }
 
 main()

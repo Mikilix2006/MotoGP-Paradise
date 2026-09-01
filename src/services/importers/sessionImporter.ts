@@ -121,6 +121,29 @@ export async function importSessions(): Promise<SessionImportResult> {
         },
       });
 
+      /*
+       * Condiciones de pista y meteorología.
+       *
+       * La API las devuelve como texto ya formateado
+       * ("24º", "70%", "Dry", "Clear").
+       */
+      const conditionData = {
+        conditionTrack:
+          apiSession.condition?.track || null,
+
+        conditionAir:
+          apiSession.condition?.air || null,
+
+        conditionHumidity:
+          apiSession.condition?.humidity || null,
+
+        conditionGround:
+          apiSession.condition?.ground || null,
+
+        conditionWeather:
+          apiSession.condition?.weather || null,
+      };
+
       await prisma.session.upsert({
         where: {
           resultsUuid: apiSession.id,
@@ -133,8 +156,9 @@ export async function importSessions(): Promise<SessionImportResult> {
           categoryId: category.id,
 
           /*
-           * El endpoint /results/sessions mostrado en el README
-           * no proporciona estos campos.
+           * El endpoint /results/sessions no proporciona estos
+           * campos. Los rellena después eventDetailsImporter,
+           * que los obtiene de broadcasts[] en la API general.
            */
           shortname: null,
           name: null,
@@ -161,6 +185,8 @@ export async function importSessions(): Promise<SessionImportResult> {
           hasOnDemand: null,
           isLive: null,
           isLiveTiming: null,
+
+          ...conditionData,
         },
 
         update: {
@@ -173,6 +199,8 @@ export async function importSessions(): Promise<SessionImportResult> {
           dateStart: apiSession.date
             ? new Date(apiSession.date)
             : null,
+
+          ...conditionData,
         },
       });
 

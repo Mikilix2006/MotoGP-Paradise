@@ -21,6 +21,11 @@ interface MotoGPEventLegacyIdApi {
   eventId: number;
 }
 
+interface MotoGPEventFileApi {
+  url: string | null;
+  menu_position: number | null;
+}
+
 interface MotoGPEventApi {
   id: string;
 
@@ -41,6 +46,12 @@ interface MotoGPEventApi {
   legacy_id: MotoGPEventLegacyIdApi[];
 
   toad_api_uuid: string | null;
+
+  /*
+   * Documentos PDF del evento, indexados por tipo:
+   * circuit_information, podiums, pole_positions...
+   */
+  event_files: Record<string, MotoGPEventFileApi> | null;
 }
 
 export interface EventImportResult {
@@ -50,6 +61,7 @@ export interface EventImportResult {
   eventsUpdated: number;
   circuitsCreated: number;
   circuitsUpdated: number;
+  documentsProcessed: number;
 }
 
 export async function importEvents(): Promise<EventImportResult> {
@@ -64,6 +76,7 @@ export async function importEvents(): Promise<EventImportResult> {
   let eventsUpdated = 0;
   let circuitsCreated = 0;
   let circuitsUpdated = 0;
+  let documentsProcessed = 0;
 
   for (const season of seasons) {
     console.log(
@@ -269,6 +282,48 @@ export async function importEvents(): Promise<EventImportResult> {
           },
         });
       }
+
+      /*
+       * ============================================================
+       * EVENT DOCUMENTS
+       * ============================================================
+       *
+       * event_files llega como un objeto cuyas claves son el tipo
+       * de documento. Las entradas con url vacía se descartan.
+       */
+
+      for (const [type, file] of Object.entries(
+        event.event_files ?? {}
+      )) {
+        const url = file?.url?.trim();
+
+        if (!url) {
+          continue;
+        }
+
+        await prisma.eventDocument.upsert({
+          where: {
+            eventId_type: {
+              eventId: databaseEvent.id,
+              type,
+            },
+          },
+
+          create: {
+            eventId: databaseEvent.id,
+            type,
+            url,
+            menuPosition: file.menu_position ?? null,
+          },
+
+          update: {
+            url,
+            menuPosition: file.menu_position ?? null,
+          },
+        });
+
+        documentsProcessed++;
+      }
     }
 
     console.log(
@@ -283,5 +338,6 @@ export async function importEvents(): Promise<EventImportResult> {
     eventsUpdated,
     circuitsCreated,
     circuitsUpdated,
+    documentsProcessed,
   };
 }
