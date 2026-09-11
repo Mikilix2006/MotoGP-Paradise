@@ -30,6 +30,7 @@ Reglas al escribir un repositorio nuevo:
 - La categoría MotoGP se localiza por `Category.legacyId === 3`; la carrera principal es la sesión `type === "RAC"` y la sprint `type === "SPR"`.
 - Varios modelos tienen una relación llamada `constructor`: en los `include`/`select` de esos modelos añade `constructor: false` (o `true`) explícitamente o TypeScript fallará por el choque con `Object.prototype.constructor`.
 - Si un dato sale vacío (vueltas, imagen, dorsal), lo normal es que falte una importación, no un bug de la consulta: avisa y remite a `database-guardian`.
+- **No incluyas la relación `constructor` en un `select`/`include` de resultados**: además del choque de tipos, Prisma deja de convertir las fechas de toda la fila en `Date`. Selecciona `constructorId` y resuelve el nombre aparte (ver [favoritesRepository.ts](src/services/db/favoritesRepository.ts)).
 
 ## Estructura
 
@@ -37,6 +38,7 @@ Reglas al escribir un repositorio nuevo:
 src/app/api/<recurso>/route.ts   Route handlers. Devuelven { data: ... } o { error: ... } con status
 src/components/*.tsx             Componentes de UI
 src/services/db/*Repository.ts   Consultas Prisma y transformación a la forma de la respuesta
+src/services/stats/*.ts          Modelos estadísticos puros (sin BD); favoritesModel.ts calcula el índice de favoritos
 src/services/importers/          Ingesta desde la API externa (dominio de database-guardian)
 src/types/*.ts                   Formas de respuesta compartidas entre repositorio y componente
 src/utils/date.ts                Utilidades de fecha

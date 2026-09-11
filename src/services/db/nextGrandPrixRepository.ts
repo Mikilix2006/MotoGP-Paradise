@@ -117,37 +117,50 @@ function toDateOnly(date: Date | null): string {
  * Selecciona el Gran Premio a mostrar: el que está en curso
  * (CURRENT) y, si no hay ninguno, el próximo por fecha
  * (NOT-STARTED). Los tests de pretemporada no cuentan.
+ *
+ * Devuelve solo el id para que otros repositorios (favoritos,
+ * etc.) puedan cargar del evento lo que necesiten.
  */
+export async function findCurrentOrNextEventId(
+  seasonId: string
+): Promise<string | null> {
+  for (const status of ["CURRENT", "NOT-STARTED"]) {
+    const event = await prisma.event.findFirst({
+      where: {
+        seasonId,
+        isTest: false,
+        status,
+      },
+
+      orderBy: {
+        dateStart: "asc",
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    if (event) {
+      return event.id;
+    }
+  }
+
+  return null;
+}
+
 async function findCurrentOrNextEvent(
   seasonId: string
 ): Promise<EventWithDetails | null> {
-  const currentEvent = await prisma.event.findFirst({
-    where: {
-      seasonId,
-      isTest: false,
-      status: "CURRENT",
-    },
+  const eventId = await findCurrentOrNextEventId(seasonId);
 
-    orderBy: {
-      dateStart: "asc",
-    },
-
-    include: eventInclude,
-  });
-
-  if (currentEvent) {
-    return currentEvent;
+  if (!eventId) {
+    return null;
   }
 
-  return prisma.event.findFirst({
+  return prisma.event.findUnique({
     where: {
-      seasonId,
-      isTest: false,
-      status: "NOT-STARTED",
-    },
-
-    orderBy: {
-      dateStart: "asc",
+      id: eventId,
     },
 
     include: eventInclude,
