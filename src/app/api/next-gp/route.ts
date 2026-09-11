@@ -1,44 +1,19 @@
 import { NextResponse } from "next/server";
 
 import {
-  getCurrentGrandPrixData,
-} from "@/services/currentGrandPrixService";
+  getNextGrandPrix,
+} from "@/services/db/nextGrandPrixRepository";
 
-import {
-  getNextMotoGPRace,
-} from "@/services/nextMotoGPRaceService";
-
-import {
-  getCurrentSeason,
-} from "@/services/seasonService";
-
-import {
-  getCircuitTrackDetails,
-} from "@/services/eventDetailsService";
+/*
+ * Los datos cambian solo cuando se ejecutan los importadores,
+ * así que la respuesta se puede cachear un minuto como hacía
+ * antes el cliente de la API externa.
+ */
+export const revalidate = 60;
 
 export async function GET() {
   try {
-    const [
-      season,
-      grandPrix,
-      race,
-    ] = await Promise.all([
-      getCurrentSeason(),
-      getCurrentGrandPrixData(),
-      getNextMotoGPRace(),
-    ]);
-
-    if (!season) {
-      return NextResponse.json(
-        {
-          error:
-            "No se encontró la temporada actual",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
+    const grandPrix = await getNextGrandPrix();
 
     if (!grandPrix) {
       return NextResponse.json(
@@ -52,61 +27,8 @@ export async function GET() {
       );
     }
 
-    if (!race) {
-      return NextResponse.json(
-        {
-          error:
-            "No se encontró la carrera principal de MotoGP",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    let circuitTrack = null;
-
-    try {
-      circuitTrack =
-        await getCircuitTrackDetails(
-          season.year,
-          grandPrix.circuit.id,
-          grandPrix.circuit.name
-        );
-    } catch (error) {
-      console.error(
-        "Error obteniendo datos del circuito:",
-        error
-      );
-    }
-
     return NextResponse.json({
-      data: {
-        ...grandPrix,
-
-        circuit: {
-          ...grandPrix.circuit,
-
-          track: circuitTrack,
-        },
-
-        nextMotoGPRace:
-          race.nextMotoGPRace,
-
-        race: {
-          seasonUuid:
-            race.seasonUuid,
-
-          eventUuid:
-            race.eventUuid,
-
-          categoryUuid:
-            race.categoryUuid,
-
-          sessionUuid:
-            race.sessionUuid,
-        },
-      },
+      data: grandPrix,
     });
   } catch (error) {
     console.error(

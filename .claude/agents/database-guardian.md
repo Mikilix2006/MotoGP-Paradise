@@ -27,7 +27,12 @@ No comparten identificadores. Usa siempre estas claves de unión, ya verificadas
 Event.toadApiUuid   ==  id del evento en /events (API general)
 Category.legacyId   ==  category.timing_id (API general)
 Constructor.legacyId==  legacy_id, sí coincide entre ambas APIs
+Rider.legacyId      ==  legacy_id, sí coincide entre ambas APIs (ÚNICO en la tabla)
+Rider.ridersApiUuid ==  id del piloto en /riders (API general) == riders_api_uuid en resultados
+Rider.motogpUuid    ==  rider.id en resultados (NO es estable: hay pilotos con dos)
 ```
+
+**Todo importador que toque pilotos pasa por [riderResolver.ts](src/services/importers/riderResolver.ts)** (`findRider` / `upsertRider`): resuelve por `legacyId` → `ridersApiUuid` → `motogpUuid` y nunca crea una segunda fila. No hagas `prisma.rider.upsert` por uuid en ningún importador: así es como se generaron 97 pilotos duplicados (fusionados con `npm run fix:duplicate-riders`, que queda como script de mantenimiento idempotente).
 
 Los UUID de categoría son distintos en cada API **y** entre temporadas. Nunca asumas que un UUID sirve en otro endpoint: resuelve por `legacyId` cuando cruces fuentes.
 

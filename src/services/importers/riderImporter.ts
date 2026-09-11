@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchMotoGPApi } from "@/services/motogp/apiClient";
+import { upsertRider } from "@/services/importers/riderResolver";
 
 /*
  * ============================================================
@@ -309,37 +310,28 @@ export async function importRiders(
         ? `${detail.name} ${detail.surname}`
         : detail.surname ?? detail.name ?? null;
 
-    const riderData = {
-      legacyId: detail.legacy_id ?? null,
-      firstName: detail.name ?? null,
-      lastName: detail.surname ?? null,
-      birthDate: toDate(detail.birth_date),
-      birthCity: detail.birth_city ?? null,
-      startYear: detail.start_year ?? null,
-      legend: detail.legend ?? false,
-      countryId,
-    };
-
-    const rider = await prisma.rider.upsert({
-      where: {
-        motogpUuid: detail.id,
+    /*
+     * El id de esta API es el riders_api_uuid de la API de
+     * resultados, no su rider.id: la identidad se resuelve por
+     * legacy_id para no crear una segunda fila del mismo piloto
+     * (ver riderResolver.ts).
+     */
+    const { rider } = await upsertRider(
+      {
+        legacyId: detail.legacy_id ?? null,
+        ridersApiUuid: detail.id,
       },
-
-      create: {
-        motogpUuid: detail.id,
+      {
         fullName,
-        ...riderData,
-      },
-
-      update: {
-        /*
-         * fullName solo se sobrescribe si se ha podido
-         * construir, para no perder el que ya existiera.
-         */
-        ...(fullName ? { fullName } : {}),
-        ...riderData,
-      },
-    });
+        firstName: detail.name ?? null,
+        lastName: detail.surname ?? null,
+        birthDate: toDate(detail.birth_date),
+        birthCity: detail.birth_city ?? null,
+        startYear: detail.start_year ?? null,
+        legend: detail.legend ?? null,
+        countryId,
+      }
+    );
 
     result.ridersProcessed++;
 

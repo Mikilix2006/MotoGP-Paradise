@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchMotoGPResults } from "@/services/motogp/resultsClient";
+import { upsertRider } from "@/services/importers/riderResolver";
 
 interface ApiCountry {
   iso?: string | null;
@@ -245,57 +246,31 @@ export async function importSessionResults(): Promise<SessionResultImportResult>
         );
       }
 
-      const existingRider = await prisma.rider.findUnique({
-        where: {
-          motogpUuid: item.rider.id,
-        },
-      });
-
-      const rider = await prisma.rider.upsert({
-        where: {
-          motogpUuid: item.rider.id,
-        },
-
-        create: {
-          motogpUuid: item.rider.id,
-
-          legacyId:
-            item.rider.legacy_id ?? null,
+      /*
+       * La identidad se resuelve por legacy_id (ver
+       * riderResolver.ts): esta API usa rider.id distintos para
+       * el mismo piloto en algunas temporadas y no comparte uuid
+       * con la API general.
+       */
+      const { rider, created: riderCreated } = await upsertRider(
+        {
+          legacyId: item.rider.legacy_id ?? null,
+          resultsUuid: item.rider.id,
 
           ridersApiUuid:
             item.rider.riders_api_uuid ??
             item.rider.rider_api_uuid ??
             null,
 
-          ridersId:
-            item.rider.riders_id ?? null,
-
-          fullName:
-            item.rider.full_name ?? null,
-
-          countryId,
+          ridersId: item.rider.riders_id ?? null,
         },
-
-        update: {
-          legacyId:
-            item.rider.legacy_id ?? null,
-
-          ridersApiUuid:
-            item.rider.riders_api_uuid ??
-            item.rider.rider_api_uuid ??
-            null,
-
-          ridersId:
-            item.rider.riders_id ?? null,
-
-          fullName:
-            item.rider.full_name ?? null,
-
+        {
+          fullName: item.rider.full_name ?? null,
           countryId,
-        },
-      });
+        }
+      );
 
-      if (!existingRider) {
+      if (riderCreated) {
         ridersCreated++;
       }
 

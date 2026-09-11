@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 
 import {
   getMotoGPRiderStandings,
-} from "@/services/riderService";
+} from "@/services/db/riderStandingsRepository";
+
+/*
+ * Los datos cambian solo cuando se ejecutan los importadores,
+ * así que la respuesta se puede cachear un minuto como hacía
+ * antes el cliente de la API externa.
+ */
+export const revalidate = 60;
 
 export async function GET() {
   try {

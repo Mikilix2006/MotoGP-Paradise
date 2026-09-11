@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchMotoGPResults } from "@/services/motogp/resultsClient";
+import { findRider } from "@/services/importers/riderResolver";
 
 import { saveApiSnapshot } from "./syncTracking";
 
@@ -63,34 +64,20 @@ export interface ChampionshipStandingImportResult {
   standingsSkipped: number;
 }
 
+/*
+ * La identidad del piloto se resuelve por legacy_id (ver
+ * riderResolver.ts). Solo se enlaza con pilotos ya importados:
+ * aquí no se crean.
+ */
 async function findRiderId(
   rider: ApiRider
 ): Promise<string | null> {
-  if (rider.id) {
-    const byUuid = await prisma.rider.findFirst({
-      where: {
-        motogpUuid: rider.id,
-      },
-    });
+  const existingRider = await findRider({
+    legacyId: rider.legacy_id ?? null,
+    resultsUuid: rider.id ?? null,
+  });
 
-    if (byUuid) {
-      return byUuid.id;
-    }
-  }
-
-  if (rider.legacy_id !== null && rider.legacy_id !== undefined) {
-    const byLegacyId = await prisma.rider.findFirst({
-      where: {
-        legacyId: rider.legacy_id,
-      },
-    });
-
-    if (byLegacyId) {
-      return byLegacyId.id;
-    }
-  }
-
-  return null;
+  return existingRider?.id ?? null;
 }
 
 async function findTeamId(

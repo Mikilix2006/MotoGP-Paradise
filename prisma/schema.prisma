@@ -362,7 +362,8 @@ model Session {
 model Rider {
   id             String  @id @default(uuid())
   motogpUuid     String? @unique @map("motogp_uuid") @db.Uuid
-  legacyId       Int?    @map("legacy_id")
+  /// Único identificador compartido por las dos APIs: es la clave de identidad del piloto.
+  legacyId       Int?    @unique @map("legacy_id")
   ridersApiUuid  String? @map("riders_api_uuid") @db.Uuid
   ridersId       String? @map("riders_id") @db.Uuid
 
@@ -387,7 +388,6 @@ model Rider {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([legacyId])
   @@index([ridersApiUuid])
   @@index([ridersId])
   @@index([countryId])
