@@ -48,6 +48,29 @@ export interface FavoriteFormStats {
 
 export interface FavoriteBikeStats {
   constructor_name: string | null;
+
+  /** Motos del constructor en parrilla esta temporada. */
+  riders: number;
+
+  /** Puesto típico (mediana por carrera) de sus pilotos esta temporada. */
+  season_median_position: number | null;
+
+  /** Lo mismo en la temporada anterior. */
+  previous_median_position: number | null;
+
+  /** Puestos ganados respecto al año anterior (positivo = la moto ha mejorado). */
+  improvement: number | null;
+
+  /** Puestos ganados por los pilotos que repiten moto. */
+  same_rider_improvement: number | null;
+
+  /** Puesto típico del constructor en este circuito en las últimas ediciones. */
+  circuit_median_position: number | null;
+
+  season_strength: number;
+  circuit_strength: number;
+  improvement_score: number;
+
   score: number;
 }
 

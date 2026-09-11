@@ -15,8 +15,10 @@
  *                de muestra (credibilidad);
  *   form         resultados de la temporada en curso, con
  *                más peso en las últimas citas;
- *   bike         rendimiento de su constructor en este
- *                circuito en las últimas temporadas;
+ *   bike         lo que aporta la moto: puesto típico (mediana)
+ *                de los pilotos del constructor esta temporada,
+ *                su mejora respecto al año anterior y su
+ *                rendimiento en este circuito;
  *   reliability  proporción de carreras terminadas;
  *   trend        si sus últimas citas mejoran o empeoran
  *                su media de temporada.
@@ -31,6 +33,12 @@
 export type RaceType = "RAC" | "SPR";
 
 export interface RaceResultInput {
+  /** Piloto que firmó el resultado. */
+  riderId: string;
+
+  /** Identificador de la sesión, para agrupar los resultados de una misma carrera. */
+  sessionKey: string;
+
   /** Año de la temporada en la que se corrió. */
   seasonYear: number;
 
@@ -94,6 +102,34 @@ export interface TrendComponent {
 
 export interface BikeComponent {
   constructorName: string | null;
+
+  /** Motos del constructor en parrilla esta temporada. */
+  riders: number;
+
+  /** Puesto típico (mediana por carrera) de sus pilotos esta temporada. */
+  seasonMedianPosition: number | null;
+
+  /** Lo mismo en la temporada anterior. */
+  previousMedianPosition: number | null;
+
+  /**
+   * Puestos ganados respecto a la temporada anterior (positivo =
+   * la moto ha mejorado). Combina la mediana del constructor con
+   * la variación de los pilotos que han seguido en esa moto.
+   */
+  improvement: number | null;
+
+  /** Puestos ganados por los pilotos que repiten moto. */
+  sameRiderImprovement: number | null;
+
+  /** Puesto típico del constructor en este circuito en las últimas ediciones. */
+  circuitMedianPosition: number | null;
+
+  /** Componentes parciales (0-1). */
+  seasonStrength: number;
+  circuitStrength: number;
+  improvementScore: number;
+
   score: number;
 }
 
@@ -141,9 +177,9 @@ export interface FavoriteOutput {
  * ------------------------------------------------------------
  */
 export const MODEL_WEIGHTS = {
-  circuit: 0.4,
-  form: 0.35,
-  bike: 0.1,
+  circuit: 0.35,
+  form: 0.3,
+  bike: 0.2,
   reliability: 0.1,
   trend: 0.05,
 } as const;
@@ -194,6 +230,24 @@ const MODEL = {
 
   RELIABILITY_PRIOR: 0.85,
   RELIABILITY_PRIOR_STRENGTH: 5,
+
+  /*
+   * Moto. La fuerza se mide con el puesto típico del constructor
+   * convertido a puntuación y referido a una escala fija: una
+   * mediana de 3º vale 1. Así el mejor constructor no vale 100
+   * por definición, solo si de verdad coloca a su piloto típico
+   * en el podio.
+   */
+  BIKE_REFERENCE_POSITION: 3,
+
+  /* Puestos de mejora interanual que saturan la escala (±). */
+  BIKE_IMPROVEMENT_RANGE: 4,
+
+  BIKE_WEIGHTS: {
+    season: 0.5,
+    circuit: 0.3,
+    improvement: 0.2,
+  },
 
   /* Temperatura del softmax que reparte la probabilidad de victoria. */
   PROBABILITY_TEMPERATURE: 0.1,
@@ -428,9 +482,7 @@ export function computeCircuit(
   const rawMean = weightedMean(values);
 
   const positions = started.map((result, index) => ({
-    value: didFinish(result)
-      ? (result.position as number)
-      : MODEL.DNF_POSITION,
+    value: effectivePosition(result),
     weight: values[index].weight,
   }));
 
@@ -558,46 +610,257 @@ export function computeReliability(
 }
 
 /**
- * Rendimiento de cada constructor en el circuito: media de la
- * puntuación de todos sus pilotos en las últimas ediciones,
- * normalizada para que el mejor constructor valga 1.
+ * Puesto de un resultado a efectos de regularidad y de moto:
+ * el real si terminó, un puesto de cola si abandonó.
  */
-export function computeBikeScores(
-  circuitResults: RaceResultInput[]
-): Map<string, number> {
-  const byConstructor = new Map<string, WeightedValue[]>();
+function effectivePosition(result: RaceResultInput): number {
+  return didFinish(result)
+    ? (result.position as number)
+    : MODEL.DNF_POSITION;
+}
 
-  for (const result of circuitResults) {
-    if (!result.constructorName || !didStart(result)) {
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+/**
+ * Puntuación de un puesto típico referida a la escala fija del
+ * modelo de moto (mediana de BIKE_REFERENCE_POSITION = 1).
+ */
+function bikeStrength(medianPosition: number | null): number {
+  if (medianPosition === null) {
+    return 0;
+  }
+
+  const reference = Math.exp(
+    -(MODEL.BIKE_REFERENCE_POSITION - 1) / MODEL.POSITION_DECAY
+  );
+
+  const value = Math.exp(-(medianPosition - 1) / MODEL.POSITION_DECAY);
+
+  return clamp(value / reference, 0, 1);
+}
+
+/**
+ * Puesto típico de un constructor: mediana de sus pilotos en
+ * cada carrera (así un piloto excepcional no arrastra a la
+ * marca, y los que se caen sí cuentan), promediada entre
+ * carreras con más peso en las recientes.
+ */
+function constructorMedianPosition(
+  results: RaceResultInput[],
+  recencyDecay: number
+): number | null {
+  const started = results.filter(didStart);
+
+  if (started.length === 0) {
+    return null;
+  }
+
+  const bySession = new Map<string, RaceResultInput[]>();
+
+  for (const result of started) {
+    const group = bySession.get(result.sessionKey) ?? [];
+
+    group.push(result);
+
+    bySession.set(result.sessionKey, group);
+  }
+
+  const sessions = [...bySession.values()].sort(
+    (a, b) => b[0].date.getTime() - a[0].date.getTime()
+  );
+
+  const values = sessions.map((group, sessionsAgo) => ({
+    value: median(group.map(effectivePosition)),
+    weight: sessionWeight(group[0]) * recencyDecay ** sessionsAgo,
+  }));
+
+  return weightedMean(values);
+}
+
+function groupByConstructor(
+  results: RaceResultInput[]
+): Map<string, RaceResultInput[]> {
+  const groups = new Map<string, RaceResultInput[]>();
+
+  for (const result of results) {
+    if (!result.constructorName) {
       continue;
     }
 
-    const group = byConstructor.get(result.constructorName) ?? [];
+    const group = groups.get(result.constructorName) ?? [];
 
-    group.push({
-      value: positionScore(result),
-      weight: sessionWeight(result),
-    });
+    group.push(result);
 
-    byConstructor.set(result.constructorName, group);
+    groups.set(result.constructorName, group);
   }
 
-  const means = new Map<string, number>();
-
-  for (const [constructorName, values] of byConstructor) {
-    means.set(constructorName, weightedMean(values));
-  }
-
-  const best = Math.max(0, ...means.values());
-
-  const scores = new Map<string, number>();
-
-  for (const [constructorName, mean] of means) {
-    scores.set(constructorName, best > 0 ? round(mean / best) : 0);
-  }
-
-  return scores;
+  return groups;
 }
+
+/**
+ * Mejora de los pilotos que repiten moto: media, por piloto,
+ * de los puestos ganados respecto a la temporada anterior con
+ * el mismo constructor. Como el piloto es el mismo, la
+ * diferencia se atribuye a la moto.
+ */
+function sameRiderImprovement(
+  currentResults: RaceResultInput[],
+  previousResults: RaceResultInput[]
+): number | null {
+  const averageByRider = (results: RaceResultInput[]) => {
+    const byRider = new Map<string, number[]>();
+
+    for (const result of results.filter(didStart)) {
+      const group = byRider.get(result.riderId) ?? [];
+
+      group.push(effectivePosition(result));
+
+      byRider.set(result.riderId, group);
+    }
+
+    return new Map(
+      [...byRider].map(([riderId, positions]) => [
+        riderId,
+        positions.reduce((sum, value) => sum + value, 0) / positions.length,
+      ])
+    );
+  };
+
+  const current = averageByRider(currentResults);
+  const previous = averageByRider(previousResults);
+
+  const deltas: number[] = [];
+
+  for (const [riderId, currentAverage] of current) {
+    const previousAverage = previous.get(riderId);
+
+    if (previousAverage !== undefined) {
+      deltas.push(previousAverage - currentAverage);
+    }
+  }
+
+  if (deltas.length === 0) {
+    return null;
+  }
+
+  return deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+}
+
+/**
+ * Componente moto de cada constructor.
+ *
+ * - Fuerza de temporada: puesto típico de sus pilotos este año.
+ * - Mejora interanual: puestos ganados respecto al año pasado,
+ *   combinando la mediana de la marca con la de los pilotos que
+ *   repiten moto. Pasar de un 7º constante a un 3º constante
+ *   con los mismos pilotos es mérito de la moto.
+ * - Circuito: puesto típico de la marca aquí en las últimas
+ *   ediciones (hay motos que van mejor en ciertos trazados).
+ */
+export function computeBikeComponents(
+  currentSeasonResults: RaceResultInput[],
+  previousSeasonResults: RaceResultInput[],
+  circuitResults: RaceResultInput[]
+): Map<string, BikeComponent> {
+  const current = groupByConstructor(currentSeasonResults);
+  const previous = groupByConstructor(previousSeasonResults);
+  const circuit = groupByConstructor(circuitResults);
+
+  const components = new Map<string, BikeComponent>();
+
+  for (const [constructorName, results] of current) {
+    const seasonMedian = constructorMedianPosition(
+      results,
+      MODEL.FORM_EVENT_DECAY
+    );
+
+    const previousMedian = constructorMedianPosition(
+      previous.get(constructorName) ?? [],
+      1
+    );
+
+    const circuitMedian = constructorMedianPosition(
+      circuit.get(constructorName) ?? [],
+      MODEL.CIRCUIT_YEAR_DECAY
+    );
+
+    const sameRiderDelta = sameRiderImprovement(
+      results,
+      previous.get(constructorName) ?? []
+    );
+
+    const medianDelta =
+      seasonMedian !== null && previousMedian !== null
+        ? previousMedian - seasonMedian
+        : null;
+
+    const improvement =
+      medianDelta === null
+        ? sameRiderDelta
+        : sameRiderDelta === null
+          ? medianDelta
+          : (medianDelta + sameRiderDelta) / 2;
+
+    const seasonStrength = bikeStrength(seasonMedian);
+
+    /*
+     * Sin ediciones recientes aquí (circuito nuevo) se asume que
+     * la moto rinde como en el resto de la temporada.
+     */
+    const circuitStrength =
+      circuitMedian !== null ? bikeStrength(circuitMedian) : seasonStrength;
+
+    const improvementScore =
+      improvement !== null
+        ? clamp(0.5 + improvement / (2 * MODEL.BIKE_IMPROVEMENT_RANGE), 0, 1)
+        : 0.5;
+
+    const score =
+      MODEL.BIKE_WEIGHTS.season * seasonStrength +
+      MODEL.BIKE_WEIGHTS.circuit * circuitStrength +
+      MODEL.BIKE_WEIGHTS.improvement * improvementScore;
+
+    components.set(constructorName, {
+      constructorName,
+      riders: new Set(results.map((result) => result.riderId)).size,
+      seasonMedianPosition:
+        seasonMedian !== null ? round(seasonMedian, 1) : null,
+      previousMedianPosition:
+        previousMedian !== null ? round(previousMedian, 1) : null,
+      improvement: improvement !== null ? round(improvement, 1) : null,
+      sameRiderImprovement:
+        sameRiderDelta !== null ? round(sameRiderDelta, 1) : null,
+      circuitMedianPosition:
+        circuitMedian !== null ? round(circuitMedian, 1) : null,
+      seasonStrength: round(seasonStrength),
+      circuitStrength: round(circuitStrength),
+      improvementScore: round(improvementScore),
+      score: round(score),
+    });
+  }
+
+  return components;
+}
+
+const EMPTY_BIKE: Omit<BikeComponent, "constructorName"> = {
+  riders: 0,
+  seasonMedianPosition: null,
+  previousMedianPosition: null,
+  improvement: null,
+  sameRiderImprovement: null,
+  circuitMedianPosition: null,
+  seasonStrength: 0,
+  circuitStrength: 0,
+  improvementScore: 0.5,
+  score: 0,
+};
 
 /*
  * ------------------------------------------------------------
@@ -608,7 +871,7 @@ export function computeBikeScores(
 export function computeFavorites(
   inputs: FavoriteInput[],
   currentSeasonYear: number,
-  bikeScores: Map<string, number>
+  bikeComponents: Map<string, BikeComponent>
 ): FavoriteOutput[] {
   const scored = inputs.map((input) => {
     const form = computeForm(input.seasonResults);
@@ -623,11 +886,11 @@ export function computeFavorites(
 
     const reliability = computeReliability(input.recentResults);
 
-    const bike: BikeComponent = {
+    const bike: BikeComponent = (input.constructorName
+      ? bikeComponents.get(input.constructorName)
+      : undefined) ?? {
       constructorName: input.constructorName,
-      score: input.constructorName
-        ? (bikeScores.get(input.constructorName) ?? 0)
-        : 0,
+      ...EMPTY_BIKE,
     };
 
     const index =

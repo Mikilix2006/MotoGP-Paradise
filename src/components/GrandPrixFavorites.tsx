@@ -62,8 +62,18 @@ function ScoreBar({
   );
 }
 
-function FavoriteDetails({ favorite }: { favorite: Favorite }) {
-  const { circuit, form, reliability, trend } = favorite.breakdown;
+function formatSigned(value: number): string {
+  return `${value > 0 ? "+" : ""}${value}`;
+}
+
+function FavoriteDetails({
+  favorite,
+  previousSeasonYear,
+}: {
+  favorite: Favorite;
+  previousSeasonYear: number;
+}) {
+  const { circuit, form, bike, reliability, trend } = favorite.breakdown;
 
   return (
     <div className="mt-4 space-y-5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
@@ -185,6 +195,75 @@ function FavoriteDetails({ favorite }: { favorite: Favorite }) {
         )}
       </div>
 
+      {/* MOTO */}
+      {bike.constructor_name && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+            La moto · {bike.constructor_name}
+          </p>
+
+          <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-2 text-xs">
+            <div>
+              <dt className="text-zinc-500">Puesto típico</dt>
+              <dd className="font-bold text-white">
+                {bike.season_median_position !== null
+                  ? `${Math.round(bike.season_median_position)}º`
+                  : "—"}
+                {bike.previous_median_position !== null && (
+                  <span className="ml-1 font-normal text-zinc-500">
+                    ({Math.round(bike.previous_median_position)}º en{" "}
+                    {previousSeasonYear})
+                  </span>
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt className="text-zinc-500">Mejora</dt>
+              <dd
+                className={`font-bold ${
+                  bike.improvement === null
+                    ? "text-white"
+                    : bike.improvement > 0
+                      ? "text-emerald-400"
+                      : bike.improvement < 0
+                        ? "text-red-400"
+                        : "text-white"
+                }`}
+              >
+                {bike.improvement !== null
+                  ? `${formatSigned(bike.improvement)} puestos`
+                  : "—"}
+              </dd>
+            </div>
+
+            <div>
+              <dt className="text-zinc-500">Aquí</dt>
+              <dd className="font-bold text-white">
+                {bike.circuit_median_position !== null
+                  ? `${Math.round(bike.circuit_median_position)}º típico`
+                  : "sin datos"}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+            Mediana de los {bike.riders} pilotos de la marca en cada carrera:
+            un piloto excepcional no cuenta como mérito de la moto.
+            {bike.same_rider_improvement !== null && (
+              <>
+                {" "}
+                Los que repiten moto han ganado{" "}
+                <span className="text-zinc-300">
+                  {formatSigned(bike.same_rider_improvement)} puestos
+                </span>{" "}
+                respecto al año pasado.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* TEMPORADA */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
@@ -249,6 +328,10 @@ export default function GrandPrixFavorites() {
   }, []);
 
   const favorites = data?.favorites ?? [];
+
+  const previousSeasonYear = data
+    ? Number(data.event.date_start.slice(0, 4)) - 1
+    : 0;
 
   const visible = showAll
     ? favorites
@@ -356,7 +439,12 @@ export default function GrandPrixFavorites() {
                   </div>
                 </button>
 
-                {isExpanded && <FavoriteDetails favorite={favorite} />}
+                {isExpanded && (
+                  <FavoriteDetails
+                    favorite={favorite}
+                    previousSeasonYear={previousSeasonYear}
+                  />
+                )}
               </div>
             );
           })}
@@ -378,11 +466,13 @@ export default function GrandPrixFavorites() {
       <p className="mt-8 flex gap-2 border-t border-white/10 pt-5 text-xs leading-relaxed text-zinc-500">
         <Info size={14} className="mt-0.5 shrink-0" />
         <span>
-          El índice combina historial en el circuito (40%), forma de la
-          temporada (35%), rendimiento de la moto aquí (10%), fiabilidad
-          (10%) y tendencia (5%). Los resultados irregulares y los
-          abandonos restan; un historial corto pesa menos que uno largo.
-          Pulsa un piloto para ver el desglose.
+          El índice combina historial en el circuito (35%), forma de la
+          temporada (30%), la moto (20%), fiabilidad (10%) y tendencia (5%).
+          Los resultados irregulares y los abandonos restan; un historial
+          corto pesa menos que uno largo. La moto se mide por el puesto
+          típico de todos sus pilotos y por su mejora respecto al año
+          anterior, no por su mejor piloto. Pulsa un piloto para ver el
+          desglose.
         </span>
       </p>
     </aside>

@@ -5,7 +5,7 @@ import { getCurrentSeason } from "./seasonRepository";
 import { findCurrentOrNextEventId } from "./nextGrandPrixRepository";
 
 import {
-  computeBikeScores,
+  computeBikeComponents,
   computeFavorites,
   didFinish,
   MODEL_WEIGHTS,
@@ -32,7 +32,7 @@ const GRID_LOOKBACK_EVENTS = 1;
 /* Temporadas (además de la actual) que alimentan la fiabilidad. */
 const RELIABILITY_SEASONS = 2;
 
-/* Ediciones del circuito que definen el rendimiento de cada moto. */
+/* Ediciones del circuito que definen el rendimiento de cada moto aquí. */
 const BIKE_SEASONS = 3;
 
 /* Resultados en el circuito que se devuelven por piloto. */
@@ -48,6 +48,7 @@ const HISTORY_LIMIT = 8;
  */
 const raceResultSelect = {
   riderId: true,
+  sessionId: true,
   position: true,
   status: true,
   constructorId: true,
@@ -77,6 +78,7 @@ const raceResultSelect = {
 
 type RaceResultRow = {
   riderId: string;
+  sessionId: string;
   position: number | null;
   status: string | null;
   constructorId: string | null;
@@ -111,6 +113,8 @@ function toModelInput(
   constructorNames: ConstructorNames
 ): RaceResultInput {
   return {
+    riderId: row.riderId,
+    sessionKey: row.sessionId,
     seasonYear: row.session.event.season.year,
 
     date:
@@ -368,16 +372,30 @@ export async function getNextGrandPrixFavorites(): Promise<FavoritesResponse | n
     (_, offset) => season.year - 1 - offset
   );
 
-  const [circuitRows, seasonRows, recentRows, bikeRows] =
-    await Promise.all([
-      loadRaceResults({ riderIds, circuitId: event.circuit.id }),
-      loadRaceResults({ riderIds, seasonYears: [season.year] }),
-      loadRaceResults({ riderIds, seasonYears: reliabilityYears }),
-      loadRaceResults({
-        circuitId: event.circuit.id,
-        seasonYears: bikeYears,
-      }),
-    ]);
+  /*
+   * Para la moto hacen falta los resultados de TODOS los pilotos
+   * (no solo los de la parrilla actual): la temporada en curso,
+   * la anterior para medir la mejora, y las últimas ediciones
+   * de este circuito.
+   */
+  const [
+    circuitRows,
+    seasonRows,
+    recentRows,
+    bikeSeasonRows,
+    bikePreviousRows,
+    bikeCircuitRows,
+  ] = await Promise.all([
+    loadRaceResults({ riderIds, circuitId: event.circuit.id }),
+    loadRaceResults({ riderIds, seasonYears: [season.year] }),
+    loadRaceResults({ riderIds, seasonYears: reliabilityYears }),
+    loadRaceResults({ seasonYears: [season.year] }),
+    loadRaceResults({ seasonYears: [season.year - 1] }),
+    loadRaceResults({
+      circuitId: event.circuit.id,
+      seasonYears: bikeYears,
+    }),
+  ]);
 
   const groupByRider = (rows: RaceResultRow[]) => {
     const groups = new Map<string, RaceResultInput[]>();
@@ -397,8 +415,13 @@ export async function getNextGrandPrixFavorites(): Promise<FavoritesResponse | n
   const seasonByRider = groupByRider(seasonRows);
   const recentByRider = groupByRider(recentRows);
 
-  const bikeScores = computeBikeScores(
-    bikeRows.map((row) => toModelInput(row, constructorNames))
+  const toInputs = (rows: RaceResultRow[]) =>
+    rows.map((row) => toModelInput(row, constructorNames));
+
+  const bikeComponents = computeBikeComponents(
+    toInputs(bikeSeasonRows),
+    toInputs(bikePreviousRows),
+    toInputs(bikeCircuitRows)
   );
 
   const inputs: FavoriteInput[] = grid.map((rider) => ({
@@ -409,7 +432,7 @@ export async function getNextGrandPrixFavorites(): Promise<FavoritesResponse | n
     constructorName: rider.constructorName,
   }));
 
-  const outputs = computeFavorites(inputs, season.year, bikeScores);
+  const outputs = computeFavorites(inputs, season.year, bikeComponents);
 
   const gridById = new Map(grid.map((rider) => [rider.id, rider]));
 
@@ -464,6 +487,15 @@ export async function getNextGrandPrixFavorites(): Promise<FavoritesResponse | n
 
         bike: {
           constructor_name: bike.constructorName,
+          riders: bike.riders,
+          season_median_position: bike.seasonMedianPosition,
+          previous_median_position: bike.previousMedianPosition,
+          improvement: bike.improvement,
+          same_rider_improvement: bike.sameRiderImprovement,
+          circuit_median_position: bike.circuitMedianPosition,
+          season_strength: bike.seasonStrength,
+          circuit_strength: bike.circuitStrength,
+          improvement_score: bike.improvementScore,
           score: bike.score,
         },
 
