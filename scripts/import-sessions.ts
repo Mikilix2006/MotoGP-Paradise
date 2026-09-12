@@ -1,11 +1,15 @@
 import { importSessions } from "../src/services/importers/sessionImporter";
 import { prisma } from "../src/lib/prisma";
 
+import { getSeasonYearArgument } from "../src/services/importers/cli";
+
 import {
   trackSyncRun,
 } from "../src/services/importers/syncTracking";
 
 async function main() {
+  const seasonYear = getSeasonYearArgument();
+
   console.log("🏁 Iniciando importación de sesiones...");
 
   const result = await trackSyncRun(
@@ -19,7 +23,7 @@ async function main() {
         updated: value.sessionsUpdated,
       }),
     },
-    importSessions
+    () => importSessions({ seasonYear })
   );
 
   console.log("\n✅ Importación completada");

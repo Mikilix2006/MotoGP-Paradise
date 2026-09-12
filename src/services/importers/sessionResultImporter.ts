@@ -100,12 +100,30 @@ function toNumber(value: number | string | null | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export async function importSessionResults(): Promise<SessionResultImportResult> {
+export interface ImportOptions {
+  /*
+   * Acota la importación a unas sesiones concretas (por id
+   * interno) o a una temporada. Sin opciones recorre todas las
+   * sesiones del histórico: miles de llamadas.
+   */
+  sessionIds?: string[];
+  seasonYear?: number;
+}
+
+export async function importSessionResults(
+  options: ImportOptions = {}
+): Promise<SessionResultImportResult> {
   const sessions = await prisma.session.findMany({
     where: {
       resultsUuid: {
         not: null,
       },
+
+      ...(options.sessionIds ? { id: { in: options.sessionIds } } : {}),
+
+      ...(options.seasonYear !== undefined
+        ? { event: { season: { year: options.seasonYear } } }
+        : {}),
     },
 
     include: {

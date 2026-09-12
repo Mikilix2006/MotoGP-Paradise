@@ -35,8 +35,28 @@ export interface SessionImportResult {
   eventsSkipped: number;
 }
 
-export async function importSessions(): Promise<SessionImportResult> {
+export interface ImportOptions {
+  /*
+   * Acota la importación a unos eventos concretos (por id
+   * interno) o a una temporada. Sin opciones recorre todo el
+   * histórico, que son miles de llamadas.
+   */
+  eventIds?: string[];
+  seasonYear?: number;
+}
+
+export async function importSessions(
+  options: ImportOptions = {}
+): Promise<SessionImportResult> {
   const eventCategories = await prisma.eventCategory.findMany({
+    where: {
+      ...(options.eventIds ? { eventId: { in: options.eventIds } } : {}),
+
+      ...(options.seasonYear !== undefined
+        ? { event: { season: { year: options.seasonYear } } }
+        : {}),
+    },
+
     include: {
       event: true,
       category: true,

@@ -1,5 +1,7 @@
 import { prisma } from "../src/lib/prisma";
 
+import { getSeasonYearArgument } from "../src/services/importers/cli";
+
 import {
   trackSyncRun,
 } from "../src/services/importers/syncTracking";
@@ -8,6 +10,8 @@ import {
 } from "../src/services/importers/riderStatisticsImporter";
 
 async function main() {
+  const seasonYear = getSeasonYearArgument();
+
   console.log(
     "🏁 Iniciando importación de estadísticas históricas de pilotos..."
   );
@@ -23,7 +27,7 @@ async function main() {
         updated: value.statisticsUpdated,
       }),
     },
-    importRiderStatistics
+    () => importRiderStatistics({ seasonYear })
   );
 
   console.log("\n✅ Importación completada");

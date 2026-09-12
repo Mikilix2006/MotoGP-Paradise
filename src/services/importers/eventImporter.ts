@@ -64,8 +64,19 @@ export interface EventImportResult {
   documentsProcessed: number;
 }
 
-export async function importEvents(): Promise<EventImportResult> {
+export interface ImportOptions {
+  seasonYear?: number;
+}
+
+export async function importEvents(
+  options: ImportOptions = {}
+): Promise<EventImportResult> {
   const seasons = await prisma.season.findMany({
+    where:
+      options.seasonYear !== undefined
+        ? { year: options.seasonYear }
+        : undefined,
+
     orderBy: {
       year: "asc",
     },

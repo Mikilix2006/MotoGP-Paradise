@@ -196,12 +196,22 @@ async function findEvent(
   return existingEvent?.id ?? null;
 }
 
-export async function importBmwAwardStandings(): Promise<BmwAwardImportResult> {
+export interface ImportOptions {
+  seasonYear?: number;
+}
+
+export async function importBmwAwardStandings(
+  options: ImportOptions = {}
+): Promise<BmwAwardImportResult> {
   const seasons = await prisma.season.findMany({
     where: {
       motogpUuid: {
         not: null,
       },
+
+      ...(options.seasonYear !== undefined
+        ? { year: options.seasonYear }
+        : {}),
     },
 
     orderBy: {

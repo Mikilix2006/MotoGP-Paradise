@@ -34,12 +34,44 @@ function normalizeName(value: string): string {
     .replace(/\s+/g, " ");
 }
 
-export async function importRiderStatistics(): Promise<RiderStatisticsImportResult> {
+export interface ImportOptions {
+  /*
+   * Acota a los pilotos con inscripción o resultados en la
+   * temporada indicada. Sin opción recorre todos los pilotos
+   * con legacyId: una llamada por piloto.
+   */
+  seasonYear?: number;
+}
+
+export async function importRiderStatistics(
+  options: ImportOptions = {}
+): Promise<RiderStatisticsImportResult> {
   const riders = await prisma.rider.findMany({
     where: {
       legacyId: {
         not: null,
       },
+
+      ...(options.seasonYear !== undefined
+        ? {
+            OR: [
+              {
+                seasonEntries: {
+                  some: { season: { year: options.seasonYear } },
+                },
+              },
+              {
+                sessionResults: {
+                  some: {
+                    session: {
+                      event: { season: { year: options.seasonYear } },
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
     },
 
     orderBy: {

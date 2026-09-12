@@ -17,7 +17,9 @@
     "import:rider-statistics": "tsx scripts/import-rider-statistics.ts",
     "import:championship-standings": "tsx scripts/import-championship-standings.ts",
     "import:bmw-award": "tsx scripts/import-bmw-award.ts",
-    "fix:duplicate-riders": "tsx scripts/merge-duplicate-riders.ts"
+    "fix:duplicate-riders": "tsx scripts/merge-duplicate-riders.ts",
+    "sync:sessions": "tsx scripts/watch-sessions.ts --once",
+    "watch:sessions": "tsx scripts/watch-sessions.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

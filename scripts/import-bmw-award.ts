@@ -1,5 +1,7 @@
 import { prisma } from "../src/lib/prisma";
 
+import { getSeasonYearArgument } from "../src/services/importers/cli";
+
 import {
   trackSyncRun,
 } from "../src/services/importers/syncTracking";
@@ -9,6 +11,8 @@ import {
 } from "../src/services/importers/bmwAwardImporter";
 
 async function main() {
+  const seasonYear = getSeasonYearArgument();
+
   console.log(
     "🏁 Iniciando importación de BMW Award..."
   );
@@ -24,7 +28,7 @@ async function main() {
         updated: value.standingsUpdated,
       }),
     },
-    importBmwAwardStandings
+    () => importBmwAwardStandings({ seasonYear })
   );
 
   console.log("\n=================================");

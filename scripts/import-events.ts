@@ -1,11 +1,15 @@
 import { importEvents } from "../src/services/importers/eventImporter";
 import { prisma } from "../src/lib/prisma";
 
+import { getSeasonYearArgument } from "../src/services/importers/cli";
+
 import {
   trackSyncRun,
 } from "../src/services/importers/syncTracking";
 
 async function main() {
+  const seasonYear = getSeasonYearArgument();
+
   console.log("🏁 Iniciando importación de eventos...");
 
   const result = await trackSyncRun(
@@ -19,7 +23,7 @@ async function main() {
         updated: value.eventsUpdated,
       }),
     },
-    importEvents
+    () => importEvents({ seasonYear })
   );
 
   console.log("\n✅ Importación completada");
