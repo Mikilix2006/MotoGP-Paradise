@@ -1,6 +1,6 @@
 ---
 name: frontend-guardian
-description: Usar proactivamente para construir o modificar la interfaz: componentes React en src/components/, páginas y rutas API en src/app/, repositorios de lectura en src/services/db/, y el manejo de estados de carga y error. Conoce la arquitectura de datos actual (la UI lee de PostgreSQL vía Prisma; la API externa solo la usan los importadores) y las convenciones de fetching del proyecto. Para revisar coherencia visual usa ui-design-guardian; para importadores o Prisma usa database-guardian.
+description: Usar proactivamente para construir o modificar la interfaz: componentes React en src/components/, páginas y rutas API en src/app/, repositorios de lectura en src/services/db/, y el manejo de estados de carga y error. Conoce la arquitectura de datos actual (la UI lee de PostgreSQL vía Prisma; la API externa solo la usan los importadores) y las convenciones de fetching del proyecto. Para revisar coherencia visual usa ui-design-guardian; para ejecutar o escribir importadores usa import-guardian; para el esquema y las migraciones usa database-guardian.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 ---
@@ -29,7 +29,7 @@ Reglas al escribir un repositorio nuevo:
 - Usa los uuids externos (`motogpUuid`, `resultsUuid`) como `id` en la respuesta, con el id interno como respaldo.
 - La categoría MotoGP se localiza por `Category.legacyId === 3`; la carrera principal es la sesión `type === "RAC"` y la sprint `type === "SPR"`.
 - Varios modelos tienen una relación llamada `constructor`: en los `include`/`select` de esos modelos añade `constructor: false` (o `true`) explícitamente o TypeScript fallará por el choque con `Object.prototype.constructor`.
-- Si un dato sale vacío (vueltas, imagen, dorsal), lo normal es que falte una importación, no un bug de la consulta: avisa y remite a `database-guardian`.
+- Si un dato sale vacío (vueltas, imagen, dorsal), lo normal es que falte una importación, no un bug de la consulta: avisa y remite a `import-guardian`.
 - **No incluyas la relación `constructor` en un `select`/`include` de resultados**: además del choque de tipos, Prisma deja de convertir las fechas de toda la fila en `Date`. Selecciona `constructorId` y resuelve el nombre aparte (ver [favoritesRepository.ts](src/services/db/favoritesRepository.ts)).
 
 ## Estructura
