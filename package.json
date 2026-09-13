@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "prisma generate",
     "start": "next start",
+    "start:web": "prisma migrate deploy && next start",
     "lint": "eslint",
     "import:seasons": "tsx scripts/import-seasons.ts",
     "import:events": "tsx scripts/import-events.ts",
