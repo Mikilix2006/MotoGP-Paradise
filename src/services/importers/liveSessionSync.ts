@@ -16,6 +16,10 @@ import { trackSyncRun } from "./syncTracking";
  * Mantiene la base de datos al día durante un fin de semana de
  * carreras sin recorrer el histórico:
  *
+ *   0. Refresca el estado de los eventos de la temporada
+ *      (NOT-STARTED → CURRENT → FINISHED) con una sola llamada,
+ *      para que la web muestre el GP "en curso" en cuanto MotoGP
+ *      lo marca así.
  *   1. Localiza los eventos "activos": los que están en curso
  *      según sus fechas (con un día de margen a cada lado).
  *   2. Refresca sus sesiones desde la API de resultados, que es
@@ -72,11 +76,23 @@ const REIMPORT_WINDOW_MS = 6 * 60 * 60 * 1000;
  */
 const GIVE_UP_AFTER_MS = 4 * 60 * 60 * 1000;
 
+/*
+ * Cadencia con la que se vuelve a leer el estado del evento
+ * mientras hay un fin de semana activo y no hay ninguna sesión
+ * inminente: así el paso a CURRENT (y luego a FINISHED) llega a
+ * la web sin esperar a la siguiente sesión.
+ */
+const EVENT_STATUS_POLL_MS = 30 * 60 * 1000;
+
 const RACE_TYPES = new Set(["RAC", "SPR"]);
 
 export interface LiveSyncResult {
   seasonYear: number | null;
   activeEvents: string[];
+
+  /** Eventos cuyo estado ha cambiado en este ciclo ("RSM: NOT-STARTED → CURRENT"). */
+  eventStatusChanges: string[];
+
   sessionsRefreshed: number;
 
   /** Sesiones cuya clasificación se ha importado en este ciclo. */
@@ -224,6 +240,7 @@ async function findActiveEvents(seasonId: string, now: Date) {
     select: {
       id: true,
       shortName: true,
+      status: true,
       dateStart: true,
       dateEnd: true,
     },
@@ -243,8 +260,9 @@ async function findActiveEvents(seasonId: string, now: Date) {
 }
 
 /**
- * Primer instante de sesión del siguiente evento de la temporada,
- * para dormir hasta entonces cuando no hay nada activo.
+ * Cuándo despertar cuando no hay ningún evento activo: al abrirse
+ * la ventana del siguiente evento (para captar su paso a CURRENT)
+ * o, si ya está abierta, al fin previsto de su primera sesión.
  */
 async function findNextSessionStart(
   seasonId: string,
@@ -257,7 +275,7 @@ async function findNextSessionStart(
       dateStart: { gt: new Date(now.getTime() - EVENT_ACTIVE_MARGIN_MS) },
     },
 
-    select: { id: true, shortName: true },
+    select: { id: true, shortName: true, dateStart: true },
 
     orderBy: { dateStart: "asc" },
 
@@ -265,6 +283,17 @@ async function findNextSessionStart(
   });
 
   for (const event of upcoming) {
+    const windowOpensAt = new Date(
+      (event.dateStart as Date).getTime() - EVENT_ACTIVE_MARGIN_MS
+    );
+
+    if (windowOpensAt > now) {
+      return {
+        at: windowOpensAt,
+        label: `inicio de la semana de ${event.shortName ?? "?"}`,
+      };
+    }
+
     const windows = await loadSessionWindows([event.id]);
 
     const next = windows.find((window) => window.endsAt > now);
@@ -272,12 +301,44 @@ async function findNextSessionStart(
     if (next) {
       return {
         at: new Date(next.endsAt.getTime() + AFTER_SESSION_BUFFER_MS),
-        label: next.label,
+        label: `fin previsto de ${next.label}`,
       };
     }
   }
 
   return null;
+}
+
+/**
+ * Refresca el estado de los eventos de la temporada y devuelve
+ * los cambios de estado detectados.
+ */
+async function refreshEventStatuses(
+  seasonId: string,
+  seasonYear: number
+): Promise<string[]> {
+  const before = await prisma.event.findMany({
+    where: { seasonId, isTest: false },
+    select: { id: true, shortName: true, status: true },
+  });
+
+  await importEvents({ seasonYear });
+
+  const after = await prisma.event.findMany({
+    where: { id: { in: before.map((event) => event.id) } },
+    select: { id: true, status: true },
+  });
+
+  const statusAfter = new Map(after.map((event) => [event.id, event.status]));
+
+  return before
+    .filter((event) => statusAfter.get(event.id) !== event.status)
+    .map(
+      (event) =>
+        `${event.shortName ?? event.id}: ${event.status ?? "?"} → ${
+          statusAfter.get(event.id) ?? "?"
+        }`
+    );
 }
 
 export async function syncLiveSessions(
@@ -291,6 +352,7 @@ export async function syncLiveSessions(
     return {
       seasonYear: null,
       activeEvents: [],
+      eventStatusChanges: [],
       sessionsRefreshed: 0,
       sessionsImported: [],
       sessionsAwaitingResults: [],
@@ -300,6 +362,14 @@ export async function syncLiveSessions(
     };
   }
 
+  /*
+   * 0. Estado de los eventos (una llamada a /events?seasonUuid=).
+   */
+  const eventStatusChanges = await refreshEventStatuses(
+    season.id,
+    season.year
+  );
+
   const activeEvents = await findActiveEvents(season.id, now);
 
   if (activeEvents.length === 0) {
@@ -308,13 +378,14 @@ export async function syncLiveSessions(
     return {
       seasonYear: season.year,
       activeEvents: [],
+      eventStatusChanges,
       sessionsRefreshed: 0,
       sessionsImported: [],
       sessionsAwaitingResults: [],
       postRaceChainExecuted: false,
       nextWakeAt: next?.at ?? null,
       nextWakeReason: next
-        ? `fin previsto de ${next.label}`
+        ? next.label
         : "no quedan sesiones en la temporada",
     };
   }
@@ -392,7 +463,6 @@ export async function syncLiveSessions(
         getStats: () => ({ processed: sessionsImported.length }),
       },
       async () => {
-        await importEvents({ seasonYear: season.year });
         await importRiderStatistics({ seasonYear: season.year });
         await importChampionshipStandings({ seasonYear: season.year });
         await importBmwAwardStandings({ seasonYear: season.year });
@@ -420,18 +490,40 @@ export async function syncLiveSessions(
 
   let { nextWakeAt, nextWakeReason } = planNextWake(refreshedWindows, now);
 
+  /*
+   * Mientras el fin de semana está activo y el evento aún no está
+   * FINISHED, el estado puede cambiar en cualquier momento (paso
+   * a CURRENT antes de la primera sesión, a FINISHED tras la
+   * carrera): no dormir más de EVENT_STATUS_POLL_MS.
+   */
+  const eventStillOpen = activeEvents.some(
+    (event) => event.status !== "FINISHED"
+  );
+
+  if (eventStillOpen) {
+    const statusPollAt = new Date(now.getTime() + EVENT_STATUS_POLL_MS);
+
+    if (!nextWakeAt || statusPollAt < nextWakeAt) {
+      nextWakeAt = statusPollAt;
+      nextWakeReason = `comprobar estado de ${activeEvents
+        .map((event) => event.shortName ?? "?")
+        .join(", ")}`;
+    }
+  }
+
   if (!nextWakeAt) {
     const next = await findNextSessionStart(season.id, now);
 
     if (next) {
       nextWakeAt = next.at;
-      nextWakeReason = `fin previsto de ${next.label}`;
+      nextWakeReason = next.label;
     }
   }
 
   return {
     seasonYear: season.year,
     activeEvents: activeEvents.map((event) => event.shortName ?? event.id),
+    eventStatusChanges,
     sessionsRefreshed: sessionsResult.sessionsProcessed,
     sessionsImported,
     sessionsAwaitingResults,

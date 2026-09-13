@@ -47,6 +47,10 @@ function report(result: LiveSyncResult): void {
     );
   }
 
+  for (const change of result.eventStatusChanges) {
+    console.log(`  🚦 Estado del evento: ${change}`);
+  }
+
   for (const label of result.sessionsImported) {
     console.log(`  ✅ Resultados importados: ${label}`);
   }
@@ -57,7 +61,7 @@ function report(result: LiveSyncResult): void {
 
   if (result.postRaceChainExecuted) {
     console.log(
-      "  🏁 Carrera importada: estado del evento, estadísticas, campeonato y BMW Award actualizados"
+      "  🏁 Carrera importada: estadísticas, campeonato y BMW Award actualizados"
     );
   }
 

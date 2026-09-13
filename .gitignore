@@ -35,3 +35,5 @@ Thumbs.db
 
 # claude code local settings
 .claude/settings.local.json
+# Logs del vigilante de sesiones
+logs/

@@ -177,11 +177,23 @@ async function loadCurrentGrid(
   seasonId: string,
   constructorNames: ConstructorNames
 ) {
+  /*
+   * La última cita disputada se decide por su carrera de MotoGP
+   * (FINISHED), no por el estado del evento: MotoGP mantiene el
+   * evento en CURRENT hasta bastante después del domingo.
+   */
   const lastEvents = await prisma.event.findMany({
     where: {
       seasonId,
       isTest: false,
-      status: "FINISHED",
+
+      sessions: {
+        some: {
+          type: "RAC",
+          category: { legacyId: MOTOGP_CATEGORY_LEGACY_ID },
+          status: "FINISHED",
+        },
+      },
     },
 
     orderBy: {

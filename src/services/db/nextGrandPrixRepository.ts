@@ -114,9 +114,14 @@ function toDateOnly(date: Date | null): string {
 }
 
 /**
- * Selecciona el Gran Premio a mostrar: el que está en curso
- * (CURRENT) y, si no hay ninguno, el próximo por fecha
- * (NOT-STARTED). Los tests de pretemporada no cuentan.
+ * Selecciona el Gran Premio a mostrar.
+ *
+ * El estado que da la API no basta: MotoGP mantiene el evento en
+ * CURRENT hasta bastante después de la carrera del domingo. Por
+ * eso se elige el primer evento (por fecha) cuya carrera de MotoGP
+ * aún no está FINISHED: durante el fin de semana es el GP en
+ * curso y, en cuanto acaba la carrera, pasa a ser el siguiente.
+ * Los tests de pretemporada no cuentan.
  *
  * Devuelve solo el id para que otros repositorios (favoritos,
  * etc.) puedan cargar del evento lo que necesiten.
@@ -124,6 +129,37 @@ function toDateOnly(date: Date | null): string {
 export async function findCurrentOrNextEventId(
   seasonId: string
 ): Promise<string | null> {
+  const withPendingRace = await prisma.event.findFirst({
+    where: {
+      seasonId,
+      isTest: false,
+
+      sessions: {
+        some: {
+          type: RACE_SESSION_TYPE,
+          category: { legacyId: MOTOGP_CATEGORY_LEGACY_ID },
+          status: { not: "FINISHED" },
+        },
+      },
+    },
+
+    orderBy: {
+      dateStart: "asc",
+    },
+
+    select: {
+      id: true,
+    },
+  });
+
+  if (withPendingRace) {
+    return withPendingRace.id;
+  }
+
+  /*
+   * Sin carreras pendientes (fin de temporada o sesiones aún sin
+   * importar): se recurre al estado que da la API.
+   */
   for (const status of ["CURRENT", "NOT-STARTED"]) {
     const event = await prisma.event.findFirst({
       where: {
