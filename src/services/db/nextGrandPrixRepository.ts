@@ -416,6 +416,9 @@ function toNextGrandPrixData(
 export interface CalendarEvent extends NextGrandPrixData {
   sessions: CalendarSession[];
 
+  /** Zona IANA del circuito (llega en mayúsculas, p. ej. "ASIA/TOKYO"); null si no hay. */
+  time_zone: string | null;
+
   /**
    * true solo en el "próximo GP", con la MISMA definición que la
    * portada (findCurrentOrNextEventId: primer evento por fecha, no
@@ -663,6 +666,7 @@ export async function getSeasonEvents(): Promise<CalendarEvent[]> {
           {
             ...base,
             sessions: toCalendarSessions(event),
+            time_zone: event.timeZone ?? null,
             is_next_gp:
               nextEventId !== null && event.id === nextEventId,
           },

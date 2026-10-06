@@ -33,8 +33,13 @@ interface CalendarEventData {
     place: string;
   };
   sessions?: CalendarSession[];
+  // Zona IANA del circuito (llega en mayúsculas, p. ej. "ASIA/TOKYO"); null si no hay.
+  time_zone: string | null;
   is_next_gp: boolean;
 }
+
+// Zona en la que se muestran las horas: la del usuario o la del circuito.
+type TimeMode = "tu" | "circuito";
 
 interface ApiResponse {
   data: CalendarEventData[];
@@ -188,21 +193,87 @@ function getRound(legacyIds: CalendarEventData["legacy_id"]) {
   return legacyIds[0].eventId;
 }
 
-// Horarios de sesiones. La hora se muestra siempre en hora peninsular; las
-// columnas se agrupan por el día LOCAL del circuito (weekday: 0=domingo…6=sábado).
-const HORA_PENINSULAR = new Intl.DateTimeFormat("es-ES", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: "Europe/Madrid",
-});
-
-const DAY_COLUMNS = [
-  { weekday: 4, label: "Jueves" },
-  { weekday: 5, label: "Viernes" },
-  { weekday: 6, label: "Sábado" },
-  { weekday: 0, label: "Domingo" },
+// Horarios de sesiones. Las horas se muestran en la zona del modo activo ("tu
+// hora" o "hora local del circuito") y las columnas son los DÍAS en esa zona.
+const WEEKDAY_NAMES = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
 ];
+
+// Los formateadores Intl son caros de crear: se reutilizan por tipo y zona.
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(
+  kind: string,
+  locale: string,
+  zone: string | undefined,
+  options: Intl.DateTimeFormatOptions
+) {
+  const key = `${kind}|${zone ?? ""}`;
+  let formatter = formatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone: zone });
+    formatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
+// Zona del usuario según el navegador (undefined = la que Intl use por defecto).
+function getUserZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Zona IANA válida para Intl (la de la BD llega en mayúsculas y se acepta tal cual).
+function validZone(zone: string | null | undefined): string | null {
+  if (!zone) return null;
+  try {
+    new Intl.DateTimeFormat("es-ES", { timeZone: zone });
+    return zone;
+  } catch {
+    return null;
+  }
+}
+
+// Fecha AAAA-MM-DD del instante en la zona dada.
+function getDayKey(date: Date, zone: string | undefined) {
+  const parts = getFormatter("dia", "en-CA", zone, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function getWeekdayLabel(date: Date, zone: string | undefined) {
+  const name = getFormatter("semana", "es-ES", zone, {
+    weekday: "long",
+  }).format(date);
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// Desfase legible ("UTC+2", "UTC+5:30", "UTC-7") de la zona en ese instante.
+function getOffsetLabel(date: Date, zone: string | undefined) {
+  const raw =
+    getFormatter("offset", "en-US", zone, { timeZoneName: "longOffset" })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value ?? "GMT";
+  const match = raw.match(/GMT([+\-−])(\d{1,2})(?::(\d{2}))?/);
+  if (!match) return "UTC+0";
+  const sign = match[1] === "+" ? "+" : "-";
+  const minutes = match[3] && match[3] !== "00" ? `:${match[3]}` : "";
+  return `UTC${sign}${Number(match[2])}${minutes}`;
+}
 
 const SESSION_LABELS: Record<string, string> = {
   FP1: "FP1",
@@ -225,52 +296,153 @@ const GRID_COLS: Record<number, string> = {
   4: "grid-cols-4",
 };
 
-function formatSessionTime(date: string | null) {
+function formatSessionTime(date: string | null, zone: string | undefined) {
   if (!date) return "—";
   const parsed = new Date(date);
-  return Number.isNaN(parsed.getTime()) ? "—" : HORA_PENINSULAR.format(parsed);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return getFormatter("hora", "es-ES", zone, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(parsed);
 }
 
 // Cada día es una lista independiente (las sesiones de distintas columnas no
 // se corresponden fila a fila), así que se usa una <ol> por día y no una tabla.
-// El orden viene ya cronológico de la API (mezclando categorías).
-type ScheduleColumn = (typeof DAY_COLUMNS)[number] & {
+// El orden dentro de cada columna es el cronológico que ya trae la API.
+interface ScheduleColumn {
+  key: string;
+  label: string;
   sessions: CalendarSession[];
-};
-
-function getScheduleColumns(sessions: CalendarSession[] | undefined): ScheduleColumn[] {
-  return DAY_COLUMNS.map((day) => ({
-    ...day,
-    sessions: (sessions ?? []).filter((session) => session.weekday === day.weekday),
-  })).filter((column) => column.sessions.length > 0);
 }
+
+// Columnas = días en la zona mostrada (en "tu hora", una sesión del viernes del
+// circuito puede caer en jueves). Se ordenan por fecha, no por día de la semana.
+// Las sesiones sin fecha válida se muestran como "—" bajo el día local del
+// circuito (weekday), al final; sin weekday tampoco se muestran (como antes).
+function getScheduleColumns(
+  sessions: CalendarSession[] | undefined,
+  zone: string | undefined
+): ScheduleColumn[] {
+  const dated = new Map<string, ScheduleColumn>();
+  const undated = new Map<number, ScheduleColumn>();
+
+  for (const session of sessions ?? []) {
+    const parsed = session.date_start ? new Date(session.date_start) : null;
+
+    if (parsed && !Number.isNaN(parsed.getTime())) {
+      const key = getDayKey(parsed, zone);
+      const column = dated.get(key) ?? {
+        key,
+        label: getWeekdayLabel(parsed, zone),
+        sessions: [],
+      };
+      column.sessions.push(session);
+      dated.set(key, column);
+    } else if (session.weekday !== null && WEEKDAY_NAMES[session.weekday]) {
+      const column = undated.get(session.weekday) ?? {
+        key: `sin-fecha-${session.weekday}`,
+        label: WEEKDAY_NAMES[session.weekday],
+        sessions: [],
+      };
+      column.sessions.push(session);
+      undated.set(session.weekday, column);
+    }
+  }
+
+  return [
+    ...[...dated.values()].sort((a, b) =>
+      a.key < b.key ? -1 : a.key > b.key ? 1 : 0
+    ),
+    ...[...undated.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, column]) => column),
+  ];
+}
+
+const MODE_BUTTON_BASE =
+  "rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50";
 
 function SessionSchedule({
   columns,
   idPrefix,
+  zone,
+  mode,
+  circuitAvailable,
+  offsetLabel,
+  onModeChange,
 }: {
   columns: ScheduleColumn[];
   idPrefix: string;
+  zone: string | undefined;
+  // Modo efectivo (sin zona del circuito válida siempre es "tu").
+  mode: TimeMode;
+  circuitAvailable: boolean;
+  offsetLabel: string;
+  onModeChange: (mode: TimeMode) => void;
 }) {
+  const modeText = mode === "tu" ? "Tu hora" : "Hora local del circuito";
+
   return (
     <div className="border-t border-white/10 pt-4">
-      <p className="text-xs uppercase tracking-widest text-zinc-500">
-        Horarios · Hora peninsular
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-xs uppercase tracking-widest text-zinc-500">
+          Horarios · {modeText} ({offsetLabel})
+        </p>
+        <div
+          role="group"
+          aria-label="Zona horaria de los horarios"
+          className="inline-flex rounded-lg border border-white/10 bg-white/5 p-0.5"
+        >
+          <button
+            type="button"
+            aria-pressed={mode === "tu"}
+            onClick={() => onModeChange("tu")}
+            className={`${MODE_BUTTON_BASE} cursor-pointer ${
+              mode === "tu"
+                ? "bg-white/10 text-white"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            TU HORA
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "circuito"}
+            aria-disabled={!circuitAvailable}
+            disabled={!circuitAvailable}
+            title={
+              circuitAvailable
+                ? "Mostrar las horas en la zona horaria del circuito"
+                : "No se conoce la zona horaria de este circuito"
+            }
+            onClick={() => onModeChange("circuito")}
+            className={`${MODE_BUTTON_BASE} ${
+              !circuitAvailable
+                ? "cursor-not-allowed text-zinc-600"
+                : mode === "circuito"
+                  ? "cursor-pointer bg-white/10 text-white"
+                  : "cursor-pointer text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            HORA LOCAL
+          </button>
+        </div>
+      </div>
       <div
         role="group"
-        aria-label="Horarios de las sesiones de Moto3, Moto2 y MotoGP en hora peninsular"
-        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] ${GRID_COLS[columns.length]}`}
+        aria-label={`Horarios de las sesiones de Moto3, Moto2 y MotoGP en ${modeText.toLowerCase()}`}
+        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] ${GRID_COLS[Math.min(columns.length, 4)]}`}
       >
         {columns.map((column) => (
-          <div key={column.weekday} className="min-w-0">
+          <div key={column.key} className="min-w-0">
             <h4
-              id={`${idPrefix}-dia-${column.weekday}`}
+              id={`${idPrefix}-dia-${column.key}`}
               className="border-b border-white/5 px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:px-3"
             >
               {column.label}
             </h4>
-            <ol aria-labelledby={`${idPrefix}-dia-${column.weekday}`}>
+            <ol aria-labelledby={`${idPrefix}-dia-${column.key}`}>
               {column.sessions.map((session) => {
                 const key = session.shortname.trim();
                 const highlight = key === "RAC" || key === "RAC2" || key === "SPR";
@@ -286,7 +458,7 @@ function SessionSchedule({
                         finished ? "text-zinc-400" : "text-white"
                       }`}
                     >
-                      {formatSessionTime(session.date_start)}
+                      {formatSessionTime(session.date_start, zone)}
                     </span>
                     <span className="block min-w-0 text-[10px] font-bold uppercase leading-tight tracking-wider sm:text-xs">
                       <span
@@ -332,8 +504,15 @@ function EventCard({
   event,
   idPrefix = "horarios",
   featured = false,
+  mode,
+  userZone,
+  onModeChange,
 }: {
   event: CalendarEventData;
+  // Estado compartido por todas las cards (vive en CalendarView).
+  mode: TimeMode;
+  userZone: string | undefined;
+  onModeChange: (mode: TimeMode) => void;
   idPrefix?: string;
   // Card destacada del próximo GP: borde rojo y resplandor diagonal, como la
   // card principal del inicio.
@@ -341,7 +520,20 @@ function EventCard({
 }) {
   const [open, setOpen] = useState(false);
   const round = getRound(event.legacy_id);
-  const columns = getScheduleColumns(event.sessions);
+  // Sin zona del circuito válida el conmutador queda deshabilitado y se usa "tu hora".
+  const circuitZone = validZone(event.time_zone);
+  const effectiveMode: TimeMode = circuitZone ? mode : "tu";
+  const zone = effectiveMode === "circuito" ? (circuitZone ?? undefined) : userZone;
+  const columns = getScheduleColumns(event.sessions, zone);
+  // El desfase puede variar con el horario de verano: se calcula en la fecha de
+  // la primera sesión del evento.
+  const firstSession = (event.sessions ?? []).find(
+    (session) => session.date_start && !Number.isNaN(new Date(session.date_start).getTime())
+  );
+  const offsetLabel = getOffsetLabel(
+    firstSession?.date_start ? new Date(firstSession.date_start) : new Date(`${event.date_start}T12:00:00Z`),
+    zone
+  );
   const expandable = columns.length > 0;
   const panelId = `${idPrefix}-${event.id}`;
 
@@ -439,7 +631,15 @@ function EventCard({
         >
           <div className="min-h-0 overflow-hidden">
             <div className="px-5 pb-5">
-              <SessionSchedule columns={columns} idPrefix={panelId} />
+              <SessionSchedule
+                columns={columns}
+                idPrefix={panelId}
+                zone={zone}
+                mode={effectiveMode}
+                circuitAvailable={circuitZone !== null}
+                offsetLabel={offsetLabel}
+                onModeChange={onModeChange}
+              />
             </div>
           </div>
         </div>
@@ -462,6 +662,11 @@ export function CalendarView() {
   const [events, setEvents] = useState<CalendarEventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Modo de zona horaria compartido por todas las cards. No se persiste (opción
+  // futura: localStorage con try/catch). La zona del usuario solo se usa tras el
+  // fetch en el navegador, así que no hay desajuste de hidratación.
+  const [mode, setMode] = useState<TimeMode>("tu");
+  const [userZone] = useState(getUserZone);
 
   useEffect(() => {
     async function loadEvents() {
@@ -520,7 +725,14 @@ export function CalendarView() {
           <h2 className="mb-4 text-xs font-bold uppercase tracking-[.22em] text-red-500">
             Próximo Gran Premio
           </h2>
-          <EventCard event={nextGp} idPrefix="proximo" featured />
+          <EventCard
+            event={nextGp}
+            idPrefix="proximo"
+            featured
+            mode={mode}
+            userZone={userZone}
+            onModeChange={setMode}
+          />
           <div className="mb-8 mt-10 border-t border-white/10" />
         </>
       )}
@@ -530,7 +742,13 @@ export function CalendarView() {
       </h2>
       <div className="grid gap-4">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard
+            key={event.id}
+            event={event}
+            mode={mode}
+            userZone={userZone}
+            onModeChange={setMode}
+          />
         ))}
       </div>
     </div>
