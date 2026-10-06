@@ -63,3 +63,25 @@ legacy_id: LegacyEventId[];
 
 status: string;
 }
+
+/**
+ * Sesión (Moto3, Moto2 o MotoGP) dentro del calendario. `date_start` es el
+ * instante absoluto correcto (ISO UTC) ya convertido desde la hora
+ * local del circuito; null si el evento no tiene zona horaria o la
+ * sesión no tiene fecha. `weekday` es el día de la semana LOCAL del
+ * circuito (0 = domingo ... 6 = sábado), para agrupar por días
+ * Viernes/Sábado/Domingo sin depender de la zona del usuario.
+ */
+export interface CalendarSession {
+id: string;
+shortname: string;
+name: string;
+type: string;
+status: string;
+date_start: string | null;
+weekday: number | null;
+/** Categoría para mostrar tal cual: "MotoGP", "Moto2" o "Moto3". */
+category: string;
+/** Id legacy de la categoría: 1 = Moto3, 2 = Moto2, 3 = MotoGP. */
+category_legacy_id: number;
+}

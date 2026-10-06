@@ -7,9 +7,11 @@ import {
   LoaderCircle,
   CheckCircle2,
   Clock,
+  ChevronDown,
 } from "lucide-react";
+import type { CalendarSession } from "@/types/grandPrix";
 
-interface Event {
+interface CalendarEventData {
   id: string;
   sponsored_name: string;
   name: string;
@@ -30,10 +32,11 @@ interface Event {
     name: string;
     place: string;
   };
+  sessions?: CalendarSession[];
 }
 
 interface ApiResponse {
-  data: Event[];
+  data: CalendarEventData[];
 }
 
 function formatDate(date: string) {
@@ -178,15 +181,260 @@ function CountryFlag({
   );
 }
 
-function getRound(legacyIds: Event["legacy_id"]) {
+function getRound(legacyIds: CalendarEventData["legacy_id"]) {
   if (!legacyIds || legacyIds.length === 0) {
     return null;
   }
   return legacyIds[0].eventId;
 }
 
+// Horarios de sesiones. La hora se muestra siempre en hora peninsular; las
+// columnas se agrupan por el día LOCAL del circuito (weekday: 0=domingo…6=sábado).
+const HORA_PENINSULAR = new Intl.DateTimeFormat("es-ES", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "Europe/Madrid",
+});
+
+const DAY_COLUMNS = [
+  { weekday: 4, label: "Jueves" },
+  { weekday: 5, label: "Viernes" },
+  { weekday: 6, label: "Sábado" },
+  { weekday: 0, label: "Domingo" },
+];
+
+const SESSION_LABELS: Record<string, string> = {
+  FP1: "FP1",
+  FP2: "FP2",
+  PR: "Práctica",
+  Q1: "Q1",
+  Q2: "Q2",
+  SPR: "Sprint",
+  WUP: "Warm Up",
+  RAC: "Carrera",
+  // RAC2 es la carrera reiniciada y la única de su categoría en ese evento.
+  RAC2: "Carrera",
+};
+
+// Clases estáticas (Tailwind no detecta nombres construidos dinámicamente).
+const GRID_COLS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+};
+
+function formatSessionTime(date: string | null) {
+  if (!date) return "—";
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? "—" : HORA_PENINSULAR.format(parsed);
+}
+
+// Cada día es una lista independiente (las sesiones de distintas columnas no
+// se corresponden fila a fila), así que se usa una <ol> por día y no una tabla.
+// El orden viene ya cronológico de la API (mezclando categorías).
+type ScheduleColumn = (typeof DAY_COLUMNS)[number] & {
+  sessions: CalendarSession[];
+};
+
+function getScheduleColumns(sessions: CalendarSession[] | undefined): ScheduleColumn[] {
+  return DAY_COLUMNS.map((day) => ({
+    ...day,
+    sessions: (sessions ?? []).filter((session) => session.weekday === day.weekday),
+  })).filter((column) => column.sessions.length > 0);
+}
+
+function SessionSchedule({
+  columns,
+  idPrefix,
+}: {
+  columns: ScheduleColumn[];
+  idPrefix: string;
+}) {
+  return (
+    <div className="border-t border-white/10 pt-4">
+      <p className="text-xs uppercase tracking-widest text-zinc-500">
+        Horarios · Hora peninsular
+      </p>
+      <div
+        role="group"
+        aria-label="Horarios de las sesiones de Moto3, Moto2 y MotoGP en hora peninsular"
+        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] ${GRID_COLS[columns.length]}`}
+      >
+        {columns.map((column) => (
+          <div key={column.weekday} className="min-w-0">
+            <h4
+              id={`${idPrefix}-dia-${column.weekday}`}
+              className="border-b border-white/5 px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:px-3"
+            >
+              {column.label}
+            </h4>
+            <ol aria-labelledby={`${idPrefix}-dia-${column.weekday}`}>
+              {column.sessions.map((session) => {
+                const key = session.shortname.trim();
+                const highlight = key === "RAC" || key === "RAC2" || key === "SPR";
+                const finished = session.status === "FINISHED";
+                const motogp = session.category === "MotoGP";
+                return (
+                  <li
+                    key={session.id}
+                    className="border-b border-white/5 px-2 py-1.5 last:border-b-0 sm:flex sm:items-baseline sm:gap-3 sm:px-3"
+                  >
+                    <span
+                      className={`block text-sm font-bold tabular-nums sm:w-11 sm:shrink-0 ${
+                        finished ? "text-zinc-400" : "text-white"
+                      }`}
+                    >
+                      {formatSessionTime(session.date_start)}
+                    </span>
+                    <span className="block min-w-0 text-[10px] font-bold uppercase leading-tight tracking-wider sm:text-xs">
+                      <span
+                        className={
+                          motogp && !finished ? "text-white" : "text-zinc-500"
+                        }
+                      >
+                        {session.category}
+                      </span>{" "}
+                      <span
+                        className={`whitespace-nowrap ${
+                          highlight
+                            ? "text-red-400"
+                            : finished
+                              ? "text-zinc-500"
+                              : motogp
+                                ? "text-zinc-300"
+                                : "text-zinc-400"
+                        }`}
+                      >
+                        {SESSION_LABELS[key] ?? key}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Card de un GP. Con horarios, la cabecera es un botón que despliega la tabla
+// (estado propio por card: pueden estar abiertas varias a la vez). El h3 envuelve
+// al botón (patrón de acordeón WAI-ARIA) para no perder la navegación por
+// encabezados; dentro del botón solo hay spans (contenido de frase válido).
+function EventCard({ event }: { event: CalendarEventData }) {
+  const [open, setOpen] = useState(false);
+  const round = getRound(event.legacy_id);
+  const columns = getScheduleColumns(event.sessions);
+  const expandable = columns.length > 0;
+  const panelId = `horarios-${event.id}`;
+
+  const header = (
+    <>
+      <span className="flex flex-wrap items-center gap-3 pr-14">
+        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+          {round ? `ROUND ${round}` : event.short_name}
+        </span>
+        {getStatusBadge(event.status)}
+      </span>
+
+      <span className="mt-4 block text-xl font-bold text-white md:text-2xl">
+        {event.sponsored_name || event.name}
+      </span>
+
+      <span className="mt-4 grid gap-3 sm:grid-cols-2">
+        <span className="flex gap-2">
+          <MapPin size={16} className="mt-1 shrink-0 text-red-500" />
+          <span className="block text-sm">
+            <span className="block font-semibold text-zinc-100">
+              {event.circuit.name}
+            </span>
+            <span className="block font-normal text-zinc-500">
+              {event.circuit.place}, {event.country.name}
+            </span>
+          </span>
+        </span>
+
+        <span className="flex gap-2">
+          <CalendarDays size={16} className="mt-1 shrink-0 text-red-500" />
+          <span className="block text-sm">
+            <span className="block font-semibold text-zinc-100">
+              {formatDate(event.date_start)}
+            </span>
+            <span className="block font-normal text-zinc-500">
+              hasta {formatDate(event.date_end)}
+            </span>
+          </span>
+        </span>
+      </span>
+
+      {expandable && (
+        <span className="absolute bottom-5 right-5 flex items-center gap-1 text-xs uppercase tracking-widest text-zinc-500">
+          Horarios
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className={`transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+          />
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <article
+      className={`card relative border border-white/10 transition-all hover:border-white/20 hover:bg-white/5 ${
+        expandable ? "" : "p-5"
+      }`}
+    >
+      <h3 className="m-0 text-base font-normal">
+        {expandable ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((value) => !value)}
+            className="relative block w-full cursor-pointer rounded-[18px] p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500/50"
+          >
+            {header}
+          </button>
+        ) : (
+          <span className="block">{header}</span>
+        )}
+      </h3>
+
+      {expandable && (
+        <div
+          id={panelId}
+          className={`grid transition-[grid-template-rows,visibility] duration-200 motion-reduce:transition-none ${
+            open ? "visible grid-rows-[1fr]" : "invisible grid-rows-[0fr]"
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className="px-5 pb-5">
+              <SessionSchedule columns={columns} idPrefix={panelId} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bandera del país, esquina superior derecha (no intercepta el click) */}
+      <div className="pointer-events-none absolute right-5 top-5">
+        <CountryFlag
+          url={event.flag_url}
+          iso={event.country.iso}
+          name={event.country.name}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function CalendarView() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<CalendarEventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,66 +488,9 @@ export function CalendarView() {
 
   return (
     <div className="grid gap-4">
-      {events.map((event) => {
-        const round = getRound(event.legacy_id);
-
-        return (
-          <article
-            key={event.id}
-            className="card relative border border-white/10 p-5 pr-20 transition-all hover:border-white/20 hover:bg-white/5"
-          >
-            {/* Información del GP */}
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
-                  {round ? `ROUND ${round}` : event.short_name}
-                </span>
-
-                {getStatusBadge(event.status)}
-              </div>
-
-              <h3 className="mt-4 text-xl font-bold text-white md:text-2xl">
-                {event.sponsored_name || event.name}
-              </h3>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="flex gap-2">
-                  <MapPin size={16} className="mt-1 shrink-0 text-red-500" />
-                  <div className="text-sm">
-                    <p className="font-semibold text-zinc-100">
-                      {event.circuit.name}
-                    </p>
-                    <p className="text-zinc-500">
-                      {event.circuit.place}, {event.country.name}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <CalendarDays size={16} className="mt-1 shrink-0 text-red-500" />
-                  <div className="text-sm">
-                    <p className="font-semibold text-zinc-100">
-                      {formatDate(event.date_start)}
-                    </p>
-                    <p className="text-zinc-500">
-                      hasta {formatDate(event.date_end)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bandera del país, esquina superior derecha */}
-            <div className="absolute right-5 top-5">
-              <CountryFlag
-                url={event.flag_url}
-                iso={event.country.iso}
-                name={event.country.name}
-              />
-            </div>
-          </article>
-        );
-      })}
+      {events.map((event) => (
+        <EventCard key={event.id} event={event} />
+      ))}
     </div>
   );
 }

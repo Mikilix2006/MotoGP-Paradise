@@ -269,6 +269,41 @@ function baseSessionType(
 }
 
 /*
+ * Indica si un broadcast y una sesión pueden ser la misma sesión
+ * según su tipo. Se usa para validar los emparejamientos por UUID
+ * y por hora exacta.
+ *
+ * Motivo: /results/sessions publica a veces un calendario
+ * provisional con las fechas desplazadas (p. ej. Catar 2026, dos
+ * días antes), de modo que la hora del broadcast "Practice" (viernes
+ * 20:00) coincide exactamente con la de la sesión RAC provisional.
+ * Emparejar solo por hora cruzaba entonces carrera y práctica.
+ *
+ * PR, P y FP se consideran equivalentes (mismo entrenamiento con
+ * nombres distintos en cada API). Si falta algún tipo no se puede
+ * descartar el emparejamiento.
+ */
+function areTypesCompatible(
+  broadcast: ApiBroadcast,
+  session: SessionRecord
+): boolean {
+  const normalize = (value: string | null | undefined) => {
+    const base = baseSessionType(value);
+
+    return base === "PR" ? "FP" : base;
+  };
+
+  const broadcastType = normalize(broadcast.shortname);
+  const sessionType = normalize(session.type);
+
+  if (!broadcastType || !sessionType) {
+    return true;
+  }
+
+  return broadcastType === sessionType;
+}
+
+/*
  * Devuelve la URL de la bandera oficial del Gran Premio.
  *
  * /events trae en assets[] un asset con type "FLAG". Puede haber
@@ -361,7 +396,7 @@ function buildSessionData(
  * Empareja las sesiones de broadcasts[] con las que ya existen
  * en la base de datos para el mismo evento y categoría.
  *
- * Se hacen tres pasadas, de más a menos fiable:
+ * Se hacen cuatro pasadas, de más a menos fiable:
  *
  * 1. UUID de broadcast, si ya se importó antes;
  * 2. hora de inicio exacta, válida donde no hay horario de verano;
@@ -389,7 +424,8 @@ function matchBroadcastsToSessions(
     const session = sessions.find(
       (candidate) =>
         candidate.broadcastUuid === broadcast.id &&
-        !usedSessionIds.has(candidate.id)
+        !usedSessionIds.has(candidate.id) &&
+        areTypesCompatible(broadcast, candidate)
     );
 
     if (session) {
@@ -413,7 +449,8 @@ function matchBroadcastsToSessions(
           (candidate) =>
             candidate.dateStart?.getTime() ===
               dateStart.getTime() &&
-            !usedSessionIds.has(candidate.id)
+            !usedSessionIds.has(candidate.id) &&
+            areTypesCompatible(broadcast, candidate)
         )
       : undefined;
 
@@ -1055,6 +1092,31 @@ export async function importEventDetails(
           sortedBroadcasts,
           sessions
         );
+
+        /*
+         * broadcastUuid es único. Si un emparejamiento previo
+         * erróneo dejó el uuid de este broadcast en otra sesión,
+         * se libera antes de reasignarlo para no violar la
+         * restricción ni arrastrar el cruce.
+         */
+        for (const broadcast of sortedBroadcasts) {
+          const target = matches.get(broadcast);
+
+          const stale = sessions.find(
+            (candidate) =>
+              candidate.broadcastUuid === broadcast.id &&
+              candidate.id !== target?.id
+          );
+
+          if (stale) {
+            await prisma.session.update({
+              where: { id: stale.id },
+              data: { broadcastUuid: null },
+            });
+
+            stale.broadcastUuid = null;
+          }
+        }
 
         for (const broadcast of sortedBroadcasts) {
           const session = matches.get(broadcast) ?? null;

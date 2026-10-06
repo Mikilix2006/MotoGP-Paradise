@@ -86,3 +86,64 @@ export function getMadridTimestamp(apiDate: string): number {
   // Convertimos la hora peninsular al timestamp absoluto correcto.
   return provisionalUtc - offsetMinutes * 60 * 1000;
 }
+
+/**
+ * Desfase (en ms) de una zona IANA en un instante concreto,
+ * incluido el horario de verano de esa zona. Solo usa Intl.
+ */
+function getZoneOffsetMs(instant: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(new Date(instant));
+
+  const value = (type: string): number =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  const localAsUtc = Date.UTC(
+    value("year"),
+    value("month") - 1,
+    value("day"),
+    value("hour"),
+    value("minute"),
+    value("second")
+  );
+
+  // Se descartan los milisegundos: Intl no los devuelve aquí.
+  return localAsUtc - Math.floor(instant / 1000) * 1000;
+}
+
+/**
+ * Interpreta los campos UTC de `date` como hora de pared en la zona
+ * IANA `timeZone` (p. ej. "Asia/Tokyo") y devuelve el instante
+ * absoluto correcto. Lanza RangeError si la zona no es válida.
+ *
+ * Regla validada con datos reales de 2026 (BD frente a `broadcasts`
+ * de la API general, que trae offset): la hora guardada en
+ * Session.dateStart es el reloj local del circuito CON horario de
+ * verano (España 14:00 = CEST, Chicago 15:00 = CDT, Melbourne
+ * 14:00 = AEDT), no la hora estándar. Por eso basta con convertir
+ * el reloj de pared usando el desfase vigente de la zona.
+ *
+ * No sustituye a getMadridTimestamp (deuda conocida, no se toca).
+ */
+export function wallClockToInstant(
+  date: Date,
+  timeZone: string
+): Date {
+  const wallClockAsUtc = date.getTime();
+
+  // Dos pasadas: la segunda corrige los días de cambio de hora.
+  const firstGuess =
+    wallClockAsUtc - getZoneOffsetMs(wallClockAsUtc, timeZone);
+
+  return new Date(
+    wallClockAsUtc - getZoneOffsetMs(firstGuess, timeZone)
+  );
+}
