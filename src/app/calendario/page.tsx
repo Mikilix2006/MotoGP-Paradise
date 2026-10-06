@@ -15,9 +15,6 @@ export default function CalendarPage() {
           <h1 className="text-3xl font-black md:text-5xl">
             Calendario <span className="text-red-600">2026</span>
           </h1>
-          <p className="mt-2 text-zinc-400">
-            Todos los Grandes Premios de la temporada
-          </p>
         </div>
 
         <CalendarView />

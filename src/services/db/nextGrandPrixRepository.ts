@@ -415,6 +415,16 @@ function toNextGrandPrixData(
 /** Gran Premio del calendario con las sesiones de Moto3, Moto2 y MotoGP. */
 export interface CalendarEvent extends NextGrandPrixData {
   sessions: CalendarSession[];
+
+  /**
+   * true solo en el "próximo GP", con la MISMA definición que la
+   * portada (findCurrentOrNextEventId: primer evento por fecha, no
+   * test, cuya carrera de MotoGP aún no está FINISHED), para que
+   * calendario y portada nunca discrepen. false en el resto y en
+   * todos si no hay próximo GP. Si el evento marcado se descarta
+   * por falta de circuito, país o carrera, no hay ninguno true.
+   */
+  is_next_gp: boolean;
 }
 
 /**
@@ -615,18 +625,23 @@ export async function getSeasonEvents(): Promise<CalendarEvent[]> {
     );
   }
 
-  const events = await prisma.event.findMany({
-    where: {
-      seasonId: season.id,
-      isTest: false,
-    },
+  const [events, nextEventId] = await Promise.all([
+    prisma.event.findMany({
+      where: {
+        seasonId: season.id,
+        isTest: false,
+      },
 
-    include: calendarEventInclude,
+      include: calendarEventInclude,
 
-    orderBy: {
-      dateStart: "asc",
-    },
-  });
+      orderBy: {
+        dateStart: "asc",
+      },
+    }),
+
+    // Misma lógica que la portada; se compara por id interno.
+    findCurrentOrNextEventId(season.id),
+  ]);
 
   return events.flatMap((event) => {
     /*
@@ -644,7 +659,14 @@ export async function getSeasonEvents(): Promise<CalendarEvent[]> {
     const base = toNextGrandPrixData(motogpOnly, season);
 
     return base
-      ? [{ ...base, sessions: toCalendarSessions(event) }]
+      ? [
+          {
+            ...base,
+            sessions: toCalendarSessions(event),
+            is_next_gp:
+              nextEventId !== null && event.id === nextEventId,
+          },
+        ]
       : [];
   });
 }

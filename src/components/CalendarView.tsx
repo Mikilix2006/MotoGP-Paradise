@@ -33,6 +33,7 @@ interface CalendarEventData {
     place: string;
   };
   sessions?: CalendarSession[];
+  is_next_gp: boolean;
 }
 
 interface ApiResponse {
@@ -48,22 +49,21 @@ function formatDate(date: string) {
 }
 
 function getStatusBadge(status: string) {
-  const config: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
+  const config: Record<string, { style: string; icon: React.ReactNode; label: string }> = {
     FINISHED: {
-      bg: "bg-zinc-900",
-      text: "text-zinc-400",
+      style: "border-white/10 bg-zinc-900 text-zinc-400",
       icon: <CheckCircle2 size={16} />,
       label: "Finalizado",
     },
     CURRENT: {
-      bg: "bg-red-950",
-      text: "text-red-400",
+      style: "border-red-500/30 bg-red-950 text-red-400",
       icon: <Clock size={16} />,
       label: "En curso",
     },
     "NOT-STARTED": {
-      bg: "bg-blue-950",
-      text: "text-blue-400",
+      // Pill de contorno en zinc claro: se distingue del "Finalizado" (relleno
+      // apagado) y del rojo de "En curso" / "ROUND N", sin salir de la paleta.
+      style: "border-white/20 bg-transparent text-zinc-200",
       icon: <CalendarDays size={16} />,
       label: "Próximamente",
     },
@@ -73,7 +73,7 @@ function getStatusBadge(status: string) {
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full border ${statusConfig.bg} px-3 py-1 text-xs font-semibold ${statusConfig.text}`}
+      className={`inline-flex items-center gap-2 rounded-full border ${statusConfig.style} px-3 py-1 text-xs font-semibold`}
     >
       {statusConfig.icon}
       <span>{statusConfig.label}</span>
@@ -325,12 +325,25 @@ function SessionSchedule({
 // (estado propio por card: pueden estar abiertas varias a la vez). El h3 envuelve
 // al botón (patrón de acordeón WAI-ARIA) para no perder la navegación por
 // encabezados; dentro del botón solo hay spans (contenido de frase válido).
-function EventCard({ event }: { event: CalendarEventData }) {
+//
+// idPrefix hace únicos los ids de accesibilidad cuando el mismo evento se pinta
+// más de una vez (la copia destacada del próximo GP y la del listado).
+function EventCard({
+  event,
+  idPrefix = "horarios",
+  featured = false,
+}: {
+  event: CalendarEventData;
+  idPrefix?: string;
+  // Card destacada del próximo GP: borde rojo y resplandor diagonal, como la
+  // card principal del inicio.
+  featured?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const round = getRound(event.legacy_id);
   const columns = getScheduleColumns(event.sessions);
   const expandable = columns.length > 0;
-  const panelId = `horarios-${event.id}`;
+  const panelId = `${idPrefix}-${event.id}`;
 
   const header = (
     <>
@@ -386,10 +399,19 @@ function EventCard({ event }: { event: CalendarEventData }) {
 
   return (
     <article
-      className={`card relative border border-white/10 transition-all hover:border-white/20 hover:bg-white/5 ${
-        expandable ? "" : "p-5"
-      }`}
+      className={`card relative transition-all ${
+        featured
+          ? "overflow-hidden !border-red-500/30 hover:!border-red-500/50 hover:bg-white/5"
+          : "border border-white/10 hover:border-white/20 hover:bg-white/5"
+      } ${expandable ? "" : "p-5"}`}
     >
+      {featured && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-950/40 via-transparent to-transparent"
+        />
+      )}
+      <div className="relative">
       <h3 className="m-0 text-base font-normal">
         {expandable ? (
           <button
@@ -420,6 +442,7 @@ function EventCard({ event }: { event: CalendarEventData }) {
           </div>
         </div>
       )}
+      </div>
 
       {/* Bandera del país, esquina superior derecha (no intercepta el click) */}
       <div className="pointer-events-none absolute right-5 top-5">
@@ -486,11 +509,28 @@ export function CalendarView() {
     );
   }
 
+  const nextGp = events.find((event) => event.is_next_gp);
+
   return (
-    <div className="grid gap-4">
-      {events.map((event) => (
-        <EventCard key={event.id} event={event} />
-      ))}
+    <div>
+      {nextGp && (
+        <>
+          <h2 className="mb-4 text-xs font-bold uppercase tracking-[.22em] text-red-500">
+            Próximo Gran Premio
+          </h2>
+          <EventCard event={nextGp} idPrefix="proximo" featured />
+          <div className="mb-8 mt-10 border-t border-white/10" />
+        </>
+      )}
+
+      <h2 className="mb-4 text-xs font-bold uppercase tracking-[.22em] text-zinc-500">
+        Todos los Grandes Premios de la temporada
+      </h2>
+      <div className="grid gap-4">
+        {events.map((event) => (
+          <EventCard key={event.id} event={event} />
+        ))}
+      </div>
     </div>
   );
 }
