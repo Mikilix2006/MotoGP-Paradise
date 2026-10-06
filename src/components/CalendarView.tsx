@@ -390,7 +390,7 @@ function EventCard({
           <ChevronDown
             size={16}
             aria-hidden="true"
-            className={`transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+            className={`transition-transform duration-300 ease-in-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
           />
         </span>
       )}
@@ -431,8 +431,10 @@ function EventCard({
       {expandable && (
         <div
           id={panelId}
-          className={`grid transition-[grid-template-rows,visibility] duration-200 motion-reduce:transition-none ${
-            open ? "visible grid-rows-[1fr]" : "invisible grid-rows-[0fr]"
+          className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out motion-reduce:transition-none ${
+            open
+              ? "visible opacity-100 grid-rows-[1fr]"
+              : "invisible opacity-0 grid-rows-[0fr]"
           }`}
         >
           <div className="min-h-0 overflow-hidden">
