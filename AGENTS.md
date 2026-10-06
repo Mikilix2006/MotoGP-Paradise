@@ -39,7 +39,7 @@ Ningún agente debe conectar la interfaz a PostgreSQL sin que el usuario lo pida
 
 ### `database-guardian`
 
-**Se ocupa de:** `prisma/schema.prisma`, migraciones, `src/services/importers/`, `scripts/import-*.ts`, consultas Prisma y todo lo relativo a qué endpoint de MotoGP proporciona qué dato.
+**Se ocupa de:** `prisma/schema.prisma`, migraciones, `src/services/importers/`, `scripts/import-*.ts`, consultas Prisma, el rendimiento de PostgreSQL (consultas lentas, índices, mantenimiento, copias) y todo lo relativo a qué endpoint de MotoGP proporciona qué dato.
 
 **Sabe:** las claves de unión entre las dos APIs, por qué las horas no coinciden entre ellas, qué campos cambian según el tipo de sesión y las reglas de idempotencia del proyecto.
 
@@ -47,7 +47,7 @@ Ningún agente debe conectar la interfaz a PostgreSQL sin que el usuario lo pida
 
 ### `frontend-guardian`
 
-**Se ocupa de:** `src/components/`, `src/app/` (páginas y route handlers), `src/services/*Service.ts`, obtención de datos, estados de carga y error.
+**Se ocupa de:** `src/components/`, `src/app/` (páginas y route handlers), `src/services/*Service.ts`, obtención de datos, estados de carga y error y las decisiones de framework de Next.js (server/client components, caché, metadata, navegación, build y despliegue en Railway).
 
 **Sabe:** la arquitectura de datos actual, las convenciones de fetching, el formato de respuesta de las rutas internas y la trampa horaria de `getMadridTimestamp`.
 
@@ -59,15 +59,35 @@ Ningún agente debe conectar la interfaz a PostgreSQL sin que el usuario lo pida
 
 **Es un revisor, no un constructor.** Corrige solo cuando se le pide, y siempre alineándose con un patrón que ya exista en el código.
 
+### `import-guardian`
+
+**Se ocupa de:** ejecutar y encadenar los `npm run import:*`, actualizar la base de datos tras un Gran Premio, rellenar datos que faltan y escribir o modificar importadores (`src/services/importers/`, `scripts/`). Diagnostica por qué un dato no ha entrado (`SyncRun`, `ApiSnapshot`).
+
+**No se ocupa de:** cambios de esquema o migraciones (`database-guardian`) ni de UI.
+
+### Agentes especialistas
+
+Se invocan para tareas concretas y respetan las fronteras de los anteriores:
+
+- **`ui-designer`** — *diseña* interfaz nueva (páginas, componentes, estados, responsive) dentro de la identidad visual existente y escribe solo la capa visual. Después, `ui-design-guardian` la audita.
+- **`typescript-pro`** — tipos: unificar interfaces compartidas, endurecer tipos, errores de `tsc`, tipado de Prisma.
+- **`code-reviewer`** — revisión de código de solo lectura (corrección, seguridad, idempotencia, contrato de rutas). No revisa estilo visual.
+- **`debugger`** — causa raíz de fallos, aislando la capa (BD → repositorio → ruta → componente) y con las trampas conocidas del proyecto; arregla lo mínimo y traspasa al agente dueño cuando la causa es de su terreno.
+
 ---
 
 ## Cómo repartir una tarea
 
 | La tarea toca... | Agente |
 |---|---|
-| Esquema, migración, importador, script de importación | `database-guardian` |
+| Esquema, migración, restricción o índice | `database-guardian` |
+| Ejecutar o escribir un importador, actualizar datos tras un GP | `import-guardian` |
 | Componente, página, route handler, servicio de datos | `frontend-guardian` |
+| Diseñar una pantalla o componente nuevo (aspecto y experiencia) | `ui-designer` |
 | Revisar coherencia visual de un cambio ya hecho | `ui-design-guardian` |
+| Interfaces compartidas, errores de tipos, tipado de Prisma | `typescript-pro` |
+| Revisar un diff antes de commitear | `code-reviewer` |
+| Algo falla y no se sabe por qué | `debugger` |
 | "Mostrar en la interfaz un dato nuevo" | Primero `database-guardian` (¿existe el dato?), luego `frontend-guardian`, luego `ui-design-guardian` |
 | Documentación, README, configuración del repo | Agente principal, sin delegar |
 
