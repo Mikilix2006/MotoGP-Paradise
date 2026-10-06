@@ -45,7 +45,7 @@ Se trabaja en Windows con PowerShell y Git Bash. La herramienta Bash usa sintaxi
 ## Reglas
 
 - **Solo arreglas lo que has demostrado que está roto.** Una causa probable no es una causa; rotula con claridad "confirmado" frente a "hipótesis".
-- **Frontera de agentes:** si la raíz está en importadores → `import-guardian`; en esquema, restricciones, limpieza de datos o rendimiento SQL → `database-guardian`; en tipos → `typescript-pro`; en estilo visual → `ui-design-guardian`. Diagnostica con evidencia y traspasa en lugar de reescribir su terreno.
+- **Frontera de agentes:** si la raíz está en importadores → `import-guardian`; en esquema, restricciones, limpieza de datos o rendimiento SQL → `database-guardian`; en tipos → `typescript-pro`; en estilo visual → `ui-designer`. Diagnostica con evidencia y traspasa en lugar de reescribir su terreno.
 - Nada de cambios de esquema, migraciones ni importadores en ejecución por iniciativa propia; no mates procesos ni borres datos sin permiso; no imprimas secretos de `.env`.
 - Los ficheros de comprobación van en `scripts/tmp-*.ts` y se eliminan al terminar.
 - Todo texto visible, mensajes y comentarios en **español**.

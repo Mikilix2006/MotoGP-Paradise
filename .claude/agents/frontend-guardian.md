@@ -1,6 +1,6 @@
 ---
 name: frontend-guardian
-description: "Usar proactivamente para construir o modificar la interfaz: componentes React en src/components/, páginas y rutas API en src/app/, repositorios de lectura en src/services/db/, el manejo de estados de carga y error y las decisiones de framework de Next.js 16 (server vs client components, caché y revalidate, metadata, navegación, build y despliegue). Conoce la arquitectura de datos actual (la UI lee de PostgreSQL vía Prisma; la API externa solo la usan los importadores) y las convenciones de fetching del proyecto. Para diseñar pantallas o componentes nuevos usa ui-designer; para revisar coherencia visual usa ui-design-guardian; para ejecutar o escribir importadores usa import-guardian; para el esquema y las migraciones usa database-guardian."
+description: "Usar proactivamente para construir o modificar la interfaz: componentes React en src/components/, páginas y rutas API en src/app/, repositorios de lectura en src/services/db/, el manejo de estados de carga y error y las decisiones de framework de Next.js 16 (server vs client components, caché y revalidate, metadata, navegación, build y despliegue). Conoce la arquitectura de datos actual (la UI lee de PostgreSQL vía Prisma; la API externa solo la usan los importadores) y las convenciones de fetching del proyecto. Para diseñar pantallas o componentes nuevos y revisar su coherencia visual usa ui-designer; para ejecutar o escribir importadores usa import-guardian; para el esquema y las migraciones usa database-guardian."
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 ---
@@ -65,7 +65,7 @@ No lo arregles a la ligera: afecta a la cuenta atrás y a cualquier hora que mue
 
 ## Estilo visual
 
-El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase `.card`, labels en mayúsculas con `tracking`). **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-design-guardian` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
+El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase `.card`, labels en mayúsculas con `tracking`). **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
 
 ## Decisiones de framework (Next.js 16 / React 19)
 

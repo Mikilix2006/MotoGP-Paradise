@@ -51,13 +51,15 @@ Ningún agente debe conectar la interfaz a PostgreSQL sin que el usuario lo pida
 
 **Sabe:** la arquitectura de datos actual, las convenciones de fetching, el formato de respuesta de las rutas internas y la trampa horaria de `getMadridTimestamp`.
 
-**No se ocupa de:** decidir la identidad visual (eso lo audita `ui-design-guardian`) ni de importadores.
+**No se ocupa de:** decidir la identidad visual (eso es de `ui-designer`) ni de importadores.
 
-### `ui-design-guardian`
+### `ui-designer`
 
-**Se ocupa de:** auditar que cualquier cambio visible mantenga la identidad visual del proyecto (paleta, tipografía, tarjetas, iconos, estados).
+**Se ocupa de:** la capa visual, en dos modos. *Diseñar* pantallas y componentes nuevos (páginas, estados de carga/error/vacío, responsive) y *auditar* que cualquier cambio visible mantenga la identidad visual del proyecto (paleta, tipografía, tarjetas, iconos, estados).
 
-**Es un revisor, no un constructor.** Corrige solo cuando se le pide, y siempre alineándose con un patrón que ya exista en el código.
+**Sabe:** el sistema visual completo (oscuro, acento rojo, `.card`, etiquetas en mayúsculas), la composición de la portada y la deuda de diseño conocida.
+
+**No se ocupa de:** datos (repositorios, rutas, importadores, esquema). Al auditar es revisor, no constructor: corrige solo cuando se le pide, alineándose con un patrón que ya exista.
 
 ### `import-guardian`
 
@@ -69,7 +71,6 @@ Ningún agente debe conectar la interfaz a PostgreSQL sin que el usuario lo pida
 
 Se invocan para tareas concretas y respetan las fronteras de los anteriores:
 
-- **`ui-designer`** — *diseña* interfaz nueva (páginas, componentes, estados, responsive) dentro de la identidad visual existente y escribe solo la capa visual. Después, `ui-design-guardian` la audita.
 - **`typescript-pro`** — tipos: unificar interfaces compartidas, endurecer tipos, errores de `tsc`, tipado de Prisma.
 - **`code-reviewer`** — revisión de código de solo lectura (corrección, seguridad, idempotencia, contrato de rutas). No revisa estilo visual.
 - **`debugger`** — causa raíz de fallos, aislando la capa (BD → repositorio → ruta → componente) y con las trampas conocidas del proyecto; arregla lo mínimo y traspasa al agente dueño cuando la causa es de su terreno.
@@ -84,11 +85,11 @@ Se invocan para tareas concretas y respetan las fronteras de los anteriores:
 | Ejecutar o escribir un importador, actualizar datos tras un GP | `import-guardian` |
 | Componente, página, route handler, servicio de datos | `frontend-guardian` |
 | Diseñar una pantalla o componente nuevo (aspecto y experiencia) | `ui-designer` |
-| Revisar coherencia visual de un cambio ya hecho | `ui-design-guardian` |
+| Revisar coherencia visual de un cambio ya hecho | `ui-designer` (modo auditar) |
 | Interfaces compartidas, errores de tipos, tipado de Prisma | `typescript-pro` |
 | Revisar un diff antes de commitear | `code-reviewer` |
 | Algo falla y no se sabe por qué | `debugger` |
-| "Mostrar en la interfaz un dato nuevo" | Primero `database-guardian` (¿existe el dato?), luego `frontend-guardian`, luego `ui-design-guardian` |
+| "Mostrar en la interfaz un dato nuevo" | Primero `database-guardian` (¿existe el dato?), luego `frontend-guardian`, luego `ui-designer` (auditoría) |
 | Documentación, README, configuración del repo | Agente principal, sin delegar |
 
 **Regla de frontera:** el contrato entre ambos mundos es la respuesta de las rutas de `src/app/api/`. `database-guardian` es dueño de todo lo que hay por debajo; `frontend-guardian`, de todo lo que hay por encima. Si una tarea exige cambiar ese contrato, dilo explícitamente en el traspaso: qué campos se añaden, con qué nombres y qué tipos.
