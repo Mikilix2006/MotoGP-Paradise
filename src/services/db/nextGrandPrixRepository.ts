@@ -342,12 +342,16 @@ type SeasonSummary = {
  * Mapeo único de un evento de Prisma a la forma de respuesta
  * (snake_case, la misma que devolvía la API externa).
  *
+ * `round` es la posición del evento en el calendario (ver
+ * getSeasonEvents / getEventRound).
+ *
  * Devuelve null si al evento le falta el circuito, el país o la
  * sesión de carrera de MotoGP con fecha de inicio.
  */
 function toNextGrandPrixData(
   event: EventWithDetails,
-  season: SeasonSummary
+  season: SeasonSummary,
+  round: number | null
 ): NextGrandPrixData | null {
   const { country, circuit } = event;
 
@@ -399,6 +403,8 @@ function toNextGrandPrixData(
     })),
 
     status: event.status ?? "",
+
+    round,
 
     nextMotoGPRace: raceSession.dateStart.toISOString(),
 
@@ -619,6 +625,33 @@ function toCalendarSessions(
   });
 }
 
+/**
+ * Round de un evento: su posición (desde 1) entre los eventos no test
+ * de la temporada ordenados por (dateStart asc, id asc). Es el mismo
+ * orden que usa getSeasonEvents. null si es test o no tiene fecha.
+ */
+async function getEventRound(
+  event: EventWithDetails
+): Promise<number | null> {
+  if (event.isTest || !event.dateStart) {
+    return null;
+  }
+
+  const before = await prisma.event.count({
+    where: {
+      seasonId: event.seasonId,
+      isTest: false,
+
+      OR: [
+        { dateStart: { lt: event.dateStart } },
+        { dateStart: event.dateStart, id: { lt: event.id } },
+      ],
+    },
+  });
+
+  return before + 1;
+}
+
 export async function getSeasonEvents(): Promise<CalendarEvent[]> {
   const season = await getCurrentSeason();
 
@@ -637,16 +670,14 @@ export async function getSeasonEvents(): Promise<CalendarEvent[]> {
 
       include: calendarEventInclude,
 
-      orderBy: {
-        dateStart: "asc",
-      },
+      orderBy: [{ dateStart: "asc" }, { id: "asc" }],
     }),
 
     // Misma lógica que la portada; se compara por id interno.
     findCurrentOrNextEventId(season.id),
   ]);
 
-  return events.flatMap((event) => {
+  return events.flatMap((event, index) => {
     /*
      * La base (carrera, sprint, vueltas) se calcula solo con las
      * sesiones de MotoGP, igual que antes de incluir Moto2/Moto3.
@@ -659,7 +690,14 @@ export async function getSeasonEvents(): Promise<CalendarEvent[]> {
       ),
     };
 
-    const base = toNextGrandPrixData(motogpOnly, season);
+    /*
+     * Posición en la lista completa de eventos no test (antes de
+     * descartar ninguno) para que la numeración no salte. Los eventos
+     * sin fecha van al final y no tienen round.
+     */
+    const round = event.dateStart ? index + 1 : null;
+
+    const base = toNextGrandPrixData(motogpOnly, season, round);
 
     return base
       ? [
@@ -698,5 +736,9 @@ export async function getNextGrandPrix(): Promise<NextGrandPrixData | null> {
     return null;
   }
 
-  return toNextGrandPrixData(event, season);
+  return toNextGrandPrixData(
+    event,
+    season,
+    await getEventRound(event)
+  );
 }

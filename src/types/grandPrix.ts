@@ -62,6 +62,9 @@ date_end: string;
 legacy_id: LegacyEventId[];
 
 status: string;
+
+/** Posición en el calendario de la temporada (1 = primer GP); null si es test o no tiene fecha. */
+round: number | null;
 }
 
 /**

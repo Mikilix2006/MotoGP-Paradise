@@ -22,10 +22,7 @@ date_end: string;
 
 status: string;
 
-legacy_id: {
-  categoryId: number;
-  eventId: number;
-}[];
+round: number | null;
 
 country: {
 iso: string;
@@ -72,17 +69,6 @@ function formatStatus(status: string) {
 
   return statuses[status] ?? status;
 }
-
-function getRound(legacyIds: GrandPrix["legacy_id"]) {
-if (!legacyIds || legacyIds.length === 0) {
-return null;
-}
-
-// Los eventos contienen un eventId por categoría.
-// Para un GP, normalmente todos representan el mismo número de ronda.
-return legacyIds[0].eventId;
-}
-
 
 export function NextGrandPrix() {
 const [grandPrix, setGrandPrix] =
@@ -157,7 +143,7 @@ return ( <article className="card flex min-h-[380px] items-center justify-center
 
 }
 
-const round = getRound(grandPrix.legacy_id);
+const { round } = grandPrix;
 
 return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-transparent to-transparent" />
 

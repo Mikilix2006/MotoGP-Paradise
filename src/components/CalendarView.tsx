@@ -19,10 +19,7 @@ interface CalendarEventData {
   date_start: string;
   date_end: string;
   status: string;
-  legacy_id: Array<{
-    categoryId: number;
-    eventId: number;
-  }>;
+  round: number | null;
   country: {
     iso: string;
     name: string;
@@ -184,13 +181,6 @@ function CountryFlag({
       />
     </span>
   );
-}
-
-function getRound(legacyIds: CalendarEventData["legacy_id"]) {
-  if (!legacyIds || legacyIds.length === 0) {
-    return null;
-  }
-  return legacyIds[0].eventId;
 }
 
 // Horarios de sesiones. Las horas se muestran en la zona del modo activo ("tu
@@ -519,7 +509,7 @@ function EventCard({
   featured?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const round = getRound(event.legacy_id);
+  const { round } = event;
   // Sin zona del circuito válida el conmutador queda deshabilitado y se usa "tu hora".
   const circuitZone = validZone(event.time_zone);
   const effectiveMode: TimeMode = circuitZone ? mode : "tu";
