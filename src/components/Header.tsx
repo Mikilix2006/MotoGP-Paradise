@@ -10,7 +10,7 @@ export function Header() {
             MOTO<span className="text-red-600">GP</span><span className="text-zinc-500">STATS</span>
           </div>
           <nav className="hidden gap-7 text-sm text-zinc-400 md:flex">
-            <a className="text-white" href="#">Inicio</a><a href="#">Calendario</a><a href="#">Pilotos</a><a href="#">Equipos</a><a href="#">Circuitos</a>
+            <a className="text-white" href="/">Inicio</a><a href="/calendario">Calendario</a><a href="#">Pilotos</a><a href="#">Equipos</a><a href="#">Circuitos</a>
           </nav>
         </div>
         <div className="flex items-center gap-3">

@@ -282,6 +282,88 @@ function buildTrackDetails(
   };
 }
 
+export async function getSeasonEvents(): Promise<NextGrandPrixData[]> {
+  const season = await getCurrentSeason();
+
+  if (!season) {
+    throw new Error(
+      "No se encontró ninguna temporada marcada como actual"
+    );
+  }
+
+  const events = await prisma.event.findMany({
+    where: {
+      seasonId: season.id,
+      isTest: false,
+    },
+
+    include: eventInclude,
+
+    orderBy: {
+      dateStart: "asc",
+    },
+  });
+
+  return events
+    .filter((event) => event.circuit && event.country)
+    .map((event) => {
+      const raceSession = event.sessions.find(
+        (session) => session.type === RACE_SESSION_TYPE
+      );
+
+      if (!raceSession?.dateStart) {
+        return null;
+      }
+
+      return {
+        id: event.resultsUuid ?? event.id,
+
+        country: {
+          iso: event.country.iso,
+          name: event.country.name,
+          region_iso: event.country.regionIso ?? "",
+        },
+
+        circuit: {
+          id: event.circuit.motogpUuid ?? event.circuit.id,
+          name: event.circuit.name,
+          legacy_id: event.circuit.legacyId ?? 0,
+          place: event.circuit.place ?? "",
+          nation: event.circuit.nation ?? "",
+          events_id: null,
+
+          track: buildTrackDetails(event),
+        },
+
+        sponsored_name: event.sponsoredName ?? event.name,
+        additional_name: event.additionalName ?? "",
+        name: event.name,
+        short_name: event.shortName ?? "",
+
+        date_start: toDateOnly(event.dateStart),
+        date_end: toDateOnly(event.dateEnd),
+
+        legacy_id: event.legacyMappings.map((mapping) => ({
+          categoryId: mapping.categoryLegacyId,
+          eventId: mapping.eventLegacyId,
+        })),
+
+        status: event.status ?? "",
+
+        nextMotoGPRace: raceSession.dateStart.toISOString(),
+
+        race: {
+          seasonUuid: season.motogpUuid ?? season.id,
+          eventUuid: event.resultsUuid ?? event.id,
+          categoryUuid:
+            raceSession.category.motogpUuid ?? raceSession.categoryId,
+          sessionUuid: raceSession.resultsUuid ?? raceSession.id,
+        },
+      };
+    })
+    .filter((event) => event !== null) as NextGrandPrixData[];
+}
+
 /**
  * Obtiene desde PostgreSQL el Gran Premio actual o próximo
  * de la temporada en curso, con los datos del circuito y la
