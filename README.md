@@ -73,6 +73,7 @@ La aplicación no debe depender de consultar continuamente la API externa para c
 - [22. Manejo de datos incompletos](#22-manejo-de-datos-incompletos)
 - [23. Consultas utilizadas por la interfaz](#23-consultas-utilizadas-por-la-interfaz)
 - [24. Datos del circuito en la interfaz](#24-datos-del-circuito-en-la-interfaz)
+- [24.1. Páginas disponibles en la aplicación](#241-páginas-disponibles-en-la-aplicación)
 - [25. API interna de la aplicación](#25-api-interna-de-la-aplicación)
 - [26. Estructura recomendada del proyecto](#26-estructura-recomendada-del-proyecto)
 - [27. Despliegue](#27-despliegue)
@@ -1327,15 +1328,101 @@ CircuitAsset
 
 ---
 
+# 24.1 Páginas disponibles en la aplicación
+
+La aplicación cuenta con las siguientes páginas principales:
+
+## Inicio (`/`)
+
+Página principal con información del próximo Gran Premio.
+
+- Datos: próximo GP o GP en curso
+- Componentes: `NextGrandPrix.tsx`
+- API: `/api/next-gp`
+
+---
+
+## Calendario (`/calendario`)
+
+Página con el calendario completo de la temporada.
+
+- Datos: todos los Grandes Premios de la temporada actual, ordenados cronológicamente
+- Información por evento:
+  - Nombre patrocinado y nombre regular
+  - Número de ronda (round)
+  - Estado (Finalizado, En curso, Próximamente)
+  - Circuito y locación
+  - País e ISO
+  - Fechas de inicio y fin
+
+- Componentes: `CalendarView.tsx`
+- API: `/api/calendar`
+- Repositorio: `nextGrandPrixRepository.ts` - función `getSeasonEvents()`
+
+---
+
+## Funcionalidades futuras
+
+Las siguientes páginas están planificadas pero no implementadas:
+
+- `/pilotos` - Listado de pilotos con estadísticas
+- `/equipos` - Listado de equipos
+- `/circuitos` - Información de circuitos
+
+---
+
 # 25. API interna de la aplicación
 
 El frontend debe consultar preferiblemente rutas internas de Next.js.
 
-Ejemplo:
+## Endpoints disponibles
 
-```text
-/api/next-gp
+### `/api/next-gp`
+
+Retorna información del próximo Gran Premio o GP en curso.
+
+**Respuesta:**
+```json
+{
+  "id": "...",
+  "country": { "iso": "ES", "name": "Spain" },
+  "circuit": { "name": "Circuit name", "place": "...", "track": { ... } },
+  "sponsored_name": "...",
+  "name": "...",
+  "date_start": "2026-10-02",
+  "date_end": "2026-10-04",
+  "status": "NOT-STARTED"
+}
 ```
+
+---
+
+### `/api/calendar`
+
+Retorna todos los Grandes Premios de la temporada actual, ordenados cronológicamente.
+
+**Respuesta:**
+```json
+{
+  "data": [
+    {
+      "id": "...",
+      "country": { "iso": "QA", "name": "Qatar" },
+      "circuit": { "name": "Losail", "place": "...", ... },
+      "sponsored_name": "Qatar Airways Grand Prix",
+      "name": "Qatar Grand Prix",
+      "short_name": "QAT",
+      "date_start": "2026-02-27",
+      "date_end": "2026-03-01",
+      "status": "NOT-STARTED",
+      "legacy_id": [{ "categoryId": 3, "eventId": 1 }]
+    },
+    ...
+  ]
+}
+```
+
+---
 
 El flujo recomendado es:
 
@@ -1343,7 +1430,7 @@ El flujo recomendado es:
 React Component
       │
       ▼
-/api/next-gp
+/api/next-gp o /api/calendar
       │
       ▼
 Prisma
