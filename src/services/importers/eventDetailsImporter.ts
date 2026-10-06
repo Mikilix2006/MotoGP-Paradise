@@ -35,6 +35,7 @@ interface ApiAsset {
   type?: string | null;
   path?: string | null;
   mimetype?: string | null;
+  quality?: string | null;
 }
 
 interface ApiLengthUnits {
@@ -131,6 +132,8 @@ interface ApiEventDetails {
   name?: string | null;
   sequence?: number | null;
   time_zone?: string | null;
+
+  assets?: ApiAsset[] | null;
 
   circuit?: ApiCircuit | null;
 
@@ -263,6 +266,38 @@ function baseSessionType(
    * en una API y como FP en la otra.
    */
   return normalized === "P" ? "FP" : normalized;
+}
+
+/*
+ * Devuelve la URL de la bandera oficial del Gran Premio.
+ *
+ * /events trae en assets[] un asset con type "FLAG". Puede haber
+ * varios (calidades o formatos distintos), así que se prefiere el
+ * SVG a @1x, luego cualquier @1x y por último el primero que haya.
+ *
+ * Algunos eventos que no son GP (p. ej. un MEDIA como "WORLD DUCATI
+ * WEEK") no traen asset FLAG: se devuelve null y el importador
+ * conserva el valor ya guardado en lugar de pisarlo.
+ */
+function pickFlagUrl(
+  assets: ApiAsset[] | null | undefined
+): string | null {
+  const flags = (assets ?? []).filter(
+    (asset) => asset?.type === "FLAG" && !!asset.path
+  );
+
+  const isSvg = (asset: ApiAsset) =>
+    asset.mimetype?.toUpperCase() === "SVG";
+
+  const isOneX = (asset: ApiAsset) => asset.quality === "@1x";
+
+  const best =
+    flags.find((asset) => isSvg(asset) && isOneX(asset)) ??
+    flags.find(isSvg) ??
+    flags.find(isOneX) ??
+    flags[0];
+
+  return best?.path ?? null;
 }
 
 function buildSessionData(
@@ -596,6 +631,13 @@ export async function importEventDetails(
         data: {
           timeZone: apiEvent.time_zone ?? null,
           sequence: apiEvent.sequence ?? null,
+
+          /*
+           * flagUrl es opcional: si la API no trae la bandera
+           * se omite el campo (undefined) para que Prisma no
+           * lo toque y se conserve el valor ya guardado.
+           */
+          flagUrl: pickFlagUrl(apiEvent.assets) ?? undefined,
         },
       });
 

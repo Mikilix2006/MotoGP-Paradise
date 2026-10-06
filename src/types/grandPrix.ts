@@ -53,6 +53,9 @@ additional_name: string;
 name: string;
 short_name: string;
 
+/** URL de la bandera oficial del GP; null en temporadas sin importar. */
+flag_url: string | null;
+
 date_start: string;
 date_end: string;
 

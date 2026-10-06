@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   MapPin,
-  Flag,
   LoaderCircle,
   CheckCircle2,
   Clock,
@@ -26,6 +25,7 @@ interface Event {
     iso: string;
     name: string;
   };
+  flag_url: string | null;
   circuit: {
     name: string;
     place: string;
@@ -75,6 +75,106 @@ function getStatusBadge(status: string) {
       {statusConfig.icon}
       <span>{statusConfig.label}</span>
     </div>
+  );
+}
+
+// Lienzo común de las SVG de banderas de MotoGP: la bandera real va centrada
+// en vertical a todo el ancho, con franjas transparentes arriba y abajo.
+const FLAG_CANVAS_W = 162;
+const FLAG_CANVAS_H = 116;
+
+// Mide la franja vertical realmente pintada (en unidades del lienzo).
+function measureFlag(img: HTMLImageElement) {
+  const canvas = document.createElement("canvas");
+  canvas.width = FLAG_CANVAS_W;
+  canvas.height = FLAG_CANVAS_H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, FLAG_CANVAS_W, FLAG_CANVAS_H);
+  const { data } = ctx.getImageData(0, 0, FLAG_CANVAS_W, FLAG_CANVAS_H);
+  let first = -1;
+  let last = -1;
+  for (let y = 0; y < FLAG_CANVAS_H; y++) {
+    for (let x = 0; x < FLAG_CANVAS_W; x++) {
+      if (data[(y * FLAG_CANVAS_W + x) * 4 + 3] > 10) {
+        if (first < 0) first = y;
+        last = y;
+        break;
+      }
+    }
+  }
+  if (first < 0) return null;
+  return { top: first, height: last - first + 1 };
+}
+
+// Bandera del país. Se ajusta a la vertical: el alto pintado de la bandera
+// llena el alto de la caja y se recorta solo por los lados. Si no se puede
+// medir, object-cover; si no hay URL o falla la carga, el código ISO en una pill.
+function CountryFlag({
+  url,
+  iso,
+  name,
+}: {
+  url: string | null;
+  iso: string;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [fit, setFit] = useState<
+    "pending" | "fallback" | { top: number; height: number }
+  >("pending");
+  const measured = useRef(false);
+
+  if (!url || failed) {
+    return (
+      <span
+        title={name}
+        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-400"
+      >
+        {iso}
+      </span>
+    );
+  }
+
+  function handleLoad(event: React.SyntheticEvent<HTMLImageElement>) {
+    if (measured.current) return;
+    measured.current = true;
+    try {
+      setFit(measureFlag(event.currentTarget) ?? "fallback");
+    } catch {
+      // Lienzo contaminado (CORS) u otro fallo: se usa object-cover.
+      setFit("fallback");
+    }
+  }
+
+  const ajustada = typeof fit === "object";
+
+  return (
+    <span className="relative block h-7 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        crossOrigin="anonymous"
+        alt={`Bandera de ${name}`}
+        loading="lazy"
+        decoding="async"
+        onLoad={handleLoad}
+        onError={() => setFailed(true)}
+        className={
+          ajustada
+            ? "absolute left-1/2 max-w-none -translate-x-1/2"
+            : `h-full w-full object-cover ${fit === "pending" ? "opacity-0" : ""}`
+        }
+        style={
+          ajustada
+            ? {
+                height: `${(FLAG_CANVAS_H / fit.height) * 100}%`,
+                top: `${(-fit.top / fit.height) * 100}%`,
+              }
+            : undefined
+        }
+      />
+    </span>
   );
 }
 
@@ -146,55 +246,56 @@ export function CalendarView() {
         return (
           <article
             key={event.id}
-            className="card border border-white/10 p-5 transition-all hover:border-white/20 hover:bg-white/5"
+            className="card relative border border-white/10 p-5 pr-20 transition-all hover:border-white/20 hover:bg-white/5"
           >
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
-              {/* Información del GP */}
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
-                    {round ? `ROUND ${round}` : event.short_name}
-                  </span>
+            {/* Información del GP */}
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+                  {round ? `ROUND ${round}` : event.short_name}
+                </span>
 
-                  {getStatusBadge(event.status)}
+                {getStatusBadge(event.status)}
+              </div>
+
+              <h3 className="mt-4 text-xl font-bold text-white md:text-2xl">
+                {event.sponsored_name || event.name}
+              </h3>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="flex gap-2">
+                  <MapPin size={16} className="mt-1 shrink-0 text-red-500" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-zinc-100">
+                      {event.circuit.name}
+                    </p>
+                    <p className="text-zinc-500">
+                      {event.circuit.place}, {event.country.name}
+                    </p>
+                  </div>
                 </div>
 
-                <h3 className="mt-4 text-xl font-bold text-white md:text-2xl">
-                  {event.sponsored_name || event.name}
-                </h3>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="flex gap-2">
-                    <MapPin size={16} className="mt-1 shrink-0 text-red-500" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-zinc-100">
-                        {event.circuit.name}
-                      </p>
-                      <p className="text-zinc-500">
-                        {event.circuit.place}, {event.country.name}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <CalendarDays size={16} className="mt-1 shrink-0 text-red-500" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-zinc-100">
-                        {formatDate(event.date_start)}
-                      </p>
-                      <p className="text-zinc-500">
-                        hasta {formatDate(event.date_end)}
-                      </p>
-                    </div>
+                <div className="flex gap-2">
+                  <CalendarDays size={16} className="mt-1 shrink-0 text-red-500" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-zinc-100">
+                      {formatDate(event.date_start)}
+                    </p>
+                    <p className="text-zinc-500">
+                      hasta {formatDate(event.date_end)}
+                    </p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Bandera del país */}
-              <div className="flex items-center gap-2 border-t border-white/10 pt-4 text-sm text-zinc-400 md:border-l md:border-t-0 md:pl-4 md:pt-0">
-                <Flag size={16} />
-                <span className="font-semibold">{event.country.iso}</span>
-              </div>
+            {/* Bandera del país, esquina superior derecha */}
+            <div className="absolute right-5 top-5">
+              <CountryFlag
+                url={event.flag_url}
+                iso={event.country.iso}
+                name={event.country.name}
+              />
             </div>
           </article>
         );

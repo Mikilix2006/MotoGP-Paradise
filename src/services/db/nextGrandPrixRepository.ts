@@ -282,6 +282,85 @@ function buildTrackDetails(
   };
 }
 
+type SeasonSummary = {
+  id: string;
+  motogpUuid: string | null;
+};
+
+/**
+ * Mapeo único de un evento de Prisma a la forma de respuesta
+ * (snake_case, la misma que devolvía la API externa).
+ *
+ * Devuelve null si al evento le falta el circuito, el país o la
+ * sesión de carrera de MotoGP con fecha de inicio.
+ */
+function toNextGrandPrixData(
+  event: EventWithDetails,
+  season: SeasonSummary
+): NextGrandPrixData | null {
+  const { country, circuit } = event;
+
+  if (!circuit || !country) {
+    return null;
+  }
+
+  const raceSession = event.sessions.find(
+    (session) => session.type === RACE_SESSION_TYPE
+  );
+
+  if (!raceSession?.dateStart) {
+    return null;
+  }
+
+  return {
+    id: event.resultsUuid ?? event.id,
+
+    country: {
+      iso: country.iso,
+      name: country.name,
+      region_iso: country.regionIso ?? "",
+    },
+
+    circuit: {
+      id: circuit.motogpUuid ?? circuit.id,
+      name: circuit.name,
+      legacy_id: circuit.legacyId ?? 0,
+      place: circuit.place ?? "",
+      nation: circuit.nation ?? "",
+      events_id: null,
+
+      track: buildTrackDetails(event),
+    },
+
+    sponsored_name: event.sponsoredName ?? event.name,
+    additional_name: event.additionalName ?? "",
+    name: event.name,
+    short_name: event.shortName ?? "",
+
+    flag_url: event.flagUrl ?? null,
+
+    date_start: toDateOnly(event.dateStart),
+    date_end: toDateOnly(event.dateEnd),
+
+    legacy_id: event.legacyMappings.map((mapping) => ({
+      categoryId: mapping.categoryLegacyId,
+      eventId: mapping.eventLegacyId,
+    })),
+
+    status: event.status ?? "",
+
+    nextMotoGPRace: raceSession.dateStart.toISOString(),
+
+    race: {
+      seasonUuid: season.motogpUuid ?? season.id,
+      eventUuid: event.resultsUuid ?? event.id,
+      categoryUuid:
+        raceSession.category.motogpUuid ?? raceSession.categoryId,
+      sessionUuid: raceSession.resultsUuid ?? raceSession.id,
+    },
+  };
+}
+
 export async function getSeasonEvents(): Promise<NextGrandPrixData[]> {
   const season = await getCurrentSeason();
 
@@ -305,63 +384,10 @@ export async function getSeasonEvents(): Promise<NextGrandPrixData[]> {
   });
 
   return events
-    .filter((event) => event.circuit && event.country)
-    .map((event) => {
-      const raceSession = event.sessions.find(
-        (session) => session.type === RACE_SESSION_TYPE
-      );
-
-      if (!raceSession?.dateStart) {
-        return null;
-      }
-
-      return {
-        id: event.resultsUuid ?? event.id,
-
-        country: {
-          iso: event.country.iso,
-          name: event.country.name,
-          region_iso: event.country.regionIso ?? "",
-        },
-
-        circuit: {
-          id: event.circuit.motogpUuid ?? event.circuit.id,
-          name: event.circuit.name,
-          legacy_id: event.circuit.legacyId ?? 0,
-          place: event.circuit.place ?? "",
-          nation: event.circuit.nation ?? "",
-          events_id: null,
-
-          track: buildTrackDetails(event),
-        },
-
-        sponsored_name: event.sponsoredName ?? event.name,
-        additional_name: event.additionalName ?? "",
-        name: event.name,
-        short_name: event.shortName ?? "",
-
-        date_start: toDateOnly(event.dateStart),
-        date_end: toDateOnly(event.dateEnd),
-
-        legacy_id: event.legacyMappings.map((mapping) => ({
-          categoryId: mapping.categoryLegacyId,
-          eventId: mapping.eventLegacyId,
-        })),
-
-        status: event.status ?? "",
-
-        nextMotoGPRace: raceSession.dateStart.toISOString(),
-
-        race: {
-          seasonUuid: season.motogpUuid ?? season.id,
-          eventUuid: event.resultsUuid ?? event.id,
-          categoryUuid:
-            raceSession.category.motogpUuid ?? raceSession.categoryId,
-          sessionUuid: raceSession.resultsUuid ?? raceSession.id,
-        },
-      };
-    })
-    .filter((event) => event !== null) as NextGrandPrixData[];
+    .map((event) => toNextGrandPrixData(event, season))
+    .filter(
+      (event): event is NextGrandPrixData => event !== null
+    );
 }
 
 /**
@@ -383,61 +409,9 @@ export async function getNextGrandPrix(): Promise<NextGrandPrixData | null> {
 
   const event = await findCurrentOrNextEvent(season.id);
 
-  if (!event || !event.circuit || !event.country) {
+  if (!event) {
     return null;
   }
 
-  const raceSession = event.sessions.find(
-    (session) => session.type === RACE_SESSION_TYPE
-  );
-
-  if (!raceSession?.dateStart) {
-    return null;
-  }
-
-  return {
-    id: event.resultsUuid ?? event.id,
-
-    country: {
-      iso: event.country.iso,
-      name: event.country.name,
-      region_iso: event.country.regionIso ?? "",
-    },
-
-    circuit: {
-      id: event.circuit.motogpUuid ?? event.circuit.id,
-      name: event.circuit.name,
-      legacy_id: event.circuit.legacyId ?? 0,
-      place: event.circuit.place ?? "",
-      nation: event.circuit.nation ?? "",
-      events_id: null,
-
-      track: buildTrackDetails(event),
-    },
-
-    sponsored_name: event.sponsoredName ?? event.name,
-    additional_name: event.additionalName ?? "",
-    name: event.name,
-    short_name: event.shortName ?? "",
-
-    date_start: toDateOnly(event.dateStart),
-    date_end: toDateOnly(event.dateEnd),
-
-    legacy_id: event.legacyMappings.map((mapping) => ({
-      categoryId: mapping.categoryLegacyId,
-      eventId: mapping.eventLegacyId,
-    })),
-
-    status: event.status ?? "",
-
-    nextMotoGPRace: raceSession.dateStart.toISOString(),
-
-    race: {
-      seasonUuid: season.motogpUuid ?? season.id,
-      eventUuid: event.resultsUuid ?? event.id,
-      categoryUuid:
-        raceSession.category.motogpUuid ?? raceSession.categoryId,
-      sessionUuid: raceSession.resultsUuid ?? raceSession.id,
-    },
-  };
+  return toNextGrandPrixData(event, season);
 }

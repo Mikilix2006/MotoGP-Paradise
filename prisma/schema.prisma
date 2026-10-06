@@ -193,6 +193,7 @@ model Event {
   sequence Int?
   isTest   Boolean  @default(false) @map("is_test")
   timeZone String?  @map("time_zone")
+  flagUrl  String?  @map("flag_url")
 
   season    Season   @relation(fields: [seasonId], references: [id])
   circuit   Circuit? @relation(fields: [circuitId], references: [id])
