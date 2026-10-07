@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { label: "Calendario", href: "/calendario" },
   { label: "Pilotos", href: "#" },
   { label: "Equipos", href: "#" },
-  { label: "Circuitos", href: "#" },
+  { label: "Predicciones", href: "#" },
 ];
 
 // "/" solo es activo en la portada exacta; el resto, también en sus subrutas.
