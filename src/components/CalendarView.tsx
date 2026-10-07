@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CalendarDays,
   MapPin,
@@ -9,6 +9,7 @@ import {
   Clock,
   ChevronDown,
 } from "lucide-react";
+import CountryFlag from "./CountryFlag";
 import type { CalendarSession } from "@/types/grandPrix";
 
 interface CalendarEventData {
@@ -80,106 +81,6 @@ function getStatusBadge(status: string) {
       {statusConfig.icon}
       <span>{statusConfig.label}</span>
     </div>
-  );
-}
-
-// Lienzo común de las SVG de banderas de MotoGP: la bandera real va centrada
-// en vertical a todo el ancho, con franjas transparentes arriba y abajo.
-const FLAG_CANVAS_W = 162;
-const FLAG_CANVAS_H = 116;
-
-// Mide la franja vertical realmente pintada (en unidades del lienzo).
-function measureFlag(img: HTMLImageElement) {
-  const canvas = document.createElement("canvas");
-  canvas.width = FLAG_CANVAS_W;
-  canvas.height = FLAG_CANVAS_H;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.drawImage(img, 0, 0, FLAG_CANVAS_W, FLAG_CANVAS_H);
-  const { data } = ctx.getImageData(0, 0, FLAG_CANVAS_W, FLAG_CANVAS_H);
-  let first = -1;
-  let last = -1;
-  for (let y = 0; y < FLAG_CANVAS_H; y++) {
-    for (let x = 0; x < FLAG_CANVAS_W; x++) {
-      if (data[(y * FLAG_CANVAS_W + x) * 4 + 3] > 10) {
-        if (first < 0) first = y;
-        last = y;
-        break;
-      }
-    }
-  }
-  if (first < 0) return null;
-  return { top: first, height: last - first + 1 };
-}
-
-// Bandera del país. Se ajusta a la vertical: el alto pintado de la bandera
-// llena el alto de la caja y se recorta solo por los lados. Si no se puede
-// medir, object-cover; si no hay URL o falla la carga, el código ISO en una pill.
-function CountryFlag({
-  url,
-  iso,
-  name,
-}: {
-  url: string | null;
-  iso: string;
-  name: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const [fit, setFit] = useState<
-    "pending" | "fallback" | { top: number; height: number }
-  >("pending");
-  const measured = useRef(false);
-
-  if (!url || failed) {
-    return (
-      <span
-        title={name}
-        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-400"
-      >
-        {iso}
-      </span>
-    );
-  }
-
-  function handleLoad(event: React.SyntheticEvent<HTMLImageElement>) {
-    if (measured.current) return;
-    measured.current = true;
-    try {
-      setFit(measureFlag(event.currentTarget) ?? "fallback");
-    } catch {
-      // Lienzo contaminado (CORS) u otro fallo: se usa object-cover.
-      setFit("fallback");
-    }
-  }
-
-  const ajustada = typeof fit === "object";
-
-  return (
-    <span className="relative block h-7 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        crossOrigin="anonymous"
-        alt={`Bandera de ${name}`}
-        loading="lazy"
-        decoding="async"
-        onLoad={handleLoad}
-        onError={() => setFailed(true)}
-        className={
-          ajustada
-            ? "absolute left-1/2 max-w-none -translate-x-1/2"
-            : `h-full w-full object-cover ${fit === "pending" ? "opacity-0" : ""}`
-        }
-        style={
-          ajustada
-            ? {
-                height: `${(FLAG_CANVAS_H / fit.height) * 100}%`,
-                top: `${(-fit.top / fit.height) * 100}%`,
-              }
-            : undefined
-        }
-      />
-    </span>
   );
 }
 

@@ -124,6 +124,7 @@ export async function getMotoGPRiderStandings(): Promise<MotoGPRider[]> {
       country: {
         iso: rider.country?.iso ?? "",
         name: rider.country?.name ?? "",
+        flag_url: rider.country?.flagUrl ?? null,
       },
 
       legacy_id: rider.legacyId ?? 0,

@@ -24,6 +24,7 @@ import { upsertRider } from "@/services/importers/riderResolver";
 interface ApiCountry {
   iso?: string | null;
   name?: string | null;
+  flag?: string | null;
 }
 
 interface ApiCategoryRef {
@@ -284,6 +285,16 @@ export async function importRiders(
     if (detail.country?.iso) {
       const iso = detail.country.iso.trim();
 
+      /*
+       * Bandera del país del piloto (country, no birth_country).
+       * Solo la API general la trae; la de resultados no, así que
+       * este es el único sitio que puede rellenar Country.flagUrl.
+       * Si la API no la envía se deja undefined para conservar la
+       * existente en vez de pisarla con null. No tiene relación
+       * con Event.flagUrl (otro patrón de URL, por Gran Premio).
+       */
+      const flagUrl = detail.country.flag?.trim() || undefined;
+
       const country = await prisma.country.upsert({
         where: {
           iso,
@@ -292,10 +303,12 @@ export async function importRiders(
         create: {
           iso,
           name: detail.country.name?.trim() || iso,
+          flagUrl,
         },
 
         update: {
           name: detail.country.name?.trim() || iso,
+          flagUrl,
         },
       });
 

@@ -25,6 +25,7 @@ model Country {
   iso       String   @unique @db.VarChar(8)
   name      String   @db.VarChar(100)
   regionIso String?  @map("region_iso") @db.VarChar(32)
+  flagUrl   String?  @map("flag_url")
 
   circuits  Circuit[]
   events    Event[]

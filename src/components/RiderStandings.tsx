@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 
+import CountryFlag from "./CountryFlag";
+
 interface RiderCountry {
   iso: string;
   name: string;
+  flag_url: string | null;
 }
 
 interface RiderTeam {
@@ -164,10 +167,23 @@ export default function RiderStandings() {
 
                 {/* PILOTO */}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-black text-red-500">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="min-w-7 text-sm font-black text-red-500">
                       #{rider.number}
                     </span>
+
+                    {/* Hueco fijo de 24 px: sin país queda vacío y los
+                        nombres siguen alineados entre filas */}
+                    <div className="flex w-6 shrink-0 justify-center">
+                      {rider.country.iso && (
+                        <CountryFlag
+                          size="sm"
+                          url={rider.country.flag_url}
+                          iso={rider.country.iso}
+                          name={rider.country.name}
+                        />
+                      )}
+                    </div>
 
                     <div className="min-w-0">
                       <h3 className="truncate font-bold text-white">

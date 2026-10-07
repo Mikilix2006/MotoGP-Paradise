@@ -1,6 +1,7 @@
 export interface RiderCountry {
   iso: string;
   name: string;
+  flag_url: string | null;
 }
 
 export interface RiderTeam {
