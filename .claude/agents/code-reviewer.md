@@ -20,7 +20,7 @@ Eres el revisor de código de **MotoGP Stats** (Next.js 16, React 19, TypeScript
 3. **Identificadores entre APIs:** que no se asuma que un UUID de una API sirve en la otra; el cruce es por `legacyId`/`toadApiUuid`. Que se conserven los identificadores externos.
 4. **Datos incompletos:** campos opcionales tratados como posiblemente ausentes; ningún `null` hacia una columna obligatoria; no se descartan registros por restricciones que no existen en el esquema.
 5. **Trampa `constructor` de Prisma:** relación `constructor` explícita en `include`/`select` y ausente en consultas de resultados (rompe tipos y la conversión de fechas).
-6. **Hora:** cualquier uso nuevo de `getMadridTimestamp()` o aritmética de fechas debe tener en cuenta que la API de resultados devuelve la hora estándar del circuito etiquetada `+00:00`; las fechas de dos APIs no se mezclan en la misma fila.
+6. **Hora:** cualquier uso nuevo de `getMadridTimestamp()` o aritmética de fechas debe tener en cuenta que la API de resultados devuelve el reloj de pared local del circuito (con horario de verano) etiquetado `+00:00`; las fechas de dos APIs no se mezclan en la misma fila.
 7. **Contrato de las rutas:** `{ data }` en éxito y `{ error: "mensaje en español" }` con 404/500 y `console.error`; sin filtrar detalles internos ni stack traces al cliente. Forma `snake_case` de las respuestas.
 8. **Capa de datos:** la UI no llama a la API externa de MotoGP; las consultas Prisma no meten N+1 ni `include` innecesariamente anchos; `revalidate` razonable.
 9. **React/Next:** `"use client"` solo donde hace falta; efectos con limpieza; estados cargando/error/vacío presentes; claves estables en listas; `useEffect` sin condiciones de carrera evidentes.

@@ -53,9 +53,9 @@ src/utils/date.ts                Utilidades de fecha
 
 ## Trampa horaria conocida
 
-`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad la API de resultados devuelve la **hora estándar del circuito** (sin horario de verano) etiquetada como `+00:00`. Para Grandes Premios fuera de Europa la cuenta atrás queda desfasada (en Qatar, unas 2 horas).
+`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad `Session.dateStart` es el **reloj de pared local del circuito** (incluye el horario de verano local) etiquetado como `+00:00`. Para Grandes Premios fuera de Europa la cuenta atrás y la tarjeta Sprint quedan desfasadas.
 
-No lo arregles a la ligera: afecta a la cuenta atrás y a cualquier hora que muestres. Si vas a tocarlo, avisa al usuario y propón la corrección completa (convertir usando `Event.timeZone`, que ya se importa).
+No lo arregles a la ligera: afecta a la cuenta atrás y a cualquier hora que muestres. Si vas a tocarlo, avisa al usuario y propón la corrección completa (convertir usando `Event.timeZone`, que ya se importa). `wallClockToInstant(date, timeZone)` de `src/utils/date.ts` ya hace esa conversión y la usa el calendario (`/api/calendar`).
 
 ## Idioma y estados
 
@@ -73,7 +73,7 @@ El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase
 - Páginas y layouts son server components y exportan `metadata` en español (patrón de título "Sección | MotoGPStats"); `"use client"` solo donde hay estado, efectos o eventos.
 - El patrón actual es componente cliente + `fetch("/api/...")`. Mover una vista a "server component que llama al repositorio directamente" es un cambio de arquitectura: **propónlo con pros y contras y espera aprobación**.
 - Caché: los datos solo cambian cuando corre un importador o el watcher, por eso las rutas llevan `revalidate = 60`. Toda ruta nueva con datos de BD debe justificar su política.
-- Navegación: el `Header` usa `<a href>` y recarga la página completa; `next/link` + `usePathname` darían navegación cliente y estado activo real. Mejora detectada: proponla antes de aplicarla (es un componente visible).
+- Navegación: el `Header` ya es un componente cliente y marca el enlace activo con `usePathname`, pero sigue usando `<a href>` (recarga la página completa); `next/link` daría navegación cliente. Mejora detectada: proponla antes de aplicarla (es un componente visible).
 - Imágenes: las del circuito vienen de `photos.motogp.com` (SVG) y se pintan con `<img>`; pasar a `next/image` exige `images.remotePatterns` en `next.config.ts`. No lo cambies sin preguntar.
 - `loading.tsx`, `error.tsx` y `not-found.tsx` aún no se usan; si los propones, deben reutilizar los patrones visuales existentes.
 - Despliegue en Railway con dos servicios sobre la misma base de datos ([DEPLOY.md](DEPLOY.md)): `web` (`npm run start:web`, que ejecuta `prisma migrate deploy` antes de `next start`) y `worker` (`npm run watch:sessions`). No cambies scripts de arranque ni migraciones sin hablarlo.

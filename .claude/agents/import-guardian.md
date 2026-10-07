@@ -32,9 +32,9 @@ Cada script es un punto de entrada que envuelve un importador en `trackSyncRun` 
 | 2 | `import:events` | results | `/events?seasonUuid=` | Country, Circuit, Event, EventLegacyMapping, EventDocument | **sí** | 1 llamada por temporada |
 | 3 | `import:event-categories` | results | `/categories?eventUuid=` | Category, EventCategory | no | todos los eventos |
 | 4 | `import:sessions` | results | `/sessions?eventUuid=&categoryUuid=` | Session | **sí** (y `eventIds` desde código) | evento×categoría de la temporada |
-| 5 | `import:event-details` | general | `/events?seasonYear=` | CircuitTrack/Asset/Description, EventScheduleDay, EventUrl, enriquece Category y **Session** (vueltas, nombre, broadcastUuid, flags) | **sí** (`-- 2026`) | 1 llamada por temporada |
+| 5 | `import:event-details` | general | `/events?seasonYear=` | CircuitTrack/Asset/Description, EventScheduleDay, EventUrl, enriquece Event (zona horaria, `flagUrl`), Category y **Session** (vueltas, nombre, broadcastUuid, flags) | **sí** (`-- 2026`) | 1 llamada por temporada |
 | 6 | `import:session-results` | results | `/session/{uuid}/classification?seasonYear=` (+`&test=true` en tests) | SessionResult, Rider, Team, Constructor, Country | **sí** (y `sessionIds` desde código) | sesiones de la temporada; **sin año: todo el histórico, horas** |
-| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage | **sí** | 1 + N pilotos por temporada |
+| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Country.flagUrl, Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage | **sí** | 1 + N pilotos por temporada |
 | 8 | `import:rider-statistics` | general | `/riders/{legacyId}/statistics` | RiderSeasonStatistics | **sí** (pilotos con inscripción o resultados ese año) | sin año: todos los pilotos con legacyId |
 | 9 | `import:championship-standings` | results | `/standings?seasonUuid=&categoryUuid=` | ChampionshipStanding | **sí** | temporada × categoría |
 | 10 | `import:bmw-award` | results | `/standings/bmwaward?seasonUuid=` | BmwAwardStanding | **sí** | 1 llamada por temporada |

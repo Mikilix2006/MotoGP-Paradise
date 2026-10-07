@@ -100,10 +100,10 @@ Mobile-first con los breakpoints de Tailwind: `sm` (≥640) muestra columnas ext
 
 ## Deuda de diseño conocida (propón, no "arregles" sin avisar)
 
-- **Calendario** ([CalendarView.tsx](src/components/CalendarView.tsx)): primera versión funcional pero **fuera del sistema** — usa `blue-950/400` para "Próximamente", un `Flag` con el código ISO del país en lugar de algo informativo y no hay estado activo en el menú. Es el primer encargo natural: expresar los tres estados con la paleta existente (Finalizado en zinc, En curso en rojo relleno/destacado, Próximamente en pill de contorno), resaltar el próximo GP y agrupar por mes si mejora la lectura.
-- **Header:** `Inicio` lleva `text-white` fijo (no hay estado activo real según la ruta), "Pilotos/Equipos/Circuitos" son `#`, el selector "2026" y la búsqueda no hacen nada y en móvil el icono de menú no abre nada.
+- **Calendario** ([CalendarView.tsx](src/components/CalendarView.tsx)): ya usa la paleta del sistema (Finalizado en zinc, En curso en rojo, Próximamente en pill de contorno), destaca el próximo GP, muestra la bandera de cada GP con `CountryFlag` y tiene cards desplegables con la tabla de horarios y el conmutador TU HORA / HORA LOCAL. Audítalo como cualquier otro componente.
+- **Header:** ya marca el enlace activo según la ruta y tiene menú desplegable en móvil; "Pilotos/Equipos/Circuitos" son `#` (páginas aún sin crear) y el selector "2026" y la búsqueda no hacen nada.
 - **Estados de error inconsistentes** entre componentes (`ChampionshipStats` no muestra error; solo oculta la tarjeta).
-- Banderas de país: hoy solo hay un icono `Flag` genérico y el código ISO; no hay asset de banderas.
+- Banderas de país: el componente compartido es [CountryFlag.tsx](src/components/CountryFlag.tsx) (recorte tipo cover sobre la zona pintada de las SVG de `photos.motogp.com`; si falla, el código ISO en una pill) y lo usan el calendario y la clasificación de pilotos. `NextGrandPrix` sigue con un icono `Flag` genérico.
 
 Si un diseño exige un patrón que el sistema no tiene (nuevo color de estado, nueva forma de gráfico, banderas, un gráfico de barras o línea), **preséntalo como decisión explícita al usuario con una propuesta concreta y su coste**, y espera respuesta. Tu rol es hacer crecer el sistema con criterio, no romperlo por inercia.
 

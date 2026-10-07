@@ -139,11 +139,12 @@ id
 iso
 name
 region_iso
+flag_url
 created_at
 updated_at
 ```
 
-`iso` será único.
+`iso` será único. `flag_url` es opcional (bandera del país, la rellena `import:riders`).
 
 ### Season
 
@@ -277,6 +278,7 @@ status
 sequence
 is_test
 time_zone
+flag_url
 created_at
 updated_at
 ```
@@ -382,6 +384,11 @@ has_results
 has_on_demand
 is_live
 is_live_timing
+condition_track
+condition_air
+condition_humidity
+condition_ground
+condition_weather
 created_at
 updated_at
 ```
@@ -487,6 +494,7 @@ rider_id
 season_id
 category_id
 constructor_id
+event_id
 starts
 wins
 second_places
@@ -644,19 +652,24 @@ PARTIAL
 ``` text
 src/
 ├── lib/
-│   ├── prisma.ts
-│   └── config.ts
+│   └── prisma.ts
 ├── services/
 │   ├── motogp/
 │   │   ├── resultsClient.ts
-│   │   ├── broadcastClient.ts
-│   │   └── timingClient.ts
+│   │   └── apiClient.ts
 │   ├── importers/
-│   ├── normalizers/
-│   └── queries/
+│   ├── db/
+│   └── stats/
+├── types/
+├── utils/
 └── app/
     └── api/
 ```
+
+Los clientes de `services/motogp/` solo los usan los importadores; la
+aplicación lee de la base de datos mediante los repositorios de
+`services/db/`. El detalle de cada carpeta está en el README
+(sección 26).
 
 Flujo:
 
@@ -665,9 +678,7 @@ API Client
     ↓
 Raw Response
     ↓
-Normalizer
-    ↓
-Importer
+Importer (normaliza y escribe)
     ↓
 Prisma / PostgreSQL
 ```
@@ -765,9 +776,9 @@ ChampionshipStanding(season_id, category_id, event_id)
 ``` text
 Season actual
    ↓
-Evento CURRENT
+Primer evento (no test) cuya carrera de MotoGP no está FINISHED
    ↓
-Fallback NOT-STARTED
+Fallback: evento CURRENT y después NOT-STARTED
    ↓
 Circuito + sesiones MotoGP
 ```
@@ -811,85 +822,91 @@ RiderSeasonStatistics
 
 ``` env
 DATABASE_URL=
+MOTOGP_API_URL=
 MOTOGP_RESULTS_API_URL=
-MOTOGP_BROADCAST_API_URL=
-MOTOGP_TIMING_API_URL=
 ```
 
-## 19. Scripts previstos
+## 19. Scripts
+
+Implementados (ver README, sección 20, y `package.json`):
 
 ``` text
-scripts/
-├── import-seasons.ts
-├── import-events.ts
-├── import-season.ts
-├── import-circuits.ts
-├── import-sessions.ts
-├── import-riders.ts
-├── import-statistics.ts
-└── sync-current-season.ts
+import:seasons
+import:events
+import:event-categories
+import:sessions
+import:event-details
+import:session-results
+import:riders
+import:rider-statistics
+import:championship-standings
+import:bmw-award
+sync:sessions / watch:sessions
+fix:duplicate-riders
 ```
 
 ## 20. Plan de ejecución
 
 ### Sprint 1 --- Base
 
--   [ ] Crear PostgreSQL
--   [ ] Instalar Prisma
--   [ ] Crear `schema.prisma`
--   [ ] Crear primera migración
--   [ ] Crear cliente Prisma
+-   [x] Crear PostgreSQL
+-   [x] Instalar Prisma
+-   [x] Crear `schema.prisma`
+-   [x] Crear primera migración
+-   [x] Crear cliente Prisma
 
 ### Sprint 2 --- Datos maestros
 
--   [ ] Country
--   [ ] Season
--   [ ] Category
--   [ ] Circuit
--   [ ] Rider
--   [ ] Team
--   [ ] Constructor
+-   [x] Country
+-   [x] Season
+-   [x] Category
+-   [x] Circuit
+-   [x] Rider
+-   [x] Team
+-   [x] Constructor
 
 ### Sprint 3 --- Eventos
 
--   [ ] Event
--   [ ] EventCategory
--   [ ] EventScheduleDay
--   [ ] EventDocument
--   [ ] EventLegacyMapping
+-   [x] Event
+-   [x] EventCategory
+-   [x] EventScheduleDay
+-   [x] EventDocument
+-   [x] EventLegacyMapping
 
 ### Sprint 4 --- Enriquecimiento
 
--   [ ] CircuitTrack
--   [ ] CircuitAsset
--   [ ] CircuitDescription
--   [ ] EventUrl
+-   [x] CircuitTrack
+-   [x] CircuitAsset
+-   [x] CircuitDescription
+-   [x] EventUrl
 
 ### Sprint 5 --- Competición
 
--   [ ] Session
--   [ ] SessionResult
--   [ ] ChampionshipStanding
--   [ ] BmwAwardStanding
+-   [x] Session
+-   [x] SessionResult
+-   [x] ChampionshipStanding
+-   [x] BmwAwardStanding
 
 ### Sprint 6 --- Historial
 
--   [ ] RiderSeasonEntry
--   [ ] RiderSeasonImage
--   [ ] RiderSeasonStatistics
+-   [x] RiderSeasonEntry
+-   [x] RiderSeasonImage
+-   [x] RiderSeasonStatistics
 
 ### Sprint 7 --- Sincronización
 
--   [ ] ApiSnapshot
--   [ ] SyncRun
--   [ ] Importers
--   [ ] Normalizers
--   [ ] Scripts
+-   [x] ApiSnapshot
+-   [x] SyncRun
+-   [x] Importers
+-   [x] Normalizers (integrados en cada importador, no hay carpeta aparte)
+-   [x] Scripts
 
 ### Sprint 8 --- Migración de la aplicación
 
--   [ ] `/api/next-gp` desde base de datos
--   [ ] `/api/riders/standings` desde base de datos
+-   [x] `/api/next-gp` desde base de datos
+-   [x] `/api/riders/standings` desde base de datos
+-   [x] `/api/next-gp/favorites` y `/api/calendar` desde base de datos
+-   [x] página `/calendario` desde base de datos
 -   [ ] páginas de pilotos desde base de datos
 -   [ ] páginas de eventos desde base de datos
 

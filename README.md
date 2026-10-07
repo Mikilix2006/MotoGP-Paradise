@@ -248,7 +248,7 @@ npm run import:championship-standings
 npm run import:bmw-award
 ```
 
-Los tres importadores más recientes admiten acotar la importación a una sola temporada, lo que es muy recomendable para una primera prueba:
+Todos los importadores excepto `import:seasons` e `import:event-categories` admiten acotar la importación a una sola temporada (sin año recorren todo el histórico, lo que puede tardar horas), lo que es muy recomendable para una primera prueba:
 
 ```bash
 npm run import:event-details -- 2024
@@ -258,7 +258,14 @@ npm run import:championship-standings -- 2024
 
 El orden importa: `import:event-details` debe ejecutarse **después** de `import:sessions`, ya que completa las sesiones existentes en lugar de crearlas de nuevo.
 
-> Nota: el proyecto no cuenta actualmente con una suite de tests automatizados.
+Durante la temporada, en lugar de repetir el pipeline a mano, existe la sincronización en vivo (ver [Fase 10](#fase-10--sincronización-en-vivo)):
+
+```bash
+npm run sync:sessions     # una pasada: importa lo que haya terminado y sale
+npm run watch:sessions    # proceso continuo que vigila el calendario
+```
+
+> Nota: el proyecto no cuenta actualmente con una suite de tests automatizados (no existe `npm test`) y ESLint no está instalado ni configurado, así que `npm run lint` no funciona. Las comprobaciones disponibles son `npx tsc --noEmit -p tsconfig.json` (el proyecto está en modo `strict`) y `npx prisma validate` si se ha tocado el esquema.
 
 ---
 
@@ -312,6 +319,23 @@ npx prisma studio
 
 Abre Prisma Studio para inspeccionar visualmente los datos.
 
+```bash
+npx prisma migrate deploy
+```
+
+Aplica las migraciones pendientes sin interactividad (es lo que ejecuta `npm run start:web` antes de arrancar en producción; ver [DEPLOY.md](DEPLOY.md)). `prisma migrate dev` es interactivo y no funciona en entornos no interactivos.
+
+El esquema contiene **27 modelos** y el historial de `prisma/migrations/` es:
+
+| Migración | Cambio |
+|---|---|
+| `20260831165539_initial_schema` | Esquema inicial |
+| `20260831211713_add_bmw_award_unique_constraint` | Restricción única `(seasonId, riderId)` en `BmwAwardStanding` |
+| `20260902005742_add_session_conditions_and_standing_unique` | Campos de condiciones de pista en `Session` y restricción única `(seasonId, categoryId, riderId)` en `ChampionshipStanding` |
+| `20260911120000_rider_legacy_id_unique` | `Rider.legacyId` pasa a ser único (antes hay que ejecutar `npm run fix:duplicate-riders`) |
+| `20261006120000_event_flag_url` | `Event.flagUrl` (columna `flag_url`, opcional) |
+| `20261007120000_country_flag_url` | `Country.flagUrl` (columna `flag_url`, opcional) |
+
 ---
 
 # 6. Modelo de datos
@@ -331,9 +355,12 @@ id
 iso
 name
 regionIso
+flagUrl
 ```
 
 `iso` es único.
+
+`flagUrl` es opcional: la URL de la bandera del país tal como la publica la API general (SVG alojado en `photos.motogp.com`). Solo la rellena `import:riders`, a partir de `country.flag` de la ficha del piloto en la API general, así que los países que no son nacionalidad de ningún piloto importado la tienen vacía. Es independiente de `Event.flagUrl`.
 
 ---
 
@@ -392,7 +419,7 @@ active
 
 Representa pilotos.
 
-Los pilotos conservan los diferentes identificadores disponibles desde las APIs, incluyendo identificadores UUID y `legacy_id`.
+Los pilotos conservan los diferentes identificadores disponibles desde las APIs, incluyendo identificadores UUID y `legacy_id`. `legacyId` es **único** y es la clave de identidad del piloto (el único identificador estable en las dos APIs); todos los importadores resuelven pilotos a través de `src/services/importers/riderResolver.ts` (`findRider` / `upsertRider`) y `npm run fix:duplicate-riders` fusiona los duplicados históricos. El país del piloto (`countryId`) enlaza con `Country`, de donde la interfaz toma la bandera.
 
 Un piloto puede tener información relacionada con:
 
@@ -508,7 +535,10 @@ status
 sequence
 isTest
 timeZone
+flagUrl
 ```
+
+`timeZone` es la zona horaria IANA del circuito (la API la entrega en mayúsculas, p. ej. `ASIA/TOKYO`; `Intl` la acepta tal cual). `flagUrl` es opcional: la URL de la bandera oficial del Gran Premio (asset `FLAG` de `/events?seasonYear=` en la API general, p. ej. `https://photos.motogp.com/countries/flags/iso2/jpn.svg`), que rellena `import:event-details`; los eventos sin asset `FLAG` (p. ej. actos que no son un GP) la dejan vacía.
 
 Relaciones:
 
@@ -657,6 +687,31 @@ SessionResult
 
 Los UUIDs de Results son especialmente importantes para consultar clasificaciones.
 
+También guarda las condiciones de pista que publica la API de resultados:
+
+```text
+conditionTrack
+conditionAir
+conditionHumidity
+conditionGround
+conditionWeather
+```
+
+### Hora de las sesiones
+
+`Session.dateStart` y `dateEnd` guardan el **reloj de pared local del circuito** etiquetado como UTC (una hora guardada como `14:00:00Z` significa «las 14:00 en el circuito», no las 14:00 UTC). Ese reloj **incluye el horario de verano local** (contrastado con el campo `events[].broadcasts[].date_start` de la API general, que trae offset, en varios Grandes Premios de 2026: p. ej. España en abril aparece como 14:00 CEST). Para obtener el instante absoluto hay que convertirlo con la zona del circuito (`Event.timeZone`):
+
+```text
+wallClockToInstant(date, timeZone)   // src/utils/date.ts, usa Intl y respeta el horario de verano
+```
+
+La usa el calendario (`/api/calendar`); `liveSessionSync.ts` tiene su propia función `wallClockToInstant` equivalente para calcular cuándo termina cada sesión.
+
+Hay dos cautelas conocidas:
+
+- `getMadridTimestamp()` (`src/utils/date.ts`), que usan la cuenta atrás y la tarjeta Sprint de la portada, sigue interpretando ese reloj como hora de Madrid, por lo que para los GP fuera de Europa salen desfasadas (deuda conocida, ver `AGENTS.md`).
+- Para eventos aún no celebrados, la API de resultados publica a veces un calendario provisional con las sesiones desplazadas varios días (en 2026: QAT, POR y VAL). Cuando alguna sesión de MotoGP cae fuera de `[Event.dateStart, Event.dateEnd]`, el repositorio del calendario (`findProvisionalCorrector`) toma el día de `EventScheduleDay` (por `gpDay`) y la hora de la propia sesión.
+
 ---
 
 # 10. Resultados de sesión
@@ -770,14 +825,17 @@ Los campos estadísticos incluyen:
 
 ```text
 starts
-firstPosition
-secondPosition
-thirdPosition
+wins                  (first_position de la API)
+secondPlaces          (second_position)
+thirdPlaces           (third_position)
 podiums
 poles
 points
-position
+championshipPosition  (position)
+eventId               (opcional)
 ```
+
+La combinación `(riderId, seasonId, categoryId)` es única.
 
 ---
 
@@ -870,6 +928,8 @@ points
 fetchedAt
 ```
 
+La combinación `(seasonId, riderId)` es única.
+
 Este endpoint también puede utilizarse como fuente complementaria para identificar pilotos, equipos y constructores presentes en una temporada.
 
 ---
@@ -891,7 +951,7 @@ Team
 Constructor
 ```
 
-Permite mantener una fotografía de la clasificación correspondiente al punto del campeonato en que se realizó la importación.
+Permite mantener una fotografía de la clasificación correspondiente al punto del campeonato en que se realizó la importación (`snapshotAt`). La combinación `(seasonId, categoryId, riderId)` es única, así que cada importación actualiza la fila del piloto en lugar de añadir otra.
 
 ---
 
@@ -918,6 +978,8 @@ Snapshot
 ```
 
 Esto permite conservar datos de Live Timing sin mezclar cada actualización con resultados históricos oficiales.
+
+Estas dos tablas existen en el esquema pero **no tienen importador todavía** y están vacías.
 
 ---
 
@@ -1082,6 +1144,7 @@ Además completa datos que la API de resultados no proporciona:
 
 - coordenadas del circuito;
 - zona horaria y orden del evento;
+- bandera oficial del Gran Premio (`Event.flagUrl`, asset `FLAG` de `/events`);
 - acrónimo, prioridad y `timing_id` de las categorías;
 - nombre, tipo, vueltas, día de GP y flags de cada sesión.
 
@@ -1092,7 +1155,9 @@ Event.toadApiUuid  ==  id del evento en /events
 Category.legacyId  ==  category.timing_id
 ```
 
-Las sesiones no se emparejan por hora, porque `/results/sessions` devuelve la hora **estándar** del circuito (sin horario de verano) mientras que `/events` devuelve la hora real. El emparejamiento se hace por UUID, hora exacta, tipo base y orden cronológico.
+Las sesiones no se emparejan solo por hora, porque `/results/sessions` devuelve la hora local del circuito etiquetada como `+00:00` mientras que `/events` devuelve la hora con su offset real (ver [Hora de las sesiones](#hora-de-las-sesiones)). El emparejamiento (`matchBroadcastsToSessions`) se hace en 4 pasadas: UUID de broadcast, hora exacta, tipo base con orden cronológico dentro del tipo y, por último, orden cronológico (solo si quedan exactamente las mismas sesiones que broadcasts).
+
+Las pasadas por UUID y por hora exacta comprueban además que el tipo de sesión sea compatible (`areTypesCompatible`; `PR`, `P` y `FP` se consideran equivalentes). Evita cruces como el de Catar 2026, donde el calendario provisional de la API de resultados hacía coincidir la hora de una práctica con la de una carrera. Si un `broadcastUuid` quedó guardado por error en otra sesión, se libera antes de reasignarlo (es único). El criterio de salud es que reimportar cree 0 sesiones nuevas.
 
 ---
 
@@ -1126,7 +1191,7 @@ RiderSeasonEntry
 RiderSeasonImage
 ```
 
-También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda) y del equipo (tipo, colores e imágenes).
+También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda), del equipo (tipo, colores e imágenes) y del país del piloto (`Country.flagUrl`, a partir de `country.flag` de la ficha `/riders/{uuid}`).
 
 Importante: el `current_career_step` del listado por temporada corresponde **siempre** a la temporada actual, no a la consultada. El historial real está en el `career[]` de la ficha individual, que es lo que se importa.
 
@@ -1160,6 +1225,29 @@ Las categorías se recorren a partir de las asociadas a los eventos de cada temp
 
 ---
 
+## Fase 10 — Sincronización en vivo
+
+```bash
+npm run sync:sessions     # una pasada y termina (cron / Programador de tareas)
+npm run watch:sessions    # proceso continuo
+```
+
+Es la vía normal durante la temporada: mantiene la base de datos al día durante un fin de semana de carreras sin recorrer el histórico. Lógica en `src/services/importers/liveSessionSync.ts` (`syncLiveSessions`); punto de entrada `scripts/watch-sessions.ts` (`--once` equivale a `sync:sessions`). Cada ciclo:
+
+1. refresca el estado de los eventos de la temporada (`NOT-STARTED` → `CURRENT` → `FINISHED`) con una llamada;
+2. localiza los eventos activos (su fin de semana cubre ahora, con un día de margen a cada lado);
+3. refresca sus sesiones desde la API de resultados, que es quien las marca como `FINISHED`;
+4. importa la clasificación de las sesiones terminadas que aún no la tienen (y reimporta las terminadas hace poco por si hay sanciones);
+5. si ha entrado el resultado de una carrera o sprint, encadena las estadísticas de piloto, la clasificación del campeonato y el BMW Award de la temporada.
+
+Es idempotente. Entre sesiones duerme hasta el fin previsto de la siguiente (calculado con la zona horaria del evento); mientras la API no publica una clasificación pregunta cada dos minutos. Solo registra en `SyncRun` (`/live-sync/sessions` o `/live-sync/post-race`) cuando importa algo.
+
+En desarrollo local en Windows corre como tarea programada (`scripts/register-watcher-task.ps1` la registra o, con `-Unregister`, la elimina; el lanzador es `scripts/watch-sessions.ps1`); en producción es el servicio *worker* de Railway (ver [DEPLOY.md](DEPLOY.md)).
+
+La web no usa el estado del evento para elegir el GP a mostrar (MotoGP lo mantiene en `CURRENT` hasta bastante después de la carrera): ver la sección 23.
+
+---
+
 # 20. Scripts de importación
 
 Los scripts se ejecutan mediante `tsx`.
@@ -1178,14 +1266,23 @@ Scripts disponibles, en orden de ejecución:
 | `import:events` | `eventImporter` | `Country`, `Circuit`, `Event`, `EventLegacyMapping`, `EventDocument` |
 | `import:event-categories` | `eventCategoryImporter` | `Category`, `EventCategory` |
 | `import:sessions` | `sessionImporter` | `Session` (incluidas condiciones de pista) |
-| `import:event-details` | `eventDetailsImporter` | `CircuitTrack`, `CircuitAsset`, `CircuitDescription`, `EventScheduleDay`, `EventUrl` y completa `Circuit`, `Event`, `Category` y `Session` |
+| `import:event-details` | `eventDetailsImporter` | `CircuitTrack`, `CircuitAsset`, `CircuitDescription`, `EventScheduleDay`, `EventUrl` y completa `Circuit`, `Event` (incluida `flagUrl`), `Category` y `Session` |
 | `import:session-results` | `sessionResultImporter` | `Rider`, `Team`, `Constructor`, `SessionResult` |
-| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider` y `Team` |
+| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider`, `Team` y `Country.flagUrl` |
 | `import:rider-statistics` | `riderStatisticsImporter` | `RiderSeasonStatistics` |
 | `import:championship-standings` | `championshipStandingImporter` | `ChampionshipStanding` |
 | `import:bmw-award` | `bmwAwardImporter` | `BmwAwardStanding` |
 
-Todos los scripts registran su ejecución en `SyncRun` mediante `trackSyncRun`, y los importadores que consultan endpoints de listado guardan la respuesta original en `ApiSnapshot`.
+Scripts adicionales, fuera de la cadena anterior:
+
+| Script | Qué hace |
+|---|---|
+| `sync:sessions` | Una pasada de la sincronización en vivo (`liveSessionSync`, ver [Fase 10](#fase-10--sincronización-en-vivo)) |
+| `watch:sessions` | La misma sincronización en proceso continuo (es lo que ejecuta el *worker* de Railway) |
+| `fix:duplicate-riders` | Mantenimiento: fusiona las filas duplicadas de `riders` por `legacyId` (`scripts/merge-duplicate-riders.ts`). Idempotente; no registra `SyncRun` |
+| `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en producción) |
+
+Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
 
 La lógica de importación debe vivir preferiblemente en:
 
@@ -1273,17 +1370,20 @@ Nunca se debe enviar `null` a un campo obligatorio de Prisma.
 
 # 23. Consultas utilizadas por la interfaz
 
-La interfaz principal ya ha utilizado datos relacionados con el siguiente Gran Premio.
+Toda la interfaz lee de PostgreSQL a través de los repositorios de `src/services/db/` (`nextGrandPrixRepository.ts`, `riderStandingsRepository.ts`, `favoritesRepository.ts`, `seasonRepository.ts`); la API externa solo la usan los importadores (`src/services/motogp/`).
 
-La lógica de selección es:
+La temporada actual es la fila de `Season` con `current = true`.
+
+La selección del próximo Gran Premio (`findCurrentOrNextEventId`, compartida por la portada, los favoritos y el calendario) es:
 
 ```text
-1. Buscar evento con estado CURRENT.
-2. Si no existe ninguno:
-   buscar el primer evento con estado NOT-STARTED.
+1. Primer evento de la temporada (por fecha, sin contar tests)
+   cuya carrera de MotoGP aún no está FINISHED.
+2. Si no hay ninguno (fin de temporada o sesiones sin importar):
+   primer evento con estado CURRENT y, si no, con NOT-STARTED.
 ```
 
-Esto permite que la aplicación siga mostrando el próximo GP aunque no exista un evento actualmente en estado `CURRENT`.
+No se usa solo el estado del evento porque MotoGP lo mantiene en `CURRENT` hasta bastante después de la carrera del domingo. Así, durante el fin de semana se muestra el GP en curso y, en cuanto termina la carrera, pasa a ser el siguiente.
 
 ---
 
@@ -1330,34 +1430,42 @@ CircuitAsset
 
 # 24.1 Páginas disponibles en la aplicación
 
-La aplicación cuenta con las siguientes páginas principales:
+La aplicación cuenta con las siguientes páginas principales. Todas leen de PostgreSQL a través de las rutas de la [sección 25](#25-api-interna-de-la-aplicación); los componentes son componentes cliente (`"use client"`) que hacen `fetch` a esas rutas.
 
 ## Inicio (`/`)
 
-Página principal con información del próximo Gran Premio.
+Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 
-- Datos: próximo GP o GP en curso
-- Componentes: `NextGrandPrix.tsx`
-- API: `/api/next-gp`
+- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito y cuenta atrás. API: `/api/next-gp`
+- `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. API: `/api/riders/standings` y `/api/next-gp`
+- `RiderStandings.tsx` — clasificación de pilotos de MotoGP, con la bandera del país de cada piloto (`country.flag_url`). API: `/api/riders/standings`
+- `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`
+- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix`. Tanto ella como la tarjeta Sprint usan `getMadridTimestamp` (ver [Hora de las sesiones](#hora-de-las-sesiones) para la limitación fuera de Europa)
 
 ---
 
 ## Calendario (`/calendario`)
 
-Página con el calendario completo de la temporada.
+Página con el calendario completo de la temporada actual (`src/app/calendario/page.tsx`, que monta `CalendarView`).
 
-- Datos: todos los Grandes Premios de la temporada actual, ordenados cronológicamente
-- Información por evento:
-  - Nombre patrocinado y nombre regular
-  - Número de ronda (round)
-  - Estado (Finalizado, En curso, Próximamente)
-  - Circuito y locación
-  - País e ISO
-  - Fechas de inicio y fin
-
-- Componentes: `CalendarView.tsx`
+- Componente: `src/components/CalendarView.tsx`
 - API: `/api/calendar`
-- Repositorio: `nextGrandPrixRepository.ts` - función `getSeasonEvents()`
+- Repositorio: `nextGrandPrixRepository.ts`, función `getSeasonEvents()`
+
+Qué muestra:
+
+- una card destacada con el próximo GP (el evento con `is_next_gp`), seguida de la lista de todos los GP de la temporada en orden cronológico;
+- en cada card: badge `ROUND N`, bandera del GP (`flag_url`), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
+- cada card se despliega (con animación) y muestra la tabla de horarios de MotoGP, Moto2 y Moto3, con una columna por día;
+- un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito.
+
+`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView` y `RiderStandings`.
+
+---
+
+## Navegación (`Header.tsx`)
+
+Cabecera común a las dos páginas. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Pilotos, Equipos y Circuitos apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
 
 ---
 
@@ -1373,64 +1481,109 @@ Las siguientes páginas están planificadas pero no implementadas:
 
 # 25. API interna de la aplicación
 
-El frontend debe consultar preferiblemente rutas internas de Next.js.
+El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que leen de PostgreSQL mediante los repositorios de `src/services/db/`. Todas responden `{ "data": ... }` en éxito y `{ "error": "mensaje en español" }` con el status adecuado en caso contrario, y usan nombres en `snake_case`. Sus tipos están en `src/types/` (`grandPrix.ts`, `rider.ts`, `favorites.ts`).
 
 ## Endpoints disponibles
 
 ### `/api/next-gp`
 
-Retorna información del próximo Gran Premio o GP en curso.
+Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consultas-utilizadas-por-la-interfaz)). Caché de 60 s. 404 si no hay ninguno y 500 si falla la consulta.
 
-**Respuesta:**
+**Respuesta (`data`):**
 ```json
 {
   "id": "...",
-  "country": { "iso": "ES", "name": "Spain" },
-  "circuit": { "name": "Circuit name", "place": "...", "track": { ... } },
+  "country": { "iso": "ES", "name": "Spain", "region_iso": "..." },
+  "circuit": {
+    "id": "...", "name": "...", "legacy_id": 0, "place": "...", "nation": "...", "events_id": null,
+    "track": {
+      "eventUuid": "...", "lengthKm": 4.4, "totalCorners": 14, "laps": 25,
+      "infoImageUrl": "https://...", "sprintDate": "2026-...Z", "sprintLaps": 13
+    }
+  },
   "sponsored_name": "...",
+  "additional_name": "...",
   "name": "...",
+  "short_name": "...",
+  "flag_url": "https://photos.motogp.com/countries/flags/iso2/...svg",
   "date_start": "2026-10-02",
   "date_end": "2026-10-04",
-  "status": "NOT-STARTED"
+  "legacy_id": [{ "categoryId": 3, "eventId": 1 }],
+  "status": "NOT-STARTED",
+  "round": 18,
+  "nextMotoGPRace": "2026-...Z",
+  "race": { "seasonUuid": "...", "eventUuid": "...", "categoryUuid": "...", "sessionUuid": "..." }
 }
 ```
+
+- `round`: posición cronológica del evento entre los eventos no test de la temporada (`null` si es un test o no tiene fecha). Ya no se deriva de `legacy_id`.
+- `flag_url`: `Event.flagUrl`; `null` si no se ha importado.
+- `nextMotoGPRace` y `track.sprintDate` son el reloj de pared local del circuito etiquetado como UTC (ver [Hora de las sesiones](#hora-de-las-sesiones)), no instantes absolutos.
 
 ---
 
 ### `/api/calendar`
 
-Retorna todos los Grandes Premios de la temporada actual, ordenados cronológicamente.
+Todos los Grandes Premios de la temporada actual (sin tests), ordenados por fecha. Caché de 60 s. 500 si falla la consulta.
 
-**Respuesta:**
+**Respuesta (`data`):** array en el que cada elemento tiene todos los campos de `/api/next-gp` (incluidos `round` y `flag_url`) más:
+
 ```json
 {
-  "data": [
+  "time_zone": "ASIA/TOKYO",
+  "is_next_gp": false,
+  "sessions": [
     {
       "id": "...",
-      "country": { "iso": "QA", "name": "Qatar" },
-      "circuit": { "name": "Losail", "place": "...", ... },
-      "sponsored_name": "Qatar Airways Grand Prix",
-      "name": "Qatar Grand Prix",
-      "short_name": "QAT",
-      "date_start": "2026-02-27",
-      "date_end": "2026-03-01",
+      "shortname": "RAC",
+      "name": "Grand Prix",
+      "type": "RAC",
       "status": "NOT-STARTED",
-      "legacy_id": [{ "categoryId": 3, "eventId": 1 }]
-    },
-    ...
+      "date_start": "2026-09-27T05:00:00.000Z",
+      "weekday": 0,
+      "category": "MotoGP",
+      "category_legacy_id": 3
+    }
   ]
 }
 ```
 
+- `time_zone`: zona IANA del circuito, en mayúsculas tal como la importa `import:event-details` (`null` si no hay).
+- `is_next_gp`: `true` solo en un evento, con la misma definición que la portada (`findCurrentOrNextEventId`).
+- `sessions`: sesiones de Moto3, Moto2 y MotoGP (`category_legacy_id` 1, 2 y 3; `category` es `"Moto3"`, `"Moto2"` o `"MotoGP"`), ordenadas por instante. Se omiten MotoE y las categorías históricas.
+- `sessions[].date_start`: **instante absoluto** ISO (UTC) ya convertido con `wallClockToInstant` y `time_zone`; `null` si falta la zona o la fecha.
+- `sessions[].weekday`: día de la semana **local del circuito** (0 = domingo … 6 = sábado), para agrupar por días sin depender de la zona del usuario.
+- Para eventos con calendario provisional en la API de resultados, el día de cada sesión se corrige con `EventScheduleDay` (`findProvisionalCorrector`, ver [Hora de las sesiones](#hora-de-las-sesiones)). Los duplicados «fantasma» de carreras reiniciadas se descartan.
+- Se omiten los eventos sin circuito, sin país o sin carrera de MotoGP con fecha.
+
 ---
 
-El flujo recomendado es:
+### `/api/riders/standings`
+
+Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos. Caché de 60 s.
+
+**Respuesta (`data`):** array de pilotos con `id`, `full_name`, `country` (`iso`, `name`, `flag_url`), `legacy_id`, `riders_id`, `number`, `team` (`id`, `name`, `legacy_id`) y `statistics` (`constructor`, `starts`, `first_position`, `second_position`, `third_position`, `podiums`, `poles`, `points`, `position`). `country.flag_url` es `Country.flagUrl` (`null` si no se ha importado).
+
+---
+
+### `/api/next-gp/favorites`
+
+Favoritos del próximo GP, calculados a partir de los resultados importados (`favoritesRepository.ts` y `src/services/stats/favoritesModel.ts`). Caché de 300 s. 404 si no hay datos suficientes.
+
+**Respuesta (`data`):** `event` (`id`, `name`, `short_name`, `date_start`, `circuit`), `model.weights` (`circuit`, `form`, `bike`, `reliability`, `trend`) y `favorites[]`, cada uno con `rank`, `rider`, `score`, `win_probability`, `breakdown` (`circuit`, `form`, `bike`, `reliability`, `trend`) y `circuit_history`.
+
+---
+
+El flujo es:
 
 ```text
 React Component
       │
       ▼
-/api/next-gp o /api/calendar
+/api/next-gp, /api/calendar, /api/riders/standings, /api/next-gp/favorites
+      │
+      ▼
+src/services/db/*Repository.ts
       │
       ▼
 Prisma
@@ -1445,44 +1598,53 @@ Esto evita que cada navegador consulte directamente la API externa de MotoGP.
 
 # 26. Estructura recomendada del proyecto
 
-Una estructura aproximada es:
+La estructura actual es (puede evolucionar):
 
 ```text
-MotoGP-Paradise/
+motogp-stats/
 │
 ├── prisma/
-│   └── schema.prisma
+│   ├── schema.prisma
+│   └── migrations/
 │
-├── scripts/
-│   ├── import-seasons.ts
-│   ├── import-events.ts
+├── scripts/                       Puntos de entrada (import-*.ts, merge-duplicate-riders.ts,
+│   │                              watch-sessions.ts) y utilidades de Windows (*.ps1)
 │   └── ...
 │
 ├── src/
 │   ├── app/
+│   │   ├── page.tsx               Inicio (/)
+│   │   ├── calendario/page.tsx    Calendario (/calendario)
 │   │   └── api/
-│   │       ├── next-gp/
-│   │       └── ...
+│   │       ├── next-gp/           route.ts y favorites/route.ts
+│   │       ├── calendar/
+│   │       └── riders/standings/
 │   │
-│   ├── components/
-│   │   ├── NextGrandPrix.tsx
-│   │   └── ...
+│   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
+│   │                              GrandPrixFavorites, CalendarView, Countdown,
+│   │                              CountryFlag, Header, StatCard
 │   │
 │   ├── lib/
 │   │   └── prisma.ts
 │   │
-│   └── services/
-│       └── importers/
-│           ├── seasonImporter.ts
-│           ├── eventImporter.ts
-│           └── ...
+│   ├── services/
+│   │   ├── db/                    Repositorios de lectura que usan las rutas /api
+│   │   ├── importers/             Lógica de importación y sincronización en vivo
+│   │   ├── motogp/                Clientes de las dos APIs externas (solo los usan los importadores)
+│   │   └── stats/                 Modelos estadísticos puros (favoritesModel.ts)
+│   │
+│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites)
+│   └── utils/
+│       └── date.ts                getMadridTimestamp y wallClockToInstant
 │
-├── .env
+├── .claude/agents/                Agentes (ver AGENTS.md)
+├── .env.example
 ├── package.json
-└── README.md
+├── README.md, AGENTS.md, DEPLOY.md
+└── DATABASE_IMPLEMENTATION_PLAN.md, DATABASE_ENDPOINT_MAPPING.md
 ```
 
-La estructura exacta puede evolucionar, pero debe mantenerse la separación entre:
+Debe mantenerse la separación entre:
 
 ```text
 UI
@@ -1495,6 +1657,8 @@ Base de datos
 ---
 
 # 27. Despliegue
+
+El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md).
 
 Para desplegar la aplicación se deben considerar dos componentes separados:
 
@@ -1572,17 +1736,15 @@ Sincronizaciones periódicas
 
 No es recomendable volver a importar toda la historia continuamente.
 
+La parte de la temporada en curso (eventos actuales, sesiones nuevas, resultados nuevos y clasificaciones actualizadas) ya está implementada en la [Fase 10](#fase-10--sincronización-en-vivo). Lo que sigue pendiente es la sincronización de Live Timing y la reimportación selectiva de temporadas anteriores.
+
 ---
 
 # 29. Posibles automatizaciones futuras
 
-El sistema está preparado para añadir:
+Ya existe la sincronización antes y después de sesiones, la actualización de clasificaciones y del próximo GP, y el almacenamiento de snapshots (`ApiSnapshot`); ver la [Fase 10](#fase-10--sincronización-en-vivo). Queda por añadir:
 
 - sincronización diaria;
-- sincronización antes y después de sesiones;
-- actualización de clasificaciones;
-- actualización del próximo GP;
-- almacenamiento de snapshots;
 - Live Timing periódico;
 - reimportación selectiva de temporadas;
 - detección de cambios mediante `updatedAt` o `fetchedAt`.
@@ -1686,12 +1848,16 @@ Comprobar:
 
 # 33. Documentación complementaria
 
-El proyecto también cuenta con documentos adicionales sobre la base de datos:
+El proyecto también cuenta con documentos adicionales:
 
 ```text
+AGENTS.md
+DEPLOY.md
 DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
+
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos).
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 
