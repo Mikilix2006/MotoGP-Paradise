@@ -21,7 +21,8 @@
     "import:bmw-award": "tsx scripts/import-bmw-award.ts",
     "fix:duplicate-riders": "tsx scripts/merge-duplicate-riders.ts",
     "sync:sessions": "tsx scripts/watch-sessions.ts --once",
-    "watch:sessions": "tsx scripts/watch-sessions.ts"
+    "watch:sessions": "tsx scripts/watch-sessions.ts",
+    "package:dinahosting": "node scripts/package-dinahosting.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

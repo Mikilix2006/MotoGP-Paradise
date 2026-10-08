@@ -1,0 +1,95 @@
+# ============================================================================
+# .htaccess.seguridad - MotoGP Stats (Dinahosting, Apache 2.4 + Passenger)
+# ============================================================================
+# OBJETIVO: la app Node vive dentro de www (zona que Apache sirve por web).
+# Estas reglas deniegan la descarga directa de ficheros y carpetas sensibles
+# (.env, volcados SQL, package.json, prisma/, logs/, tmp/, .git, .next, ...).
+#
+# ES UNA SEGUNDA LINEA DE DEFENSA. La principal es NO dejar secretos en www:
+# poner las variables en ~/.motogp-stats.env (chmod 600), ver .env.example.
+#
+# NOTA: NO HE PODIDO PROBAR ESTAS REGLAS CONTRA UN APACHE REAL. Hay que
+# comprobarlas desde fuera tras instalarlas (ver abajo).
+#
+# INSTALACION (AÑADIR al final del .htaccess existente, NUNCA reemplazarlo:
+# Dinahosting/Passenger pueden haber escrito ahí su configuración):
+#
+#   cd <raiz de la aplicacion>          # p. ej. www/motogp
+#   touch .htaccess
+#   cp .htaccess ../htaccess.copia-$(date +%F)      # copia de seguridad
+#   grep -q 'MOTOGP-SEGURIDAD-INICIO' .htaccess || cat .htaccess.seguridad >> .htaccess
+#
+# (El grep evita añadirlas dos veces. Después puedes borrar .htaccess.seguridad
+# del servidor.) Si Apache devuelve 500 tras añadirlas, quita el bloque entre
+# MOTOGP-SEGURIDAD-INICIO y MOTOGP-SEGURIDAD-FIN y avisa a soporte: significa
+# que alguna directiva no está permitida en .htaccess.
+#
+# COMPROBACION desde fuera (sustituye dominio.es; esperado 403 o 404 en todas
+# las de ficheros sensibles, y 200 en las dos últimas):
+#
+#   curl -I https://dominio.es/.env
+#   curl -I https://dominio.es/.motogp-stats.env
+#   curl -I https://dominio.es/package.json
+#   curl -I https://dominio.es/package-lock.json
+#   curl -I https://dominio.es/prisma/schema.prisma
+#   curl -I https://dominio.es/logs/sync.log
+#   curl -I https://dominio.es/tmp/restart.txt
+#   curl -I https://dominio.es/app.js
+#   curl -I https://dominio.es/sync-sessions.cjs
+#   curl -I https://dominio.es/.next/BUILD_ID
+#   curl -I https://dominio.es/.git/config
+#   curl -I https://dominio.es/copia.sql.gz        # fichero de prueba
+#   curl -I https://dominio.es/api/calendar        # 200 (lo atiende Node)
+#   curl -I https://dominio.es/                    # 200
+#
+# Si alguna sensible devuelve 200, NO sirvas la web: borra ese fichero del
+# servidor y usa ~/.motogp-stats.env.
+#
+# COMO ENCAJA CON PASSENGER: las peticiones a rutas de la app (/, /api/...,
+# /_next/static/...) NO son ficheros físicos en esa ruta (el build está en
+# .next/, con punto), así que Apache las pasa a Node y estas reglas no las
+# tocan. Las reglas solo actúan sobre URLs que coinciden con ficheros o
+# carpetas reales listados abajo. Los ficheros de public/ se siguen sirviendo
+# (Next los publica en /nombre.ext). Se deja libre /.well-known/ (certificados).
+#
+# ESTRUCTURA MEJOR (recomendación, no implementada): la raíz de aplicación
+# más segura es una carpeta FUERA de www (p. ej. ~/motogp-app/) con todo el
+# paquete, y dentro de www/motogp/ solo un app.js de una línea que haga
+#   require("/home/USUARIO/motogp-app/app.js");
+# Así package.json, prisma/, .next/ y logs/ no son nunca públicos. No lo he
+# podido verificar con Passenger de Dinahosting (su documentación exige la app
+# dentro de www o de un subdominio y puede validar la raíz), por eso aquí solo
+# se aplica la defensa con .htaccess. Pruébalo primero en un subdominio.
+# ============================================================================
+
+# MOTOGP-SEGURIDAD-INICIO
+
+# Sin listado de directorios.
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
+
+# Capa 1 (no necesita mod_rewrite): ficheros por nombre.
+<IfModule mod_authz_core.c>
+  <FilesMatch "(?i)(^\.(?!well-known)|\.(env|sql|gz|sha256|cjs|mjs|ts|tsx|log|lock|map)$|^(app\.js|package(-lock)?\.json|\.htaccess\.seguridad|htaccess\.seguridad)$)">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+# Capa 2 (mod_rewrite): ficheros y carpetas, en cualquier nivel de ruta.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Carpetas internas (todo su contenido).
+  RewriteRule ^(prisma|logs|tmp|node_modules|\.next|\.git|\.github|\.claude)(/|$) - [F,NC,L]
+
+  # Cualquier fichero o carpeta oculta (empieza por punto), salvo /.well-known/.
+  RewriteCond %{REQUEST_URI} !^/\.well-known/ [NC]
+  RewriteRule (^|/)\. - [F,L]
+
+  # Ficheros sensibles por extensión o nombre exacto en la raíz.
+  RewriteRule \.(env|sql|gz|sha256|cjs|mjs|ts|tsx|log|lock|map)$ - [F,NC,L]
+  RewriteRule ^(app\.js|package\.json|package-lock\.json|next\.config\.mjs)$ - [F,NC,L]
+</IfModule>
+
+# MOTOGP-SEGURIDAD-FIN

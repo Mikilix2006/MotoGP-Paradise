@@ -1,5 +1,7 @@
 # Desplegar en Railway
 
+> **Alcance:** este documento cubre solo Railway. Para el hosting Linux Profesional de Dinahosting (Passenger, cron en lugar de *worker*, carga de datos por volcado) consulta [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+
 La app necesita **dos servicios** compartiendo la misma base de datos:
 
 - **web** — el sitio Next.js (`npm run start:web`).

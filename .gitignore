@@ -37,3 +37,6 @@ Thumbs.db
 .claude/settings.local.json
 # Logs del vigilante de sesiones
 logs/
+
+# Paquete para Dinahosting (scripts/package-dinahosting.mjs)
+/dist

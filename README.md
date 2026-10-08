@@ -1281,6 +1281,7 @@ Scripts adicionales, fuera de la cadena anterior:
 | `watch:sessions` | La misma sincronización en proceso continuo (es lo que ejecuta el *worker* de Railway) |
 | `fix:duplicate-riders` | Mantenimiento: fusiona las filas duplicadas de `riders` por `legacyId` (`scripts/merge-duplicate-riders.ts`). Idempotente; no registra `SyncRun` |
 | `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en producción) |
+| `package:dinahosting` | Empaqueta la app para el hosting de Dinahosting en `dist/dinahosting/` (`scripts/package-dinahosting.mjs`); ver [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) |
 
 Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
 
@@ -1609,6 +1610,9 @@ motogp-stats/
 │
 ├── scripts/                       Puntos de entrada (import-*.ts, merge-duplicate-riders.ts,
 │   │                              watch-sessions.ts) y utilidades de Windows (*.ps1)
+│   ├── package-dinahosting.mjs    Empaquetador para Dinahosting (npm run package:dinahosting)
+│   ├── dinahosting/               app.js (entrada de Passenger), sync-cron.ts (cron) y htaccess.seguridad
+│   ├── deploy/                    volcar-datos.ps1, cargar-datos.sh, filtro-volcado.awk, comprobaciones.sql
 │   └── ...
 │
 ├── src/
@@ -1639,8 +1643,9 @@ motogp-stats/
 │
 ├── .claude/agents/                Agentes (ver AGENTS.md)
 ├── .env.example
+├── .env.production.example        Plantilla de variables de producción (Dinahosting, sin secretos)
 ├── package.json
-├── README.md, AGENTS.md, DEPLOY.md
+├── README.md, AGENTS.md, DEPLOY.md, DEPLOY_DINAHOSTING.md
 └── DATABASE_IMPLEMENTATION_PLAN.md, DATABASE_ENDPOINT_MAPPING.md
 ```
 
@@ -1658,7 +1663,7 @@ Base de datos
 
 # 27. Despliegue
 
-El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md).
+El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md). Para el hosting de Dinahosting, ver [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 Para desplegar la aplicación se deben considerar dos componentes separados:
 
@@ -1853,11 +1858,12 @@ El proyecto también cuenta con documentos adicionales:
 ```text
 AGENTS.md
 DEPLOY.md
+DEPLOY_DINAHOSTING.md
 DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
 
-`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos).
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es la guía paso a paso del despliegue en el hosting Linux Profesional de Dinahosting (empaquetado con `npm run package:dinahosting`, plantilla `.env.production.example`, scripts de `scripts/dinahosting/` y `scripts/deploy/`, cron en lugar del worker); aún no se ha ejecutado en un servidor real y la propia guía lista lo no verificado.
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 

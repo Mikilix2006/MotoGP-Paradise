@@ -132,6 +132,7 @@ Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interact
 - **El año 2026 está fijo en la interfaz.** El título de `/calendario` y el selector de año de `Header.tsx` lo escriben a mano.
 - **Equipos duplicados.** La API de resultados los modela por temporada y la general como entidad única, y sus `legacy_id` no coinciden. Unificarlos exige una decisión de modelo del usuario.
 - **Sin tests automatizados ni ESLint.** No hay `npm test` y `npm run lint` no funciona.
+- **Despliegue en Dinahosting sin importadores `import:*`.** El paquete (`npm run package:dinahosting`) solo lleva la web y la pasada de `sync:sessions` por cron; los demás importadores no están empaquetados y la BD del hosting probablemente no acepta conexiones remotas, así que temporadas nuevas, categorías, detalles de evento, pilotos o histórico exigen hoy ejecutarlos en local y repetir volcado/carga. Además, el despliegue no se ha probado en un servidor real (ver [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md)).
 - **`LiveTimingSnapshot` y `LiveRiderTiming` están vacíos.** Requieren sondeo de sesiones en directo, no importación histórica.
 
 <!-- BEGIN:nextjs-agent-rules -->
