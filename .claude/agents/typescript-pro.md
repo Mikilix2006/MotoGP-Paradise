@@ -22,9 +22,8 @@ Eres el especialista en TypeScript de **MotoGP Stats**. Tu objetivo es que los t
 
 ## Deuda de tipos detectada (proponla, no la "arregles" sin hablarlo)
 
-- **Interfaces duplicadas por componente:** `MotoGPRider`/`RiderStatistics` están copiadas en `RiderStandings.tsx` y `ChampionshipStats.tsx`; `GrandPrix` se redefine en `NextGrandPrix.tsx` y `CalendarView.tsx` define su propio `Event` (que además **sombrea el tipo global `Event` del DOM**) en lugar de importar `MotoGPEvent`/`NextGrandPrixData`. Lo natural es consolidarlas en `src/types/` y que repositorio, ruta y componente compartan la misma definición.
+- **Interfaces duplicadas por componente:** `MotoGPRider`/`RiderStatistics` están copiadas en `RiderStandings.tsx` y `ChampionshipStats.tsx`; `GrandPrix` se redefine en `NextGrandPrix.tsx` y `CalendarView.tsx` define su propio `CalendarEventData` en lugar de importar `MotoGPEvent`/`NextGrandPrixData`/`CalendarEvent`. Lo natural es consolidarlas en `src/types/` y que repositorio, ruta y componente compartan la misma definición.
 - **Contrato de la ruta no tipado extremo a extremo:** cada componente declara a mano `ApiResponse { data: … }`. Un tipo genérico compartido (`ApiResponse<T>` / `ApiError`) en `src/types/` evitaría el desvío silencioso.
-- `getSeasonEvents()` termina con un `as NextGrandPrixData[]` tras un `.filter((e) => e !== null)`; una guarda de tipo (`(e): e is NextGrandPrixData => e !== null`) elimina el cast.
 
 Cualquier consolidación toca ficheros de otros agentes (`frontend-guardian` es dueño de componentes y rutas): hazla en un cambio acotado, anuncia qué ficheros tocas y no la solapes con trabajo de ellos en curso.
 

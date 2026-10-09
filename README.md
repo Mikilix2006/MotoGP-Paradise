@@ -360,7 +360,7 @@ flagUrl
 
 `iso` es único.
 
-`flagUrl` es opcional: la URL de la bandera del país tal como la publica la API general (SVG alojado en `photos.motogp.com`). Solo la rellena `import:riders`, a partir de `country.flag` de la ficha del piloto en la API general, así que los países que no son nacionalidad de ningún piloto importado la tienen vacía. Es independiente de `Event.flagUrl`.
+`flagUrl` es opcional: la URL de la bandera del país tal como la publica la API general (SVG alojado en `photos.motogp.com`). Solo la rellena `import:riders`, a partir de `country.flag` de la ficha del piloto en la API general, así que los países que no son nacionalidad de ningún piloto importado la tienen vacía. Es independiente de `Event.flagUrl`. `flagUrl` nunca se sobrescribe con `null` al reimportar. En cambio `name` sí puede degradarse: `import:riders` e `import:session-results` usan el ISO como nombre de respaldo también en el `update`, y `import:session-results` pisa `regionIso` con `null` si la API no lo envía (ver deudas en `AGENTS.md`).
 
 ---
 
@@ -705,7 +705,7 @@ conditionWeather
 wallClockToInstant(date, timeZone)   // src/utils/date.ts, usa Intl y respeta el horario de verano
 ```
 
-La usa el calendario (`/api/calendar`); `liveSessionSync.ts` tiene su propia función `wallClockToInstant` equivalente para calcular cuándo termina cada sesión.
+La usa el calendario (`/api/calendar`); `liveSessionSync.ts` tiene su propia función `wallClockToInstant` para calcular cuándo termina cada sesión, con la misma conversión salvo en un caso: sin zona horaria devuelve la hora tal cual en lugar de exigirla (ver deudas en `AGENTS.md`).
 
 Hay dos cautelas conocidas:
 
@@ -779,7 +779,7 @@ También se deben conservar los valores específicos de la clasificación.
 Endpoint:
 
 ```text
-/riders/{legacyUuid}/statistics
+/riders/{legacyId}/statistics
 ```
 
 Ejemplo:
@@ -836,6 +836,8 @@ eventId               (opcional)
 ```
 
 La combinación `(riderId, seasonId, categoryId)` es única.
+
+`eventId` existe en el esquema pero ningún importador lo rellena. `import:rider-statistics` recorre los pilotos con `legacyId` y guarda **todas** las temporadas (existentes en la base de datos) que devuelve la API para cada uno: el año de temporada solo acota qué pilotos se consultan (los que tienen inscripción o resultados ese año), no qué estadísticas se guardan. La categoría y el constructor se enlazan por nombre normalizado porque la API solo da el nombre. Si la categoría no se encuentra (o falta) la fila se omite con un aviso (`statisticsSkipped`); si el constructor no se encuentra, la fila se guarda con `constructorId` a `null` y, al reimportar, ese `null` pisa un constructor resuelto antes (ver deudas en `AGENTS.md`).
 
 ---
 
@@ -928,7 +930,7 @@ points
 fetchedAt
 ```
 
-La combinación `(seasonId, riderId)` es única.
+La combinación `(seasonId, riderId)` es única. Igual que las clasificaciones del campeonato, solo se enlazan pilotos que ya existen (`findRider`): si el piloto no está importado, la fila se omite. Solo hace `upsert`, nunca borra: un piloto que desaparece de la clasificación conserva su fila anterior, y como `BmwAwardStanding` solo tiene `fetchedAt` por fila y `/api/riders/standings` lee todas las filas de la temporada sin filtrar, esa fila obsoleta aparecería en la clasificación. Si el evento de la fila no se resuelve, `eventId` se sobrescribe con `null`. Este importador no guarda `ApiSnapshot`.
 
 Este endpoint también puede utilizarse como fuente complementaria para identificar pilotos, equipos y constructores presentes en una temporada.
 
@@ -951,7 +953,7 @@ Team
 Constructor
 ```
 
-Permite mantener una fotografía de la clasificación correspondiente al punto del campeonato en que se realizó la importación (`snapshotAt`). La combinación `(seasonId, categoryId, riderId)` es única, así que cada importación actualiza la fila del piloto en lugar de añadir otra.
+Permite mantener una fotografía de la clasificación correspondiente al punto del campeonato en que se realizó la importación (`snapshotAt`). La combinación `(seasonId, categoryId, riderId)` es única, así que cada importación actualiza la fila del piloto en lugar de añadir otra. `eventId` queda siempre a `null`: la API no liga la clasificación a un evento. Solo se enlazan pilotos ya importados (`findRider`); este importador no crea pilotos. Solo hace `upsert`, nunca borra: un piloto que desaparece de la clasificación conserva su fila anterior, que se distingue por `snapshotAt` (más antiguo).
 
 ---
 
@@ -1086,6 +1088,7 @@ Country
 Circuit
 Event
 EventLegacyMapping
+EventDocument
 ```
 
 Los eventos conectan gran parte del resto del modelo.
@@ -1157,11 +1160,15 @@ Category.legacyId  ==  category.timing_id
 
 Las sesiones no se emparejan solo por hora, porque `/results/sessions` devuelve la hora local del circuito etiquetada como `+00:00` mientras que `/events` devuelve la hora con su offset real (ver [Hora de las sesiones](#hora-de-las-sesiones)). El emparejamiento (`matchBroadcastsToSessions`) se hace en 4 pasadas: UUID de broadcast, hora exacta, tipo base con orden cronológico dentro del tipo y, por último, orden cronológico (solo si quedan exactamente las mismas sesiones que broadcasts).
 
-Las pasadas por UUID y por hora exacta comprueban además que el tipo de sesión sea compatible (`areTypesCompatible`; `PR`, `P` y `FP` se consideran equivalentes). Evita cruces como el de Catar 2026, donde el calendario provisional de la API de resultados hacía coincidir la hora de una práctica con la de una carrera. Si un `broadcastUuid` quedó guardado por error en otra sesión, se libera antes de reasignarlo (es único). El criterio de salud es que reimportar cree 0 sesiones nuevas.
+Las pasadas por UUID y por hora exacta comprueban además que el tipo de sesión sea compatible (`areTypesCompatible`; `PR`, `P` y `FP` se consideran equivalentes). Evita cruces como el de Catar 2026, donde el calendario provisional de la API de resultados hacía coincidir la hora de una práctica con la de una carrera. Si un `broadcastUuid` quedó guardado por error en otra sesión, se libera antes de reasignarlo (es único). El criterio de salud es que reimportar cree 0 sesiones nuevas, y hoy se cumple con los datos de 2026, pero el emparejamiento es **frágil**: las sesiones que este importador crea cuando no encuentra pareja guardan el `type` del broadcast (según la revisión de código, `SESSION`), incompatible con `areTypesCompatible`, y solo la pasada 4 las recupera. Por eso `import:event-details` debe ejecutarse **después** de `import:sessions` y de que `/results/sessions` haya publicado las sesiones del evento; si no, quedan filas huérfanas o duplicadas, y con sesiones sobrantes distintas de los broadcasts sobrantes puede duplicar en cada ejecución (ver deudas en `AGENTS.md`).
 
 ---
 
 ## Fase 6 — Pilotos y resultados
+
+```bash
+npm run import:session-results
+```
 
 Importar:
 
@@ -1172,7 +1179,7 @@ Constructor
 SessionResult
 ```
 
-El endpoint de clasificación de sesión puede aportar datos necesarios para crear o actualizar estas entidades.
+El endpoint de clasificación de sesión puede aportar datos necesarios para crear o actualizar estas entidades; también crea o actualiza el `Country` del piloto (sin `flagUrl`: la API de resultados no la trae). Recorre las sesiones con `resultsUuid` ya importadas, por eso va después de las fases 4 y 5.
 
 ---
 
@@ -1191,7 +1198,9 @@ RiderSeasonEntry
 RiderSeasonImage
 ```
 
-También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda), del equipo (tipo, colores e imágenes) y del país del piloto (`Country.flagUrl`, a partir de `country.flag` de la ficha `/riders/{uuid}`).
+También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda), del equipo (tipo, colores e imágenes), el constructor del equipo y el país del piloto (`Country.flagUrl`, a partir de `country.flag` de la ficha `/riders/{uuid}`).
+
+El año acota el **listado** de pilotos que se consulta, pero la ficha individual trae todo el historial del piloto y se importan todas las entradas de su `career[]` cuyo año y categoría existan en la base de datos.
 
 Importante: el `current_career_step` del listado por temporada corresponde **siempre** a la temporada actual, no a la consultada. El historial real está en el `career[]` de la ficha individual, que es lo que se importa.
 
@@ -1199,11 +1208,19 @@ Importante: el `current_career_step` del listado por temporada corresponde **sie
 
 ## Fase 8 — Estadísticas de pilotos
 
+```bash
+npm run import:rider-statistics
+```
+
+Fuente: `MOTOGP_API_URL` `/riders/{legacyId}/statistics` (una llamada por piloto con `legacyId`).
+
 Importar:
 
 ```text
 RiderSeasonStatistics
 ```
+
+Ver la [sección 11](#11-estadísticas-históricas-de-pilotos) para el alcance del argumento de temporada.
 
 ---
 
@@ -1223,6 +1240,8 @@ BmwAwardStanding
 
 Las categorías se recorren a partir de las asociadas a los eventos de cada temporada, porque el UUID de categoría de la API de resultados no es el mismo en todas las temporadas.
 
+Ambos importadores solo enlazan pilotos que ya existen, así que deben ejecutarse después de las fases 6 y 7.
+
 ---
 
 ## Fase 10 — Sincronización en vivo
@@ -1235,12 +1254,12 @@ npm run watch:sessions    # proceso continuo
 Es la vía normal durante la temporada: mantiene la base de datos al día durante un fin de semana de carreras sin recorrer el histórico. Lógica en `src/services/importers/liveSessionSync.ts` (`syncLiveSessions`); punto de entrada `scripts/watch-sessions.ts` (`--once` equivale a `sync:sessions`). Cada ciclo:
 
 1. refresca el estado de los eventos de la temporada (`NOT-STARTED` → `CURRENT` → `FINISHED`) con una llamada;
-2. localiza los eventos activos (su fin de semana cubre ahora, con un día de margen a cada lado);
+2. localiza los eventos activos (su fin de semana cubre ahora, con un día de margen antes del primer día y un día después del final del último: `Event.dateEnd` es una fecha a medianoche UTC, así que el margen real es de dos días en el código);
 3. refresca sus sesiones desde la API de resultados, que es quien las marca como `FINISHED`;
 4. importa la clasificación de las sesiones terminadas que aún no la tienen (y reimporta las terminadas hace poco por si hay sanciones);
 5. si ha entrado el resultado de una carrera o sprint, encadena las estadísticas de piloto, la clasificación del campeonato y el BMW Award de la temporada.
 
-Es idempotente. Entre sesiones duerme hasta el fin previsto de la siguiente (calculado con la zona horaria del evento); mientras la API no publica una clasificación pregunta cada dos minutos. Solo registra en `SyncRun` (`/live-sync/sessions` o `/live-sync/post-race`) cuando importa algo.
+Es idempotente. Entre sesiones duerme hasta el fin previsto de la siguiente (calculado con la zona horaria del evento); mientras la API no publica una clasificación pregunta cada dos minutos, mientras el evento activo no esté `FINISHED` no duerme más de 30 minutos y nunca duerme más de una hora seguida (si un ciclo falla, reintenta a los 5 minutos). Solo registra en `SyncRun` (`/live-sync/sessions` o `/live-sync/post-race`) cuando importa algo.
 
 En desarrollo local en Windows corre como tarea programada (`scripts/register-watcher-task.ps1` la registra o, con `-Unregister`, la elimina; el lanzador es `scripts/watch-sessions.ps1`); en producción es el servicio *worker* de Railway (ver [DEPLOY.md](DEPLOY.md)).
 
@@ -1267,8 +1286,8 @@ Scripts disponibles, en orden de ejecución:
 | `import:event-categories` | `eventCategoryImporter` | `Category`, `EventCategory` |
 | `import:sessions` | `sessionImporter` | `Session` (incluidas condiciones de pista) |
 | `import:event-details` | `eventDetailsImporter` | `CircuitTrack`, `CircuitAsset`, `CircuitDescription`, `EventScheduleDay`, `EventUrl` y completa `Circuit`, `Event` (incluida `flagUrl`), `Category` y `Session` |
-| `import:session-results` | `sessionResultImporter` | `Rider`, `Team`, `Constructor`, `SessionResult` |
-| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider`, `Team` y `Country.flagUrl` |
+| `import:session-results` | `sessionResultImporter` | `Country`, `Rider`, `Team`, `Constructor`, `SessionResult` |
+| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider`, `Team`, `Constructor` y `Country.flagUrl` |
 | `import:rider-statistics` | `riderStatisticsImporter` | `RiderSeasonStatistics` |
 | `import:championship-standings` | `championshipStandingImporter` | `ChampionshipStanding` |
 | `import:bmw-award` | `bmwAwardImporter` | `BmwAwardStanding` |
@@ -1283,6 +1302,17 @@ Scripts adicionales, fuera de la cadena anterior:
 | `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en producción) |
 
 Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
+
+### Banderas
+
+No existe un importador de banderas propio: las URL se guardan como parte de dos importadores existentes y son siempre opcionales (si la API no las trae se conserva el valor ya guardado, nunca se pisa con `null`).
+
+| Campo | Qué es | Lo rellena | Origen |
+|---|---|---|---|
+| `Event.flagUrl` | Bandera del Gran Premio | `import:event-details` ([Fase 5](#fase-5--detalles-del-evento-y-circuitos)) | asset de tipo `FLAG` de `/events?seasonYear=` (se prefiere SVG a `@1x`) |
+| `Country.flagUrl` | Bandera de la nacionalidad del piloto | `import:riders` ([Fase 7](#fase-7--pilotos-y-entradas-por-temporada)) | `country.flag` de `/riders/{uuid}` |
+
+`import:events`, `import:session-results` y la sincronización en vivo crean o actualizan `Country` y `Event` sin tocar estos campos. Para rellenarlas en una base ya poblada basta con ejecutar `npm run import:event-details -- <año>` y `npm run import:riders -- <año>` (ambos aceptan temporada; sin año recorren todo el histórico). `Country.flagUrl` solo se rellena para las nacionalidades de pilotos importados. La interfaz las muestra con `CountryFlag` (calendario y clasificación de pilotos, ver [24.1](#241-páginas-disponibles-en-la-aplicación)).
 
 La lógica de importación debe vivir preferiblemente en:
 
@@ -1487,7 +1517,7 @@ El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que
 
 ### `/api/next-gp`
 
-Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consultas-utilizadas-por-la-interfaz)). Caché de 60 s. 404 si no hay ninguno y 500 si falla la consulta.
+Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consultas-utilizadas-por-la-interfaz)). Caché de 60 s. 404 si no hay ninguno (o si el elegido no tiene circuito, país o carrera de MotoGP con fecha) y 500 si falla la consulta.
 
 **Respuesta (`data`):**
 ```json
@@ -1560,7 +1590,7 @@ Todos los Grandes Premios de la temporada actual (sin tests), ordenados por fech
 
 ### `/api/riders/standings`
 
-Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos. Caché de 60 s.
+Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos. Caché de 60 s. 500 si no hay temporada actual o falla la consulta. La lista de pilotos sale de `BmwAwardStanding` (un piloto sin `RiderSeasonStatistics` de la temporada se omite), los puntos y la posición de `RiderSeasonStatistics` y el dorsal de `RiderSeasonEntry`; no lee `ChampionshipStanding`.
 
 **Respuesta (`data`):** array de pilotos con `id`, `full_name`, `country` (`iso`, `name`, `flag_url`), `legacy_id`, `riders_id`, `number`, `team` (`id`, `name`, `legacy_id`) y `statistics` (`constructor`, `starts`, `first_position`, `second_position`, `third_position`, `podiums`, `poles`, `points`, `position`). `country.flag_url` es `Country.flagUrl` (`null` si no se ha importado).
 

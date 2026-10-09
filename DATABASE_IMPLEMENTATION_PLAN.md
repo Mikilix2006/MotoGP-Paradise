@@ -283,6 +283,9 @@ created_at
 updated_at
 ```
 
+`time_zone`, `sequence` y `flag_url` (bandera del Gran Premio) son
+opcionales y los rellena `import:event-details`.
+
 Relaciones:
 
 ``` text
@@ -688,17 +691,18 @@ Prisma / PostgreSQL
 Orden recomendado:
 
 ``` text
-1. Seasons
-2. Events
-3. Categories
-4. Circuits
-5. Event enrichment
-6. Sessions
-7. Riders
-8. Teams and Constructors
-9. Statistics
-10. Standings and Results
+1. Seasons                                     (import:seasons)
+2. Events, Countries, Circuits                 (import:events)
+3. Categories                                  (import:event-categories)
+4. Sessions                                    (import:sessions)
+5. Event enrichment (circuit data, flags)      (import:event-details)
+6. Results, Riders, Teams and Constructors     (import:session-results)
+7. Rider season entries                        (import:riders)
+8. Statistics                                  (import:rider-statistics)
+9. Standings                                   (import:championship-standings, import:bmw-award)
 ```
+
+El enriquecimiento (paso 5) va después de las sesiones porque completa las ya existentes en lugar de crearlas (README, sección 19).
 
 Dependencias:
 
