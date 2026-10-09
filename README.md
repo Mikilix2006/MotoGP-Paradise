@@ -1863,7 +1863,7 @@ DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
 
-`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es la guía paso a paso del despliegue en el hosting Linux Profesional de Dinahosting (empaquetado con `npm run package:dinahosting`, plantilla `.env.production.example`, scripts de `scripts/dinahosting/` y `scripts/deploy/`, cron en lugar del worker); aún no se ha ejecutado en un servidor real y la propia guía lista lo no verificado.
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es la guía paso a paso del despliegue en el hosting Linux Profesional de Dinahosting (empaquetado con `npm run package:dinahosting`, plantilla `.env.production.example`, scripts de `scripts/dinahosting/` y `scripts/deploy/`, cron en lugar del worker); solo se ha ejecutado en un servidor real la Fase 0 de comprobaciones (sin Node ni `psql` en el `PATH` de la sesión SSH), el despliegue en sí no, y la propia guía lista lo no verificado.
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 

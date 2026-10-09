@@ -2,7 +2,7 @@
 
 Guía paso a paso para publicar MotoGP Stats en el hosting Linux "Profesional" (nivel Advanced) de Dinahosting. El despliegue en Railway está en [DEPLOY.md](DEPLOY.md); este documento es independiente y no lo sustituye.
 
-**Estado:** el paquete y los scripts están preparados y probados en local (empaquetado, volcado y carga de datos contra una base de prueba). **Nada se ha ejecutado todavía en un servidor real de Dinahosting.** Lo que depende del hosting está marcado como *según la documentación de Dinahosting* (dato publicado por ellos) o *pendiente de comprobar en el servidor*. La lista completa está en [Qué no está verificado](#12-qué-no-está-verificado).
+**Estado:** el paquete y los scripts están preparados y probados en local (empaquetado, volcado y carga de datos contra una base de prueba). Solo se ha ejecutado en un servidor real la **Fase 0** (comprobaciones por SSH, resultados en el apartado [0.1](#01-por-ssh)); **el despliegue en sí no se ha ejecutado**. Ese primer servidor no tiene Node.js en el `PATH` ni `psql`, por lo que la guía incluye pasos para instalar Node con NVM (apartado [4.0](#40-instalar-nodejs-con-nvm)) y alternativas para cargar los datos (apartado [4.4](#44-cargar-los-datos)). Lo que depende del hosting está marcado como *según la documentación de Dinahosting* (dato publicado por ellos), *medido en el servidor* (Fase 0) o *pendiente de comprobar*. La lista completa está en [Qué no está verificado](#12-qué-no-está-verificado).
 
 ## Índice
 
@@ -27,7 +27,7 @@ Guía paso a paso para publicar MotoGP Stats en el hosting Linux "Profesional" (
 
 ## 1. Qué se despliega y cómo encaja en el hosting
 
-**El plan** (según la documentación de Dinahosting): Hosting Profesional Linux, nivel Advanced. Incluye Node.js 20.18.1 (y versiones propias con NVM por SSH), PostgreSQL 12, MySQL, cron, SSH sin root, Git y `.htaccess` (mod_rewrite, mod_headers…). No hay Docker, Redis ni MongoDB. No publican límites de memoria ni de CPU.
+**El plan** (según la documentación de Dinahosting): Hosting Profesional Linux, nivel Advanced. Incluye Node.js 20.18.1 para las aplicaciones Node (y versiones propias con NVM por SSH), PostgreSQL 12, MySQL, cron, SSH sin root, Git y `.htaccess` (mod_rewrite, mod_headers…). No hay Docker, Redis ni MongoDB. No publican límites de memoria ni de CPU. **Medido en la Fase 0:** ese Node de Dinahosting no es accesible desde la sesión SSH (`node: command not found`); para usar `node`, `npm` y `npx` por SSH hay que instalar uno propio con NVM (apartado [4.0](#40-instalar-nodejs-con-nvm)). Según la ayuda de Dinahosting, la versión personalizada de Node se indica para planes Hosting Avanzado.
 
 Fuentes oficiales:
 
@@ -88,19 +88,35 @@ Qué mirar en cada salida:
 | Salida | Qué buscar |
 |---|---|
 | `uname -a`, `/etc/os-release`, `openssl version` | Distribución, arquitectura (debe ser x86_64) y versión de OpenSSL. De ellas depende que `prisma generate` elija el motor correcto (ver [Qué no está verificado](#12-qué-no-está-verificado)) |
-| `node -v`, `npm -v` | Según Dinahosting, Node 20.18.1. Si no es 20.x, ver la documentación de versión personalizada con NVM (enlace en el apartado 1). El paquete declara `engines.node >=20.18` y `app.js` usa `process.loadEnvFile`, que exige Node 20.12 o superior |
-| `free -m`, `ulimit -a` | Memoria libre y límites de procesos/memoria. No hay límites publicados; Next.js necesita memoria para arrancar |
-| `df -h .`, `du -sh ~` | Espacio libre y cuota. El `node_modules` ocupó unos 650 MB medidos en Windows: reserva ese espacio más el volcado (21,5 MB comprimido, 106 MB sin comprimir) |
-| `which flock crontab psql gzip awk sha256sum` | Todos deben aparecer. `psql`, `gzip`, `awk` y `sha256sum` los usa `cargar-datos.sh`; `crontab` es necesario para la Fase 6. `flock` no hace falta (el bloqueo lo hace el propio bundle). Si falta `psql`, la carga de datos del apartado 6 no funciona tal cual: pendiente de resolver con Dinahosting |
-| Tres `curl -sI` | Deben devolver una línea `HTTP/...` (cualquier código, no vacío). Sin salida a internet fallan `npm ci`, la descarga del motor de Prisma y el cron |
+| `node -v`, `npm -v` | Lo esperable es `command not found` (así fue en el primer servidor probado). Si aparece una versión, debe ser 20.18 o superior: el paquete declara `engines.node >=20.18` (lo escribe `scripts/package-dinahosting.mjs`; el `package.json` del repo no declara `engines`), Next 16.3.3 exige `>=20.9.0`, Prisma 6.12.0 `>=18.18` y `app.js` usa `process.loadEnvFile`, que exige 20.12 o superior. Si falta o es antigua, ver [4.0](#40-instalar-nodejs-con-nvm) |
+| `free -m`, `ulimit -a` | Memoria y límites. **Son los del servidor completo (hosting compartido), no los de tu cuenta**: los límites reales por cuenta (cgroup, cuota) se miran en [0.3](#03-comprobaciones-adicionales). Next.js necesita memoria para arrancar |
+| `df -h .`, `du -sh ~` | Espacio libre del servidor y tamaño del home. La cuota real de la cuenta se mira en el panel. El `node_modules` ocupó unos 650 MB medidos en Windows: reserva ese espacio más el volcado (21,5 MB comprimido, 106 MB sin comprimir). `Permission denied` en directorios del hosting (`.db`, `.rc`, `.metadata`, `Maildir`) es normal |
+| `which flock crontab psql gzip awk sha256sum` | `gzip`, `awk` y `sha256sum` los usa `cargar-datos.sh`; `crontab` es necesario para la Fase 6. `flock` no hace falta (el bloqueo lo hace el propio bundle). **`psql` falta en el primer servidor probado**: la carga del apartado [4.4](#44-cargar-los-datos) no funciona tal cual allí |
+| Tres `curl -sI` | Cualquier línea `HTTP/...` significa que hay salida a internet. Las respuestas esperables son **404** para `binaries.prisma.sh`, **200** para `registry.npmjs.org` y **400** para la API de MotoGP: son las respuestas normales de esas URL raíz (desde la máquina de desarrollo salen los mismos códigos). Una salida vacía o un error de conexión indica que no hay salida: fallarían `npm ci`, la descarga del motor de Prisma y el cron |
+
+**Resultado real en el primer servidor probado** (medido por SSH; datos del servidor compartido, no de la cuenta):
+
+| Dato | Resultado |
+|---|---|
+| Sistema | Debian GNU/Linux 11 (bullseye), kernel 6.1, x86_64 |
+| OpenSSL | 1.1.1w |
+| glibc | **No medida.** Debian 11 usa glibc 2.31 (inferencia por la distribución): confírmalo con `getconf GNU_LIBC_VERSION` (apartado [0.3](#03-comprobaciones-adicionales)). Los binarios oficiales de Node para linux-x64 exigen glibc 2.28 o superior según los requisitos publicados de Node: **a confirmar** contra la documentación de Node |
+| Node y npm | `node: command not found` y `npm: command not found` |
+| Memoria del servidor | 28.060 MB en total, 12.251 usados, 11.566 disponibles, sin swap |
+| `ulimit -a` | Memoria máxima, memoria virtual y tamaño de datos `unlimited`; archivos abiertos 1024; procesos de usuario 111980 |
+| Disco del servidor | `/` de 1,5 TB al 91 % con 135 GB libres; `du -sh ~` → 120 KB |
+| Herramientas | Presentes: `flock`, `crontab`, `gzip`, `awk`, `sha256sum`. **Ausente: `psql`** (no apareció en `which`) |
+| Salida a internet | Hay: 404 (`binaries.prisma.sh`), 200 (`registry.npmjs.org`), 400 (API de MotoGP) |
 
 ### 0.2 En el panel y en PostgreSQL
 
-Tras crear la base de datos (Fase 1) y conectar con `psql`, comprueba:
+Tras crear la base de datos (Fase 1) y conectar con `psql` (si en el servidor no existe, desde tu PC: ver [4.4](#44-cargar-los-datos)), comprueba:
 
 ```sql
 SELECT version();
 ```
+
+Lo que Dinahosting publica sobre bases de datos (<https://dinahosting.com/ayuda/como-creo-una-base-de-datos/> y <https://dinahosting.com/ayuda/base-de-datos-hosting-linux/>): el formulario de creación (Panel > Hosting > Bases de datos) pide nombre, versión, usuario administrador, contraseña y "Acceso desde"; la ayuda de conexión solo documenta MySQL (host `localhost` si la app está en la misma máquina, puerto 3306). **Para PostgreSQL no hay datos publicados** sobre host, puerto (el estándar es 5432, no verificado), phpPgAdmin ni conexión remota: todo eso está pendiente de comprobar en el panel. Dinahosting indica que PostgreSQL se incluye sin coste en los planes Profesional, Profesional Plus y Multihosting especial.
 
 | Dato | Qué necesitas saber |
 |---|---|
@@ -109,13 +125,40 @@ SELECT version();
 | Permisos | El usuario debe poder crear tablas y tipos en el esquema `public` (lo hace `prisma migrate deploy`) |
 | SSL | Si el servidor lo exige, hay que añadir `sslmode=require` a la URL |
 | Conexiones por usuario | Si el límite es 5 o menos, usa `connection_limit=2` (ver Fase 4) |
-| Acceso remoto | Lo habitual en hosting compartido es que PostgreSQL **no** acepte conexiones desde fuera. Si es así, `migrate deploy` y la carga de datos se hacen por SSH desde el servidor, como describe esta guía |
+| Acceso remoto | Pendiente de comprobar. El formulario de creación permite elegir desde dónde se acepta el acceso (apartado 3), lo que sugiere que la conexión remota es posible, pero no hay documentación de PostgreSQL ni se ha medido el alcance del puerto. Se comprueba con `Test-NetConnection HOST -Port 5432` desde PowerShell (el 5432 es el puerto estándar, no verificado: usa el que indique el panel) |
+
+### 0.3 Comprobaciones adicionales
+
+Para cerrar lo que la primera salida no resolvió (Node ausente, `psql` ausente, límites reales de la cuenta):
+
+```bash
+echo $PATH; ls ~/.nvm 2>/dev/null; ls -la ~
+ls /usr/lib/postgresql 2>/dev/null; find /usr /opt -maxdepth 4 -name 'psql*' -type f 2>/dev/null | head
+getconf GNU_LIBC_VERSION; ldd --version | head -1
+cat /proc/self/cgroup
+cat /sys/fs/cgroup/memory.max 2>/dev/null
+cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null
+quota -s 2>/dev/null
+```
+
+| Salida | Qué buscar |
+|---|---|
+| `echo $PATH`, `ls ~/.nvm`, `ls -la ~` | Si hay algún directorio de Node en el `PATH` o un NVM ya instalado; qué hay en el home |
+| `ls /usr/lib/postgresql`, `find … 'psql*'` | Si `psql` existe fuera del `PATH` (en ese caso se puede llamar con su ruta completa) |
+| `getconf GNU_LIBC_VERSION`, `ldd --version` | glibc real. Los binarios de Node para linux-x64 exigen 2.28 o superior (a confirmar en la documentación de Node) |
+| `/proc/self/cgroup`, `memory.max`, `memory.limit_in_bytes` | Límite de memoria de tu cuenta, si existe (`max` o un número enorme = sin límite). Las dos rutas corresponden a cgroup v2 y v1; lo normal es que exista una sola |
+| `quota -s` | Cuota de disco de la cuenta, si el sistema la usa. Si no muestra nada, mira el panel |
 
 ---
 
 ## 3. Fase 1 — Panel de Dinahosting
 
-1. Crea la base de datos PostgreSQL y su usuario. Anota host, puerto, nombre de base de datos, usuario y contraseña (host y puerto salen del panel: no los des por supuestos).
+1. Crea la base de datos PostgreSQL y su usuario (Panel > Hosting > Bases de datos). El formulario pide nombre, versión (Dinahosting recomienda elegir la que tengas en local; ver [0.2](#02-en-el-panel-y-en-postgresql)), usuario administrador, contraseña y **"Acceso desde"**, con tres opciones:
+   - **Solo localhost** (la más segura según Dinahosting): **opción recomendada por defecto**. Solo sirve si la carga se hace desde el propio servidor (que necesita `psql` allí).
+   - **Localhost + una IP concreta**: úsala **solo temporalmente** si cargas los datos desde tu PC (apartado [4.4](#44-cargar-los-datos)), con tu IP pública, y vuelve a "solo localhost" al terminar.
+   - **Cualquier localización**: no recomendada.
+
+   Anota host, puerto, nombre de base de datos, usuario y contraseña (host y puerto de PostgreSQL salen del panel: no los des por supuestos).
 2. Se recomienda **crear un subdominio** para la primera prueba (p. ej. `motogp.dominio.es`): la documentación de Dinahosting permite las aplicaciones Node en `www` o en el directorio de un subdominio, y así puedes probar sin tocar la web principal.
 3. Comprueba que Node.js está activado para tu cuenta (apartado "Otras aplicaciones", ver Fase 5).
 4. Haz ahora las comprobaciones del apartado 0.2.
@@ -181,6 +224,25 @@ Los volcados (`.sql.gz`, `.sha256`) **nunca** deben quedar dentro de `www`.
 
 Los pasos vienen de la cabecera de `scripts/package-dinahosting.mjs`, `cargar-datos.sh` y `.env.production.example`.
 
+### 4.0 Instalar Node.js con NVM
+
+Necesario si `node -v` dio `command not found` (Fase 0). Pasos según la ayuda de Dinahosting ([Utilizar versión personalizada de NodeJs](https://dinahosting.com/ayuda/utilizar-version-personalizada-de-nodejs/), indicada para planes Hosting Avanzado); no están ejecutados en este proyecto:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm install 22
+nvm use 22
+node -v; npm -v; which node
+```
+
+- **Versión recomendada: Node 22 LTS.** Es la línea con la que se ha probado en local (v22.16.0). Mínimos comprobados en el código: el paquete declara `engines.node >=20.18`, Next 16.3.3 exige `>=20.9.0` y `app.js` y el bundle del cron usan `process.loadEnvFile` (Node 20.12 o superior).
+- Anota la salida de `which node`: es la ruta que necesitan el cron (Fase 6) y, junto con la copia del binario, el panel (Fase 5). La ruta tendrá la forma `$HOME/.nvm/versions/node/vX.Y.Z/bin/node`.
+- **Copia del binario para el panel.** La ayuda indica copiar el binario de `node` al directorio de la aplicación y, en el panel, indicar la "ruta al binario personalizado" (ver [Fase 5](#7-fase-5--aplicación-en-el-panel)). Su ejemplo de ruta es `/app1/v24.18.0/bin/node`, es decir, con estructura `vX.Y.Z/bin/node` dentro del directorio de la app. Qué hay que copiar exactamente (solo `bin/node` o la carpeta de la versión) y si la ruta del panel es relativa a la raíz de la aplicación: **pendiente de comprobar**.
+- NVM solo está disponible en las sesiones que lo cargan (el instalador lo añade a `~/.bashrc`); los comandos de las fases siguientes que usan `node`, `npm` o `npx` dan por hecho que NVM está cargado. El cron **no** lo carga: usa la ruta absoluta.
+- Actualizar Node más adelante implica repetir la copia del binario y actualizar la ruta del panel y del cron.
+
 ### 4.1 Fichero de variables, fuera de `www`
 
 ```bash
@@ -220,11 +282,12 @@ set -a; . ~/.motogp-stats.env; set +a
 ### 4.2 Instalar dependencias
 
 ```bash
+export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"   # si node no está en el PATH (apartado 4.0)
 cd ~/www/motogp
 npm ci --omit=dev
 ```
 
-Necesita internet: el `postinstall` ejecuta `prisma generate` y descarga el motor Linux. Si la salida indica que no encuentra un motor para la plataforma, ver [Problemas frecuentes](#13-problemas-frecuentes).
+Necesita internet (comprobada en la Fase 0) y Node en el `PATH` (apartado [4.0](#40-instalar-nodejs-con-nvm)): el `postinstall` ejecuta `prisma generate` y descarga el motor Linux. En el servidor probado (Debian 11, OpenSSL 1.1.1w) Prisma debería elegir el motor `debian-openssl-1.1.x`: **no verificado**. Si la salida indica que no encuentra un motor para la plataforma, ver [Problemas frecuentes](#13-problemas-frecuentes).
 
 ### 4.3 Crear el esquema
 
@@ -235,9 +298,40 @@ npx prisma migrate deploy
 
 El repositorio tiene 6 migraciones (`ls prisma/migrations`); `comprobaciones.sql` espera ver las 6 aplicadas.
 
+`prisma migrate deploy` **no necesita `psql`**: solo Node más el CLI de Prisma, ya sea por SSH en el servidor (como arriba) o desde tu PC con conexión remota a la base de datos (opción B del apartado 4.4).
+
 ### 4.4 Cargar los datos
 
-`cargar-datos.sh` quita la query string `?schema=` de `DATABASE_URL` (libpq no la admite), comprueba el `.sha256` y `gzip -t`, **aborta si el destino ya tiene filas** en alguna tabla, carga todo en una sola transacción (si algo falla no queda nada a medias) y ejecuta `ANALYZE`. No necesita superusuario.
+`cargar-datos.sh` **usa `psql`**, que **no existe en el primer servidor probado**. Opciones, por orden de preferencia; **todas pendientes de comprobar**:
+
+**A. Comprobar primero si `psql` existe fuera del `PATH`** (también en [0.3](#03-comprobaciones-adicionales)):
+
+```bash
+ls /usr/lib/postgresql 2>/dev/null; find /usr /opt -maxdepth 4 -name 'psql*' -type f 2>/dev/null | head
+```
+
+Si aparece, se puede ejecutar el script con ese `psql` delante en el `PATH` (p. ej. `PATH=/ruta/al/bin:$PATH bash cargar-datos.sh …`). El script llama a `psql` sin ruta absoluta.
+
+**B. Carga remota desde tu PC.** Requiere que el puerto de PostgreSQL sea alcanzable desde fuera:
+
+1. Crea la base de datos con "Acceso desde = localhost + tu IP" (Fase 1); vuelve a "solo localhost" al terminar.
+2. Comprueba el alcance del puerto en PowerShell: `Test-NetConnection HOST -Port 5432` (usa el puerto que indique el panel).
+3. Ejecuta `prisma migrate deploy` desde el repositorio local con `DATABASE_URL` apuntando al host de PostgreSQL de Dinahosting (no necesita `psql`). Antes comprueba con `npx prisma migrate status` que el objetivo es el remoto y no tu base local: un `DATABASE_URL` definido en el entorno suele tener prioridad sobre el `.env` del repo, pero no se ha verificado aquí.
+4. Carga con el `psql` de tu PC (tienes el 18; un cliente más nuevo que el servidor es compatible), con las mismas comprobaciones de integridad. El script es **bash**: ejecútalo en Git Bash, no en PowerShell. Qué habría que cambiar o vigilar, sin modificar el script:
+   - Necesita en el `PATH` de Git Bash `psql`, `gzip`, `awk` y `sha256sum` (comprueba con `which`; Git Bash suele traer los tres últimos, no verificado).
+   - Lee `DATABASE_URL` del entorno (`export DATABASE_URL='postgresql://USUARIO:CLAVE@HOST:PUERTO/BD?schema=public'`, con la contraseña codificada en URL) y le quita `?schema=`.
+   - Busca `filtro-volcado.awk` en su propia carpeta: ejecútalo desde `scripts/deploy/` del repo, pasando la ruta local del `.sql.gz` (el `.sha256` debe estar al lado).
+   - Usa `-o /dev/null` en `psql`; en Git Bash `/dev/null` existe, pero no se ha probado.
+   - Las comprobaciones de `comprobaciones.sql` se lanzan igual con el `psql` local.
+   - No hay variante en PowerShell; si hiciera falta, sería una tarea futura.
+
+**C. Cargador en Node para el servidor** (por ejemplo con `pg` y `pg-copy-streams`): **no existe**; sería una tarea futura (ver [Pendientes](#14-pendientes)).
+
+**D. Herramientas web del panel** (si las hubiera): no se sabe si ofrecen importación de PostgreSQL ni qué límite de tamaño tienen. El volcado ocupa 21,5 MB comprimido y 106 MB sin comprimir.
+
+Descripción del script (aplica con cualquiera de las opciones A y B):
+
+`cargar-datos.sh` quita la query string `?schema=` de `DATABASE_URL` (libpq no la admite), comprueba el `.sha256` y `gzip -t`, **aborta si el destino ya tiene filas** en alguna tabla, carga todo en una sola transacción (si algo falla no queda nada a medias) y ejecuta `ANALYZE`. No necesita superusuario. Ejecución en el servidor (solo si hay `psql`, opción A):
 
 ```bash
 cd ~/datos-deploy
@@ -247,7 +341,7 @@ bash cargar-datos.sh motogp-datos.sql.gz
 
 Si el script aborta con "el destino ya tiene N filas", la carga se interrumpe sin tocar nada: vacía la base de datos y repite desde 4.3, o recréala desde el panel.
 
-Comprobaciones posteriores (solo lectura):
+Comprobaciones posteriores (solo lectura; también requieren `psql`, en el servidor o en tu PC):
 
 ```bash
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
@@ -289,6 +383,7 @@ En el Panel: Hosting > Servidor > Otras aplicaciones > crear aplicación.
 | Tipo | Node.js |
 | Raíz de la aplicación | la carpeta donde subiste el paquete (p. ej. `www/motogp` o la del subdominio) |
 | Path ejecutable | `app.js` |
+| Ruta al binario personalizado | Necesaria si usas Node instalado con NVM (apartado [4.0](#40-instalar-nodejs-con-nvm)). Según la ayuda de Dinahosting se indica además del directorio de la app y del archivo de inicio; su ejemplo es `/app1/v24.18.0/bin/node`. Para este proyecto sería la del binario copiado, p. ej. `…/v22.x.y/bin/node`. Formato exacto y si es relativa a la raíz: **pendiente de comprobar** |
 
 Los nombres exactos de los campos y el comportamiento de Passenger son los de la documentación de Dinahosting; cómo trata `listen(0)` y dónde deja los logs está **pendiente de comprobar en el servidor**. Tras guardar, haz `touch tmp/restart.txt` (apartado 4.6).
 
@@ -300,6 +395,7 @@ Primero, una pasada manual para ver que funciona:
 
 ```bash
 cd ~/www/motogp
+export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"   # si usas NVM (apartado 4.0)
 which node
 node sync-sessions.cjs
 ```
@@ -309,10 +405,10 @@ Debe cargar las variables (el log indica la **ruta** del fichero, nunca su conte
 Después, programa la tarea con `crontab -e` (o desde el panel, si Dinahosting lo ofrece). Cada 5 minutos:
 
 ```cron
-*/5 * * * * cd $HOME/www/motogp && $HOME/.nvm/versions/node/v20.18.1/bin/node sync-sessions.cjs >> logs/sync.log 2>&1
+*/5 * * * * cd $HOME/www/motogp && $HOME/.nvm/versions/node/vX.Y.Z/bin/node sync-sessions.cjs >> logs/sync.log 2>&1
 ```
 
-Sustituye la ruta de `node` por la que devuelva `which node` en el servidor (la ruta con NVM es la que se usó al preparar la guía, no está comprobada).
+**El cron no carga NVM por sí solo**, así que `node` no estará en su `PATH`: la ruta debe ser absoluta. Sustituye `vX.Y.Z` por la versión instalada (la que devuelve `which node` tras cargar NVM, apartado [4.0](#40-instalar-nodejs-con-nvm)). Que `$HOME` se expanda en el crontab de Dinahosting no está comprobado: si no funciona, escribe la ruta completa.
 
 Comportamiento del bundle (de `scripts/dinahosting/sync-cron.ts`), sin depender de `flock`:
 
@@ -373,6 +469,7 @@ Para publicar una versión nueva:
 
 ```bash
 cd ~/www/motogp
+export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"   # si usas NVM (apartado 4.0)
 npm ci --omit=dev                                  # solo si cambió package-lock.json
 set -a; . ~/.motogp-stats.env; set +a
 npx prisma migrate deploy                          # solo si hay migraciones nuevas
@@ -424,18 +521,20 @@ Si Apache devuelve `500` tras añadir el bloque, quita el bloque entre `MOTOGP-S
 
 ## 12. Qué no está verificado
 
-Nada de esto se ha ejecutado en el hosting real. Resérvate margen para ajustes:
+Del despliegue no se ha ejecutado nada en el hosting real; solo la Fase 0 (resultados en [0.1](#01-por-ssh)). Ya **medido** en el primer servidor probado: Debian 11 x86_64, OpenSSL 1.1.1w, salida a internet, presencia de `flock`, `crontab`, `gzip`, `awk` y `sha256sum`, y ausencia de Node y de `psql` en el `PATH`. Resérvate margen para ajustes en lo demás:
 
 1. **Passenger real:** cómo se comporta `listen(0)`, dónde salen los logs (`app.js` escribe en stdout/stderr) y qué valida del "Path ejecutable".
-2. **Memoria disponible** y arranque en frío de Next.js bajo Passenger (no hay límites publicados).
-3. **Versión de Linux/OpenSSL** y que `prisma generate` detecte bien la plataforma. Si no lo hace, hará falta `binaryTargets` en `prisma/schema.prisma`, que **no se ha tocado**.
-4. **`npm ci` en Linux** (solo se ha medido en Windows: unos 650 MB).
-5. **`prisma migrate deploy` contra un PostgreSQL 12 real**, y la versión mínima de PostgreSQL que soporta Prisma 6.12 (consultar la documentación oficial de Prisma).
-6. **Las reglas de `.htaccess.seguridad`** contra un Apache real.
-7. **La estructura con la app fuera de `www`.**
-8. **La carga de datos con el último ajuste de `cargar-datos.sh`** (`-o /dev/null`), ni contra PostgreSQL 12. Lo probado en local es la carga completa anterior a ese ajuste.
-9. **Que `psql`, `gzip`, `awk` y `sha256sum` existan en el servidor** y que `crontab` esté disponible por SSH (Fase 0).
-10. **Acceso remoto a PostgreSQL**, SSL obligatorio y límite de conexiones (Fase 0).
+2. **Memoria y límites reales de la cuenta** (lo medido es del servidor completo) y arranque en frío de Next.js bajo Passenger. Comprobaciones en [0.3](#03-comprobaciones-adicionales).
+3. **Instalación de NVM y Node en este servidor**, copia del binario y "ruta al binario personalizado" en el panel (apartados 4.0 y Fase 5), y que el cron funcione con la ruta absoluta de NVM.
+4. **Selección del motor de Prisma:** con OpenSSL 1.1 sobre Debian 11 Prisma debería elegir `debian-openssl-1.1.x`, pero no está verificado. Si no lo hace, hará falta `binaryTargets` en `prisma/schema.prisma`, que **no se ha tocado**. Tampoco está medida la versión de glibc (la de Debian 11 sería la 2.31, por inferencia) ni confirmado que sea suficiente para el binario de Node elegido (2.28 o superior, a confirmar).
+5. **`npm ci` en Linux** (solo se ha medido en Windows: unos 650 MB).
+6. **`prisma migrate deploy` contra un PostgreSQL 12 real**, y la versión mínima de PostgreSQL que soporta Prisma 6.12 (consultar la documentación oficial de Prisma).
+7. **Las reglas de `.htaccess.seguridad`** contra un Apache real.
+8. **La estructura con la app fuera de `www`.**
+9. **La carga de datos con el último ajuste de `cargar-datos.sh`** (`-o /dev/null`), ni contra PostgreSQL 12. Lo probado en local es la carga completa anterior a ese ajuste.
+10. **Cómo cargar los datos sin `psql` en el servidor:** si existe `psql` fuera del `PATH`, y si la carga remota desde el PC funciona (apartado [4.4](#44-cargar-los-datos)).
+11. **PostgreSQL de Dinahosting:** host, puerto, **alcance real del puerto desde fuera**, phpPgAdmin, SSL obligatorio y límite de conexiones (no hay documentación publicada de PostgreSQL; Fase 0).
+12. **Cuota de disco de la cuenta** (se mira en el panel).
 
 ---
 
@@ -444,7 +543,10 @@ Nada de esto se ha ejecutado en el hosting real. Resérvate margen para ajustes:
 | Síntoma | Qué hacer |
 |---|---|
 | `500` en toda la web tras añadir el `.htaccess` | Quita el bloque entre `MOTOGP-SEGURIDAD-INICIO` y `MOTOGP-SEGURIDAD-FIN` (hay copia en `../htaccess.copia-FECHA`), confirma que la web vuelve y avisa a soporte: alguna directiva no se permite |
-| `Prisma Client could not locate the Query Engine` / motor no encontrado | `npm ci --omit=dev` no pudo descargar o elegir el motor Linux. Comprueba la salida a `binaries.prisma.sh` (Fase 0) y vuelve a ejecutar `npm ci --omit=dev`. Si se instala el motor equivocado, añade `binaryTargets` al esquema Prisma (cambio de código, fuera del alcance de esta guía: consúltalo) |
+| `node: command not found` / `npm: command not found` por SSH | Node no está en el `PATH` (es lo que pasó en el primer servidor). Instálalo con NVM y cárgalo en la sesión (apartado [4.0](#40-instalar-nodejs-con-nvm)) |
+| El cron no ejecuta `node` (`node: command not found` en `logs/sync.log`) | El cron no carga NVM: usa la ruta absoluta `$HOME/.nvm/versions/node/vX.Y.Z/bin/node` (la de `which node` tras cargar NVM). Si no sale ni el error en el log, revisa que `logs/` exista |
+| `psql: command not found` al cargar datos o hacer comprobaciones | `psql` no está en el servidor. Opciones (pendientes de comprobar) en el apartado [4.4](#44-cargar-los-datos): buscarlo fuera del `PATH`, cargar desde tu PC, o un cargador en Node futuro. `prisma migrate deploy` no lo necesita |
+| `Prisma Client could not locate the Query Engine` / motor no encontrado | `npm ci --omit=dev` no pudo descargar o elegir el motor Linux. Comprueba la salida a `binaries.prisma.sh` (Fase 0: un `404` en la raíz es normal; lo que importa es que responda) y vuelve a ejecutar `npm ci --omit=dev`. Si se instala el motor equivocado, añade `binaryTargets` al esquema Prisma (cambio de código, fuera del alcance de esta guía: consúltalo) |
 | La app no arranca (página de error de Passenger, `502`/`503`) | Revisa el log de errores de Passenger/Apache que ofrezca el panel, comprueba que Raíz = carpeta del paquete y Path ejecutable = `app.js`, que `node_modules/` existe, y haz `touch tmp/restart.txt`. Ejecuta `node app.js` a mano por SSH para ver el error (Ctrl+C para parar) |
 | Mensaje "No se encontró ningún fichero de variables" en el log | `~/.motogp-stats.env` no existe o está en otro home (cron y web deben correr con el mismo usuario). Revisa la ruta (o define `MOTOGP_ENV_FILE`) |
 | Errores de "Too many connections" / "timeout fetching a connection from the pool" | Baja `connection_limit` en `DATABASE_URL` (p. ej. a 2) y reinicia con `touch tmp/restart.txt` |
@@ -458,7 +560,9 @@ Nada de esto se ha ejecutado en el hosting real. Resérvate margen para ajustes:
 
 ## 14. Pendientes
 
-- **Importadores `import:*` en el servidor.** No están empaquetados y la BD de Dinahosting probablemente no acepta conexiones remotas, así que hoy no hay forma probada de ejecutar en producción temporadas nuevas, categorías, detalles de evento/circuito, pilotos o histórico. Hasta que se resuelva: ejecutarlos en local y repetir volcado y carga, o empaquetarlos en una tarea futura.
+- **Instalar Node con NVM y completar la Fase 0** con el apartado [0.3](#03-comprobaciones-adicionales) (glibc, límites de cgroup, cuota, `psql` fuera del `PATH`).
+- **Resolver la carga de datos sin `psql` en el servidor** (apartado [4.4](#44-cargar-los-datos)): comprobar si hay `psql`, probar la carga remota desde el PC o escribir un cargador en Node (`pg` y `pg-copy-streams`, no existe). Averiguar también el host y el puerto de PostgreSQL y si es alcanzable desde fuera.
+- **Importadores `import:*` en el servidor.** No están empaquetados y no se sabe si la BD de Dinahosting acepta conexiones remotas (pendiente de comprobar; si las acepta, los `import:*` podrían ejecutarse desde el PC contra ella), así que hoy no hay forma probada de ejecutar en producción temporadas nuevas, categorías, detalles de evento/circuito, pilotos o histórico. Hasta que se resuelva: ejecutarlos en local y repetir volcado y carga, o empaquetarlos en una tarea futura.
 - **Probar todo en un entorno real** (apartado 12), empezando por un subdominio.
 - **Decidir sobre las vulnerabilidades de `npm audit`** (apartado 11).
 - **Rotación de `logs/sync.log`.**
