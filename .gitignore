@@ -3,17 +3,22 @@
 
 # next.js
 /.next/
-/out
+/out/
 
 # production
 /build
 
-# environment variables
-.env
-.env.local
-.env.*.local
+# paquete para Dinahosting (scripts/package-dinahosting.mjs)
+/dist
 
-# logs
+# variables de entorno: nunca se versionan valores reales, solo las plantillas
+.env*
+!.env.example
+!.env.production.example
+
+# logs (incluye los del vigilante de sesiones)
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -28,15 +33,21 @@ pnpm-debug.log*
 # vercel
 .vercel
 
-# os
+# sistema operativo
 .DS_Store
 Thumbs.db
+
+# claves y certificados
 *.pem
+*.key
 
-# claude code local settings
+# volcados de la base de datos para el despliegue (scripts/deploy): contienen datos, no van al repositorio
+*.sql.gz
+*.sql.gz.sha256
+motogp-datos*
+
+# scripts temporales de comprobación (regla 8 de AGENTS.md)
+scripts/tmp-*.ts
+
+# claude code: ajustes locales
 .claude/settings.local.json
-# Logs del vigilante de sesiones
-logs/
-
-# Paquete para Dinahosting (scripts/package-dinahosting.mjs)
-/dist
