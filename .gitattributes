@@ -1,0 +1,6 @@
+# Ficheros que se ejecutan o se sirven en Linux (Dinahosting): siempre LF.
+# Con core.autocrlf=true Windows los deja en CRLF y fallan en el servidor
+# (p. ej. bash: "invalid option name: set: pipefail").
+scripts/deploy/* text eol=lf
+scripts/dinahosting/* text eol=lf
+scripts/package-dinahosting.mjs text eol=lf

@@ -19,7 +19,9 @@ if [ -f "$ARCHIVO.sha256" ]; then (cd "$(dirname "$ARCHIVO")" && sha256sum -c "$
 gzip -t "$ARCHIVO"
 
 # Las tablas de datos deben estar vacias para no duplicar ni chocar con claves unicas.
-FILAS=$("${PSQL[@]}" -Atc "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1]::text::int),0) from information_schema.tables where table_schema='public' and table_type='BASE TABLE' and table_name <> '_prisma_migrations'")
+FILAS=$("${PSQL[@]}" -Atc "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', t.table_schema, t.table_name), false, true, '')))[1]::text::int),0) from information_schema.tables t where t.table_schema='public' and t.table_type='BASE TABLE' and t.table_name <> '_prisma_migrations' and not exists (select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=format('%I.%I', t.table_schema, t.table_name)::regclass::oid and d.deptype='e')")
+# (Se excluyen las tablas que pertenecen a extensiones, p. ej. PostGIS: spatial_ref_sys, pagc_*;
+#  el hosting las crea en public y no son nuestras.)
 if [ "$FILAS" != "0" ]; then echo "ERROR: el destino ya tiene $FILAS filas; abortado." >&2; exit 1; fi
 
 echo "Cargando $ARCHIVO ..."
