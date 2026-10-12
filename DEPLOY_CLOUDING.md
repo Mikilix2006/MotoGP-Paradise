@@ -4,7 +4,7 @@ Guía práctica, paso a paso, para publicar MotoGP Stats en un servidor virtual 
 
 **Servidor de referencia:** VPS Debian 13, 2 vCPU, 3,8 GiB de RAM, disco de 9,8 GB, IP pública fija y acceso `root` por SSH. En esta guía la IP es `IP_DEL_SERVIDOR`: sustitúyela por la tuya.
 
-**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual y el SSH solo con clave están verificados en el servidor real; HTTPS/dominio y la vuelta atrás automática **no se han probado**.
+**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual, la carga de datos (con recuento de filas) y el SSH solo con clave están verificados en el servidor real; HTTPS/dominio y la vuelta atrás automática **no se han probado**.
 
 ## Índice
 
@@ -222,7 +222,7 @@ Comprueba el `.sha256` y la integridad del gzip, **aborta si alguna tabla ya tie
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
 ```
 
-Cifras de referencia de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, ~239.000 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (hay 6 carpetas en `prisma/migrations/`). Las 6 migraciones deben salir con `ok = t`, el recuento por tabla debe igualar al de origen y no debe haber FK sin validar. Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+Cifras de referencia del volcado de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, 239.259 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (hay 6 carpetas en `prisma/migrations/`). Las 6 migraciones deben salir con `ok = t`, el recuento por tabla debe igualar al de origen y no debe haber FK sin validar. Son cifras **orientativas, no exactas**: en el servidor la sincronización cada 5 minutos añade filas después de la carga (ver las cifras medidas en [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)). Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 ## 8. Fase 6 — Comprobar la web y comandos útiles
 
@@ -332,7 +332,33 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 - `motogp-copia-bd` manual creó `/var/backups/motogp/motogp-FECHA.sql.gz` de 22 MB con permisos 600 y propietario root. El temporizador `motogp-backup` está programado.
 - Disco: 4,7 GB usados de 9,8 GB; cada release ocupa unos 650 MB (1,6 GB en `/srv/motogp` con dos).
 - SSH endurecido (solo clave, `PermitRootLogin prohibit-password`): ver [12.1](#121-endurecer-ssh-solo-con-clave).
-- Carga de datos: indicio de que la temporada está cargada (la web abre y la sincronización refresca sesiones), **sin recuento de filas** del servidor.
+- Carga de datos **verificada** con `comprobaciones.sql` (solo lectura) ejecutado en el servidor; salida medida:
+  - PostgreSQL 17.11 (Debian 17.11-0+deb13u1), `server_encoding` UTF8.
+  - Las 6 migraciones con `ok = t` y sin `rolled_back_at`.
+  - 0 claves foráneas sin validar y 0 secuencias.
+  - 2.659 pilotos, de los cuales 0 sin `legacy_id`; última temporada 2026; 146 eventos con bandera.
+  - `ANALYZE` ejecutado (`last_analyze` 2026-10-12 22:58).
+  - Filas por tabla:
+
+    | Tabla | Filas | Tabla | Filas |
+    |---|---|---|---|
+    | `api_snapshots` | 385 | `events` | 1.188 |
+    | `bmw_award_standings` | 401 | `live_rider_timings` | 0 |
+    | `categories` | 9 | `live_timing_snapshots` | 0 |
+    | `championship_standings` | 8.487 | `rider_season_entries` | 709 |
+    | `circuit_assets` | 52 | `rider_season_images` | 1.855 |
+    | `circuit_descriptions` | 159 | `rider_season_statistics` | 9.663 |
+    | `circuit_tracks` | 113 | `riders` | 2.659 |
+    | `circuits` | 74 | `seasons` | 78 |
+    | `constructors` | 298 | `session_results` | 239.568 |
+    | `countries` | 55 | `sessions` | 12.594 |
+    | `event_categories` | 3.679 | `sync_runs` | 24 |
+    | `event_documents` | 2.128 | `teams` | 3.069 |
+    | `event_legacy_mappings` | 3.702 | | |
+    | `event_schedule_days` | 2.418 | | |
+    | `event_urls` | 1.910 | | |
+
+  - Las cifras de la Fase 5 ([7](#7-fase-5--cargar-los-datos)) eran las del volcado; el servidor tiene algunas más (239.568 resultados frente a 239.259, además de las estadísticas, los snapshots y los `sync_runs`) porque `motogp-sync` sigue añadiendo filas tras la carga. Las tablas de Live Timing están vacías porque no tienen importador.
 
 **Verificado en local (en el PC, no en el servidor):**
 
@@ -345,10 +371,8 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 - HTTPS con dominio.
 - La vuelta atrás automática.
 - La primera ejecución automática de madrugada de `motogp-backup` (solo se ha probado la copia manual).
-- El recuento de filas de la carga de datos en este servidor.
 - `systemd-analyze verify` sobre las unidades.
 - Los `import:*` en el servidor.
-- Las cifras de referencia de la Fase 5 en la base cargada en el servidor.
 - El truco de `sslip.io`.
 - Las instantáneas del panel de Clouding.
 

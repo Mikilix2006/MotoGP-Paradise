@@ -64,7 +64,7 @@ Es **solo modo oscuro**. No existe tema claro ni selector de tema; no los añada
 
 ## Composición de la portada (el patrón a imitar para páginas nuevas)
 
-1. **Header** pegajoso (`sticky top-0 z-20 border-b border-white/10 bg-black/80 backdrop-blur`): marca "MOTO" blanco + "GP" rojo + "STATS" zinc-500 con una barra vertical roja a la izquierda; navegación `Inicio · Calendario · Pilotos · Equipos · Circuitos` (`text-sm text-zinc-400`, la activa en `text-white`), selector de temporada "2026", icono de búsqueda y, en móvil, icono de menú.
+1. **Header** pegajoso (`sticky top-0 z-20 border-b border-white/10 bg-black/80 backdrop-blur`): marca "MOTO" blanco + "GP" rojo + "STATS" zinc-500 con una barra vertical roja a la izquierda; navegación `Inicio · Calendario · Pilotos · Equipos · Predicciones` (`text-sm text-zinc-400`, la activa en `text-white`), selector de temporada "2026", icono de búsqueda y, en móvil, icono de menú.
 2. **Bloque héroe** en rejilla `lg:grid-cols-[1.65fr_.85fr]`: a la izquierda la tarjeta del próximo GP (degradado `from-red-950/40`, pill de ronda y estado, eyebrow rojo "PRÓXIMO GRAN PREMIO", nombre del GP en `md:text-5xl`, circuito con `MapPin` y fechas con `CalendarDays` en rojo, cuenta atrás de 4 celdas Días/Horas/Minutos/Segundos, pie con país y nombre adicional); a la derecha una rejilla 2×2 de tarjetas de métrica (Líder, Puntos del líder, Circuito con imagen y km/curvas/vueltas, Sprint con día/hora/vueltas).
 3. **Bloque inferior** `lg:grid-cols-[1.25fr_.75fr]` con `mt-12`: tabla de clasificación a la izquierda y panel "Favoritos del GP" a la derecha.
 
@@ -101,7 +101,7 @@ Mobile-first con los breakpoints de Tailwind: `sm` (≥640) muestra columnas ext
 ## Deuda de diseño conocida (propón, no "arregles" sin avisar)
 
 - **Calendario** ([CalendarView.tsx](src/components/CalendarView.tsx)): ya usa la paleta del sistema (Finalizado en zinc, En curso en rojo, Próximamente en pill de contorno), destaca el próximo GP, muestra la bandera de cada GP con `CountryFlag` y tiene cards desplegables con la tabla de horarios y el conmutador TU HORA / HORA LOCAL. Audítalo como cualquier otro componente.
-- **Header:** ya marca el enlace activo según la ruta y tiene menú desplegable en móvil; "Pilotos/Equipos/Circuitos" son `#` (páginas aún sin crear) y el selector "2026" y la búsqueda no hacen nada.
+- **Header:** ya marca el enlace activo según la ruta y tiene menú desplegable en móvil; "Pilotos/Equipos/Predicciones" son `#` (páginas aún sin crear) y el selector "2026" y la búsqueda no hacen nada.
 - **Estados de error inconsistentes** entre componentes (`ChampionshipStats` no muestra error; solo oculta la tarjeta).
 - Banderas de país: el componente compartido es [CountryFlag.tsx](src/components/CountryFlag.tsx) (recorte tipo cover sobre la zona pintada de las SVG de `photos.motogp.com`; si falla, el código ISO en una pill) y lo usan el calendario y la clasificación de pilotos. `NextGrandPrix` sigue con un icono `Flag` genérico.
 

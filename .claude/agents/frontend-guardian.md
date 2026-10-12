@@ -76,7 +76,7 @@ El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase
 - Navegación: el `Header` ya es un componente cliente y marca el enlace activo con `usePathname`, pero sigue usando `<a href>` (recarga la página completa); `next/link` daría navegación cliente. Mejora detectada: proponla antes de aplicarla (es un componente visible).
 - Imágenes: las del circuito vienen de `photos.motogp.com` (SVG) y se pintan con `<img>`; pasar a `next/image` exige `images.remotePatterns` en `next.config.ts`. No lo cambies sin preguntar.
 - `loading.tsx`, `error.tsx` y `not-found.tsx` aún no se usan; si los propones, deben reutilizar los patrones visuales existentes.
-- Despliegue en Railway con dos servicios sobre la misma base de datos ([DEPLOY.md](DEPLOY.md)): `web` (`npm run start:web`, que ejecuta `prisma migrate deploy` antes de `next start`) y `worker` (`npm run watch:sessions`). No cambies scripts de arranque ni migraciones sin hablarlo.
+- Despliegue vigente en un VPS de Clouding ([DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)); alternativa en Railway con dos servicios sobre la misma base de datos ([DEPLOY.md](DEPLOY.md)): `web` (`npm run start:web`, que ejecuta `prisma migrate deploy` antes de `next start`) y `worker` (`npm run watch:sessions`). No cambies scripts de arranque ni migraciones sin hablarlo.
 - Desarrollo en Windows: `next dev` no admite dos instancias sobre el mismo proyecto. Si el puerto 3000 ya lo usa un `next dev` de este directorio, reutilízalo (log en `.next/dev/logs/next-development.log`). El aviso de Turbopack sobre un `package-lock.json` fuera del repositorio es conocido e inofensivo.
 
 ## Cómo verificas tu trabajo

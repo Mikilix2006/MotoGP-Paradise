@@ -323,7 +323,7 @@ Abre Prisma Studio para inspeccionar visualmente los datos.
 npx prisma migrate deploy
 ```
 
-Aplica las migraciones pendientes sin interactividad (es lo que ejecuta `npm run start:web` antes de arrancar en producción; ver [DEPLOY.md](DEPLOY.md)). `prisma migrate dev` es interactivo y no funciona en entornos no interactivos.
+Aplica las migraciones pendientes sin interactividad (es lo que ejecuta `npm run start:web` antes de arrancar en Railway, ver [DEPLOY.md](DEPLOY.md); en el VPS de Clouding lo hace `instalar-release.sh`, ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)). `prisma migrate dev` es interactivo y no funciona en entornos no interactivos.
 
 El esquema contiene **27 modelos** y el historial de `prisma/migrations/` es:
 
@@ -1160,7 +1160,7 @@ Category.legacyId  ==  category.timing_id
 
 Las sesiones no se emparejan solo por hora, porque `/results/sessions` devuelve la hora local del circuito etiquetada como `+00:00` mientras que `/events` devuelve la hora con su offset real (ver [Hora de las sesiones](#hora-de-las-sesiones)). El emparejamiento (`matchBroadcastsToSessions`) se hace en 4 pasadas: UUID de broadcast, hora exacta, tipo base con orden cronológico dentro del tipo y, por último, orden cronológico (solo si quedan exactamente las mismas sesiones que broadcasts).
 
-Las pasadas por UUID y por hora exacta comprueban además que el tipo de sesión sea compatible (`areTypesCompatible`; `PR`, `P` y `FP` se consideran equivalentes). Evita cruces como el de Catar 2026, donde el calendario provisional de la API de resultados hacía coincidir la hora de una práctica con la de una carrera. Si un `broadcastUuid` quedó guardado por error en otra sesión, se libera antes de reasignarlo (es único). El criterio de salud es que reimportar cree 0 sesiones nuevas, y hoy se cumple con los datos de 2026, pero el emparejamiento es **frágil**: las sesiones que este importador crea cuando no encuentra pareja guardan el `type` del broadcast (según la revisión de código, `SESSION`), incompatible con `areTypesCompatible`, y solo la pasada 4 las recupera. Por eso `import:event-details` debe ejecutarse **después** de `import:sessions` y de que `/results/sessions` haya publicado las sesiones del evento; si no, quedan filas huérfanas o duplicadas, y con sesiones sobrantes distintas de los broadcasts sobrantes puede duplicar en cada ejecución (ver deudas en `AGENTS.md`).
+Las pasadas por UUID y por hora exacta comprueban además que el tipo de sesión sea compatible (`areTypesCompatible`; `PR`, `P` y `FP` se consideran equivalentes). Evita cruces como el de Catar 2026, donde el calendario provisional de la API de resultados hacía coincidir la hora de una práctica con la de una carrera. Si un `broadcastUuid` quedó guardado por error en otra sesión, se libera antes de reasignarlo (es único). El criterio de salud es que reimportar cree 0 sesiones nuevas, y hoy se cumple con los datos de 2026, pero el emparejamiento es **frágil**: las sesiones que este importador crea cuando no encuentra pareja guardan el `type` del broadcast (`SESSION` para las sesiones de pista, comprobado contra `/events?seasonYear=` de la API general), incompatible con `areTypesCompatible`, y solo la pasada 4 las recupera. Por eso `import:event-details` debe ejecutarse **después** de `import:sessions` y de que `/results/sessions` haya publicado las sesiones del evento; si no, quedan filas huérfanas o duplicadas, y con sesiones sobrantes distintas de los broadcasts sobrantes puede duplicar en cada ejecución (ver deudas en `AGENTS.md`).
 
 ---
 
@@ -1261,7 +1261,7 @@ Es la vía normal durante la temporada: mantiene la base de datos al día durant
 
 Es idempotente. Entre sesiones duerme hasta el fin previsto de la siguiente (calculado con la zona horaria del evento); mientras la API no publica una clasificación pregunta cada dos minutos, mientras el evento activo no esté `FINISHED` no duerme más de 30 minutos y nunca duerme más de una hora seguida (si un ciclo falla, reintenta a los 5 minutos). Solo registra en `SyncRun` (`/live-sync/sessions` o `/live-sync/post-race`) cuando importa algo.
 
-En desarrollo local en Windows corre como tarea programada (`scripts/register-watcher-task.ps1` la registra o, con `-Unregister`, la elimina; el lanzador es `scripts/watch-sessions.ps1`); en producción es el servicio *worker* de Railway (ver [DEPLOY.md](DEPLOY.md)).
+En desarrollo local en Windows corre como tarea programada (`scripts/register-watcher-task.ps1` la registra o, con `-Unregister`, la elimina; el lanzador es `scripts/watch-sessions.ps1`); en producción es el servicio *worker* de Railway (ver [DEPLOY.md](DEPLOY.md)) o, en el VPS de Clouding, el temporizador systemd `motogp-sync` (cada 5 minutos, una pasada de `sync:sessions`; ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)).
 
 La web no usa el estado del evento para elegir el GP a mostrar (MotoGP lo mantiene en `CURRENT` hasta bastante después de la carrera): ver la sección 23.
 
@@ -1299,7 +1299,7 @@ Scripts adicionales, fuera de la cadena anterior:
 | `sync:sessions` | Una pasada de la sincronización en vivo (`liveSessionSync`, ver [Fase 10](#fase-10--sincronización-en-vivo)) |
 | `watch:sessions` | La misma sincronización en proceso continuo (es lo que ejecuta el *worker* de Railway) |
 | `fix:duplicate-riders` | Mantenimiento: fusiona las filas duplicadas de `riders` por `legacyId` (`scripts/merge-duplicate-riders.ts`). Idempotente; no registra `SyncRun` |
-| `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en producción) |
+| `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en Railway; en Clouding arranca `app.js` y las migraciones las aplica `instalar-release.sh`) |
 | `package:dinahosting` | Empaqueta la app en `dist/dinahosting/` (`scripts/package-dinahosting.mjs`; el nombre es histórico). Es el paquete que sube `scripts/clouding/desplegar.ps1` al VPS de Clouding; ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) |
 
 Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
@@ -1496,7 +1496,7 @@ Qué muestra:
 
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las dos páginas. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Pilotos, Equipos y Circuitos apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
+Cabecera común a las dos páginas. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Pilotos, Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
 
 ---
 
@@ -1674,7 +1674,7 @@ motogp-stats/
 │
 ├── .claude/agents/                Agentes (ver AGENTS.md)
 ├── .env.example
-├── .env.production.example        Plantilla de variables de producción (sin secretos)
+├── .env.production.example        Plantilla de variables de producción (sin secretos; orientada a Dinahosting, el paquete la copia como .env.example; en Clouding `instalar-servidor.sh` crea `/etc/motogp-stats.env`)
 ├── .gitattributes                 Fuerza finales de línea LF en scripts/deploy, scripts/dinahosting, scripts/clouding y package-dinahosting.mjs
 ├── .gitignore                     Ignora .env* (salvo las plantillas), *.sql.gz, motogp-datos*, dist/ y scripts/tmp-*.ts
 ├── package.json
@@ -1696,7 +1696,7 @@ Base de datos
 
 # 27. Despliegue
 
-El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md). El despliegue alternativo vigente es un VPS de Clouding (Debian) con Caddy, systemd y PostgreSQL local, descrito en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) (`scripts/clouding/`; `desplegar.ps1` acepta `-Ref` para desplegar exactamente un commit y deja un fichero `REVISION` en cada release). El intento en el hosting compartido de Dinahosting está abandonado y solo queda como histórico en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+El despliegue vigente es un VPS de Clouding (Debian) con Caddy, systemd y PostgreSQL local, descrito en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) (`scripts/clouding/`; `desplegar.ps1` acepta `-Ref` para desplegar exactamente un commit y deja un fichero `REVISION` en cada release). La alternativa documentada es Railway, con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`); el procedimiento está en [DEPLOY.md](DEPLOY.md). El intento en el hosting compartido de Dinahosting está abandonado y solo queda como histórico en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 Para desplegar la aplicación se deben considerar dos componentes separados:
 
@@ -1897,7 +1897,7 @@ DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
 
-`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) es la guía práctica, para quien no tiene experiencia en consola, del despliegue vigente en un VPS de Clouding con Debian (scripts de `scripts/clouding/`, volcado y carga de datos de `scripts/deploy/`, temporizadores systemd en lugar del worker); el servidor se preparó y la web abrió por IP, pero la guía lista lo no verificado (HTTPS con dominio, vuelta atrás automática, temporizadores, carga de datos en el servidor). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es histórico: el hosting compartido de Dinahosting no permite ejecutar la aplicación; se conserva por los scripts de `scripts/deploy/` y la lección sobre CRLF.
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) es la guía práctica, para quien no tiene experiencia en consola, del despliegue vigente en un VPS de Clouding con Debian (scripts de `scripts/clouding/`, volcado y carga de datos de `scripts/deploy/`, temporizadores systemd en lugar del worker); el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual y la carga de datos (recuento de filas medido en el servidor) están verificados, pero la guía lista lo no verificado (HTTPS con dominio, vuelta atrás automática, primera ejecución automática de la copia, `import:*` en el servidor). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es histórico: el hosting compartido de Dinahosting no permite ejecutar la aplicación; se conserva por los scripts de `scripts/deploy/` y la lección sobre CRLF.
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 

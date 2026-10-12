@@ -90,7 +90,7 @@ Todo el pipeline en orden, sin argumentos donde no los acepta. Comprueba al fina
 
 1. Localiza en la tabla anterior qué fase lo rellena.
 2. `SELECT * FROM sync_runs ORDER BY started_at DESC LIMIT 20` (o Prisma en un script `scripts/tmp-*.ts`): ¿se ejecutó esa fase para esa temporada? ¿`status = SUCCESS`? ¿`recordsUpdated` razonable?
-3. Si la fase corrió pero no rellenó: mira `api_snapshots` (guarda la respuesta cruda de los listados) para ver si la API traía el dato. Si lo traía, el bug está en el mapeo; si no, es un hueco de la fuente.
+3. Si la fase corrió pero no rellenó: mira `api_snapshots` (guarda la respuesta cruda solo de `import:event-details` y `import:championship-standings`) para ver si la API traía el dato. Si lo traía, el bug está en el mapeo; si no, es un hueco de la fuente.
 
 Caso ya vivido: las vueltas y la hora de la sprint de 2026 salían `null` porque `event-details` se había ejecutado para 2024 pero nunca para 2026. Antes de tocar código, comprueba que la fase se ha ejecutado para esa temporada.
 
@@ -101,7 +101,7 @@ Caso ya vivido: las vueltas y la hora de la sprint de 2026 salían `null` porque
 3. **Nunca mandes `null` a un campo obligatorio.** Patrón: valor disponible → usarlo; si no → conservar el existente; si no → fallback controlado. No descartes filas por restricciones que el esquema no tiene.
 4. **Conserva todos los identificadores externos** (`motogpUuid`, `resultsUuid`, `broadcastUuid`, `toadApiUuid`, `ridersApiUuid`, `ridersId`, `legacyId`). Las relaciones internas usan los ids internos.
 5. **Eventos de test**: sus sesiones necesitan `&test=true` en la clasificación o la API responde `event_is_test`.
-6. **Horas**: `/results/sessions` devuelve la hora del circuito etiquetada `+00:00`; `/events` devuelve la hora real con offset. No las mezcles en la misma fila; `dateEnd` se deriva sumando la duración de la API general al `dateStart` ya guardado. El emparejamiento de sesiones entre APIs (`matchBroadcastsToSessions`, 4 pasadas) debe seguir creando **0 sesiones** al reimportar. Es frágil: las sesiones que crea guardan `type` del broadcast (según la revisión de código, `SESSION`), incompatible con `areTypesCompatible`; ejecuta `import:event-details` siempre **después** de `import:sessions`.
+6. **Horas**: `/results/sessions` devuelve la hora del circuito etiquetada `+00:00`; `/events` devuelve la hora real con offset. No las mezcles en la misma fila; `dateEnd` se deriva sumando la duración de la API general al `dateStart` ya guardado. El emparejamiento de sesiones entre APIs (`matchBroadcastsToSessions`, 4 pasadas) debe seguir creando **0 sesiones** al reimportar. Es frágil: las sesiones que crea guardan `type` del broadcast (`SESSION` para las sesiones de pista, comprobado contra `/events?seasonYear=`), incompatible con `areTypesCompatible`; ejecuta `import:event-details` siempre **después** de `import:sessions`.
 7. **Nunca lances una importación de horas sin decirlo antes**: `sessions`/`session-results` sin argumento de temporada recorren todo el histórico. Pasa siempre el año salvo que el objetivo sea precisamente el histórico.
 8. **No toques el esquema.** Si necesitas una columna nueva o una restricción, escribe la propuesta (qué, por qué, migración aditiva) y déjala en manos de `database-guardian`.
 
@@ -120,7 +120,7 @@ Caso ya vivido: las vueltas y la hora de la sprint de 2026 salían `null` porque
 - Un importador por fichero en `src/services/importers/`, que exporta `importX(options?: ImportOptions)` y un `interface XImportResult` con contadores (`processed`, `created`, `updated`, `skipped`).
 - Los importadores nuevos aceptan `{ seasonYear?: number }` desde el primer día.
 - El script de `scripts/` es solo la entrada: parsea el argumento, llama a `trackSyncRun({ source, endpoint, getStats }, () => importX(...))` y muestra los contadores. Añádelo a `package.json` en su posición del pipeline.
-- Los listados se guardan con `saveApiSnapshot` ([syncTracking.ts](src/services/importers/syncTracking.ts)).
+- Los listados se guardan con `saveApiSnapshot` ([syncTracking.ts](src/services/importers/syncTracking.ts)); hoy solo lo hacen `eventDetailsImporter` y `championshipStandingImporter`.
 - Comentarios en español, en bloques `/* */`, explicando el *por qué* (sobre todo las rarezas de la API). Usa `console.warn` con ⚠️ para filas omitidas, con el dato que permite localizarlas.
 - Si dudas de la forma real de una respuesta, pídela con `curl` antes de escribir el mapeo. No adivines nombres de campos.
 
