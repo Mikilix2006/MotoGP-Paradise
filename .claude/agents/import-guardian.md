@@ -34,8 +34,8 @@ Cada script es un punto de entrada que envuelve un importador en `trackSyncRun` 
 | 4 | `import:sessions` | results | `/sessions?eventUuid=&categoryUuid=` | Session | **sí** (y `eventIds` desde código) | evento×categoría de la temporada |
 | 5 | `import:event-details` | general | `/events?seasonYear=` | CircuitTrack/Asset/Description, EventScheduleDay, EventUrl, enriquece Event (zona horaria, `flagUrl`), Category y **Session** (vueltas, nombre, broadcastUuid, flags) | **sí** (`-- 2026`) | 1 llamada por temporada |
 | 6 | `import:session-results` | results | `/session/{uuid}/classification?seasonYear=` (+`&test=true` en tests) | SessionResult, Rider, Team, Constructor, Country | **sí** (y `sessionIds` desde código) | sesiones de la temporada; **sin año: todo el histórico, horas** |
-| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Country.flagUrl, Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage | **sí** | 1 + N pilotos por temporada |
-| 8 | `import:rider-statistics` | general | `/riders/{legacyId}/statistics` | RiderSeasonStatistics | **sí** (pilotos con inscripción o resultados ese año) | sin año: todos los pilotos con legacyId |
+| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Country.flagUrl, Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage | **sí** (acota el listado; la ficha trae toda la carrera del piloto y se importa entera) | 1 + N pilotos por temporada |
+| 8 | `import:rider-statistics` | general | `/riders/{legacyId}/statistics` | RiderSeasonStatistics | **sí** (pilotos con inscripción o resultados ese año; de cada uno se guardan todas sus temporadas) | sin año: todos los pilotos con legacyId |
 | 9 | `import:championship-standings` | results | `/standings?seasonUuid=&categoryUuid=` | ChampionshipStanding | **sí** | temporada × categoría |
 | 10 | `import:bmw-award` | results | `/standings/bmwaward?seasonUuid=` | BmwAwardStanding | **sí** | 1 llamada por temporada |
 | — | `sync:sessions` / `watch:sessions` | results+general | ver «Sincronización en vivo» | lo que haga falta del fin de semana en curso | automático | solo eventos activos |
@@ -43,7 +43,7 @@ Cada script es un punto de entrada que envuelve un importador en `trackSyncRun` 
 
 `LiveTimingSnapshot` / `LiveRiderTiming` (fuente TIMING) **no tienen importador todavía**.
 
-Sintaxis del argumento de temporada: `npm run import:event-details -- 2026` (los dos guiones son obligatorios con npm; con tsx directo: `npx tsx scripts/import-event-details.ts 2026`). Los scripts que aceptan año lo leen con `getSeasonYearArgument()` de [cli.ts](src/services/importers/cli.ts); los que no (`seasons`, `event-categories`) no lo necesitan o está pendiente.
+Sintaxis del argumento de temporada: `npm run import:event-details -- 2026` (los dos guiones son obligatorios con npm; con tsx directo: `npx tsx scripts/import-event-details.ts 2026`). Los scripts `events`, `sessions`, `session-results`, `rider-statistics` y `bmw-award` lo leen con `getSeasonYearArgument()` de [cli.ts](src/services/importers/cli.ts); `event-details`, `riders` y `championship-standings` llevan una copia local equivalente; `seasons` y `event-categories` no aceptan año.
 
 ## Sincronización en vivo (la vía normal durante la temporada)
 
@@ -54,7 +54,7 @@ npm run sync:sessions     # una pasada: importa lo que haya terminado y sale (cr
 npm run watch:sessions    # proceso continuo: duerme hasta el fin previsto de la siguiente sesión
 ```
 
-Cada ciclo: (0) `importEvents({ seasonYear })` para el estado de los eventos (NOT-STARTED → CURRENT → FINISHED), una llamada; (1) eventos activos = los que su fin de semana cubre ahora (±1 día); (2) `importSessions({ eventIds })` para leer de la API qué sesiones están `FINISHED`; (3) `importSessionResults({ sessionIds })` de las terminadas sin resultados, y también de las terminadas en las últimas 6 h (sanciones); (4) si ha entrado una RAC o SPR nueva: `importRiderStatistics`, `importChampionshipStandings`, `importBmwAwardStandings`, con `seasonYear`. Registra en `sync_runs` como `/live-sync/sessions` o `/live-sync/post-race` solo cuando importa algo. Mientras un evento activo no está FINISHED no duerme más de 30 min, para que el cambio de estado llegue a la web.
+Cada ciclo: (0) `importEvents({ seasonYear })` para el estado de los eventos (NOT-STARTED → CURRENT → FINISHED), una llamada; (1) eventos activos = los que su fin de semana cubre ahora (1 día de margen antes del primer día y 1 después del final del último; `dateEnd` es una fecha a medianoche UTC, así que en el código es `EVENT_ACTIVE_MARGIN_MS * 2` tras `dateEnd`); (2) `importSessions({ eventIds })` para leer de la API qué sesiones están `FINISHED`; (3) `importSessionResults({ sessionIds })` de las terminadas sin resultados, y también de las terminadas en las últimas 6 h (sanciones); (4) si ha entrado una RAC o SPR nueva: `importRiderStatistics`, `importChampionshipStandings`, `importBmwAwardStandings`, con `seasonYear`. Registra en `sync_runs` como `/live-sync/sessions` o `/live-sync/post-race` solo cuando importa algo. Mientras un evento activo no está FINISHED no duerme más de 30 min, para que el cambio de estado llegue a la web.
 
 **En este PC el vigilante corre como tarea programada de Windows** ("MotoGP Stats - Vigilante de sesiones", al iniciar sesión, oculta, con log en `logs/watch-sessions.log`). Se registra o elimina con [register-watcher-task.ps1](scripts/register-watcher-task.ps1) (`-Unregister`); el lanzador es [watch-sessions.ps1](scripts/watch-sessions.ps1). Comprobar estado: `Get-ScheduledTask -TaskName "MotoGP Stats - Vigilante de sesiones"`. No lances un segundo `watch:sessions` a mano mientras la tarea esté `Running`.
 
@@ -69,7 +69,7 @@ Detalles que no debes romper:
 
 ### Actualizar la temporada en curso después de un Gran Premio
 
-Si el vigilante ha estado corriendo, no hay nada que hacer. Si no, una pasada de `npm run sync:sessions` recupera el fin de semana en curso (±1 día). Para un GP ya pasado hace días, el pipeline acotado:
+Si el vigilante ha estado corriendo, no hay nada que hacer. Si no, una pasada de `npm run sync:sessions` recupera el fin de semana en curso (con 1 día de margen antes y después). Para un GP ya pasado hace días, el pipeline acotado:
 
 ```bash
 npm run import:events -- 2026            # estado FINISHED/CURRENT/NOT-STARTED de los eventos
@@ -101,7 +101,7 @@ Caso ya vivido: las vueltas y la hora de la sprint de 2026 salían `null` porque
 3. **Nunca mandes `null` a un campo obligatorio.** Patrón: valor disponible → usarlo; si no → conservar el existente; si no → fallback controlado. No descartes filas por restricciones que el esquema no tiene.
 4. **Conserva todos los identificadores externos** (`motogpUuid`, `resultsUuid`, `broadcastUuid`, `toadApiUuid`, `ridersApiUuid`, `ridersId`, `legacyId`). Las relaciones internas usan los ids internos.
 5. **Eventos de test**: sus sesiones necesitan `&test=true` en la clasificación o la API responde `event_is_test`.
-6. **Horas**: `/results/sessions` devuelve la hora del circuito etiquetada `+00:00`; `/events` devuelve la hora real con offset. No las mezcles en la misma fila; `dateEnd` se deriva sumando la duración de la API general al `dateStart` ya guardado. El emparejamiento de sesiones entre APIs (`matchBroadcastsToSessions`, 4 pasadas) debe seguir creando **0 sesiones** al reimportar.
+6. **Horas**: `/results/sessions` devuelve la hora del circuito etiquetada `+00:00`; `/events` devuelve la hora real con offset. No las mezcles en la misma fila; `dateEnd` se deriva sumando la duración de la API general al `dateStart` ya guardado. El emparejamiento de sesiones entre APIs (`matchBroadcastsToSessions`, 4 pasadas) debe seguir creando **0 sesiones** al reimportar. Es frágil: las sesiones que crea guardan `type` del broadcast (según la revisión de código, `SESSION`), incompatible con `areTypesCompatible`; ejecuta `import:event-details` siempre **después** de `import:sessions`.
 7. **Nunca lances una importación de horas sin decirlo antes**: `sessions`/`session-results` sin argumento de temporada recorren todo el histórico. Pasa siempre el año salvo que el objetivo sea precisamente el histórico.
 8. **No toques el esquema.** Si necesitas una columna nueva o una restricción, escribe la propuesta (qué, por qué, migración aditiva) y déjala en manos de `database-guardian`.
 
