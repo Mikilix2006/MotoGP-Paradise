@@ -1629,7 +1629,7 @@ Esto evita que cada navegador consulte directamente la API externa de MotoGP.
 
 # 26. Estructura recomendada del proyecto
 
-La estructura actual es (puede evolucionar):
+La estructura actual es (puede evolucionar). Además, `graphify-out/` contiene el gráfico de conocimiento generado por la herramienta graphify y se versiona (`.gitignore` excluye solo `graphify-out/.graphify_*`). El repositorio de GitHub es público: ver la nota en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#12-seguridad).
 
 ```text
 motogp-stats/

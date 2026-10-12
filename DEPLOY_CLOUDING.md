@@ -266,6 +266,7 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 - PostgreSQL escucha solo en `localhost`; el puerto 5432 no está abierto.
 - `ufw` deniega todo lo entrante salvo SSH, 80 y 443. El cortafuegos del panel de Clouding es una segunda capa y debe permitir los mismos puertos.
 - `DATABASE_URL` (con la contraseña de la base) vive solo en `/etc/motogp-stats.env`, propietario `root`, grupo `motogp`, modo 640.
+- **Repositorio público:** si el repositorio de GitHub es público, esta guía y los demás `DEPLOY*.md` describen la arquitectura del servidor a cualquiera. Conviene mantenerlo privado o ser consciente de ello.
 - **Nunca teclees contraseñas como si fueran comandos ni las pegues en chats o documentos.** Si una contraseña se ha expuesto, cámbiala.
 
 ### 12.1 Endurecer SSH (solo con clave)

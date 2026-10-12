@@ -51,3 +51,6 @@ scripts/tmp-*.ts
 
 # claude code: ajustes locales
 .claude/settings.local.json
+
+# graphify: rutas locales de esta máquina (el resto de graphify-out sí se versiona)
+graphify-out/.graphify_*

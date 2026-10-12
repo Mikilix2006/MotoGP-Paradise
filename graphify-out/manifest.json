@@ -1,0 +1,554 @@
+{
+  "next-env.d.ts": {
+    "mtime": 1791648452.719537,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c7b887684e81cfa5830eeeb7286485f6",
+    "semantic_hash": "c7b887684e81cfa5830eeeb7286485f6"
+  },
+  "next.config.ts": {
+    "mtime": 1787960312.003163,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ca2ec9b9657e293c6d5c6cedec81a9c2",
+    "semantic_hash": "ca2ec9b9657e293c6d5c6cedec81a9c2"
+  },
+  "package.json": {
+    "mtime": 1791528326.54502,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ff17a1dbe7fac2704843b003eaaca830",
+    "semantic_hash": "ff17a1dbe7fac2704843b003eaaca830"
+  },
+  "postcss.config.js": {
+    "mtime": 1787960312.0189416,
+    "seen": 1791834789.9828863,
+    "ast_hash": "dfef8e86ade7a04134e17d2a7aed4745",
+    "semantic_hash": "dfef8e86ade7a04134e17d2a7aed4745"
+  },
+  "prisma/migrations/20260831165539_initial_schema/migration.sql": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "d18bfe292d838a6bafe6bfeb9bf1195d",
+    "semantic_hash": "d18bfe292d838a6bafe6bfeb9bf1195d"
+  },
+  "prisma/migrations/20260831211713_add_bmw_award_unique_constraint/migration.sql": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "6a758b1efb5d4b97cdfac6a460f9a57f",
+    "semantic_hash": "6a758b1efb5d4b97cdfac6a460f9a57f"
+  },
+  "prisma/migrations/20260902005742_add_session_conditions_and_standing_unique/migration.sql": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "4953fc0c07d0ce75e7884e37d72a7270",
+    "semantic_hash": "4953fc0c07d0ce75e7884e37d72a7270"
+  },
+  "prisma/migrations/20260911120000_rider_legacy_id_unique/migration.sql": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "faaca27a595fe702de813499cedad6f5",
+    "semantic_hash": "faaca27a595fe702de813499cedad6f5"
+  },
+  "prisma/migrations/20261006120000_event_flag_url/migration.sql": {
+    "mtime": 1791527255.9637365,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c0b1c16aa950708c0c70e873a286837a",
+    "semantic_hash": "c0b1c16aa950708c0c70e873a286837a"
+  },
+  "prisma/migrations/20261007120000_country_flag_url/migration.sql": {
+    "mtime": 1791527255.9637365,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c277e980b805ddf35b6cd4985e464024",
+    "semantic_hash": "c277e980b805ddf35b6cd4985e464024"
+  },
+  "scripts/clouding/copia-bd.sh": {
+    "mtime": 1791828045.7193403,
+    "seen": 1791834789.9828863,
+    "ast_hash": "9a1488486dec239d98cb90f5fa7b9ba0",
+    "semantic_hash": "9a1488486dec239d98cb90f5fa7b9ba0"
+  },
+  "scripts/clouding/desplegar.ps1": {
+    "mtime": 1791828719.3657534,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ca024831019ea078a892affd46ff446c",
+    "semantic_hash": "ca024831019ea078a892affd46ff446c"
+  },
+  "scripts/clouding/instalar-release.sh": {
+    "mtime": 1791828759.284171,
+    "seen": 1791834789.9828863,
+    "ast_hash": "e2f4f9138ec9df9e236385c492e3725d",
+    "semantic_hash": "e2f4f9138ec9df9e236385c492e3725d"
+  },
+  "scripts/clouding/instalar-servidor.sh": {
+    "mtime": 1791828727.6008632,
+    "seen": 1791834789.9828863,
+    "ast_hash": "045d69bc13c98399060db7f7e102f7ef",
+    "semantic_hash": "045d69bc13c98399060db7f7e102f7ef"
+  },
+  "scripts/deploy/cargar-datos.sh": {
+    "mtime": 1791650085.4666123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "b558eab27470489215fed2e0289d8c37",
+    "semantic_hash": "b558eab27470489215fed2e0289d8c37"
+  },
+  "scripts/deploy/comprobaciones.sql": {
+    "mtime": 1791650085.511678,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ae71e3351275b75a61aed8e89c3fe550",
+    "semantic_hash": "ae71e3351275b75a61aed8e89c3fe550"
+  },
+  "scripts/deploy/volcar-datos.ps1": {
+    "mtime": 1791650085.5281582,
+    "seen": 1791834789.9828863,
+    "ast_hash": "6f4b29e9a8a06ea34e94a2a18fbe3070",
+    "semantic_hash": "6f4b29e9a8a06ea34e94a2a18fbe3070"
+  },
+  "scripts/dinahosting/app.js": {
+    "mtime": 1791827718.7228415,
+    "seen": 1791834789.9828863,
+    "ast_hash": "bdd34187aaf1a59594353442807c43b7",
+    "semantic_hash": "bdd34187aaf1a59594353442807c43b7"
+  },
+  "scripts/dinahosting/sync-cron.ts": {
+    "mtime": 1791650085.5900126,
+    "seen": 1791834789.9828863,
+    "ast_hash": "d3a04f75178782535d19c7b945710e1e",
+    "semantic_hash": "d3a04f75178782535d19c7b945710e1e"
+  },
+  "scripts/import-bmw-award.ts": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "008cce0f75137977bd5210c8c1687426",
+    "semantic_hash": "008cce0f75137977bd5210c8c1687426"
+  },
+  "scripts/import-championship-standings.ts": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "87cb3e9922f5ebb17041223cde0b5737",
+    "semantic_hash": "87cb3e9922f5ebb17041223cde0b5737"
+  },
+  "scripts/import-event-categories.ts": {
+    "mtime": 1791360556.7883577,
+    "seen": 1791834789.9828863,
+    "ast_hash": "880d37947b9632da1529c9f95b5eeec3",
+    "semantic_hash": "880d37947b9632da1529c9f95b5eeec3"
+  },
+  "scripts/import-event-details.ts": {
+    "mtime": 1791360556.803764,
+    "seen": 1791834789.9828863,
+    "ast_hash": "458439c26c5e051f0dd1878cd76ca1cc",
+    "semantic_hash": "458439c26c5e051f0dd1878cd76ca1cc"
+  },
+  "scripts/import-events.ts": {
+    "mtime": 1791360556.8053145,
+    "seen": 1791834789.9828863,
+    "ast_hash": "7d84df729b1f5101b36aa04865228f10",
+    "semantic_hash": "7d84df729b1f5101b36aa04865228f10"
+  },
+  "scripts/import-rider-statistics.ts": {
+    "mtime": 1791360556.8053145,
+    "seen": 1791834789.9828863,
+    "ast_hash": "e0fe61dd1a0e3228de7b676e3269c96f",
+    "semantic_hash": "e0fe61dd1a0e3228de7b676e3269c96f"
+  },
+  "scripts/import-riders.ts": {
+    "mtime": 1791360556.8053145,
+    "seen": 1791834789.9828863,
+    "ast_hash": "9fad60f0e99514c49322f0f03ec14ce5",
+    "semantic_hash": "9fad60f0e99514c49322f0f03ec14ce5"
+  },
+  "scripts/import-seasons.ts": {
+    "mtime": 1791360556.8053145,
+    "seen": 1791834789.9828863,
+    "ast_hash": "d71d7996b745623a20dc98bf0e506de4",
+    "semantic_hash": "d71d7996b745623a20dc98bf0e506de4"
+  },
+  "scripts/import-session-results.ts": {
+    "mtime": 1791360556.8053145,
+    "seen": 1791834789.9828863,
+    "ast_hash": "1feb3d9475ca34d77e83d7cdd9076c1f",
+    "semantic_hash": "1feb3d9475ca34d77e83d7cdd9076c1f"
+  },
+  "scripts/import-sessions.ts": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "57ede4f890ca82dbb6054acaba85a2db",
+    "semantic_hash": "57ede4f890ca82dbb6054acaba85a2db"
+  },
+  "scripts/merge-duplicate-riders.ts": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "13821b4f405b0adbd0f0e8d4466925a1",
+    "semantic_hash": "13821b4f405b0adbd0f0e8d4466925a1"
+  },
+  "scripts/package-dinahosting.mjs": {
+    "mtime": 1791650085.655692,
+    "seen": 1791834789.9828863,
+    "ast_hash": "3e923131c1b5bba76c4d4c53dfdbbe21",
+    "semantic_hash": "3e923131c1b5bba76c4d4c53dfdbbe21"
+  },
+  "scripts/register-watcher-task.ps1": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "28ba84f58754cb61c18afb434e2725cc",
+    "semantic_hash": "28ba84f58754cb61c18afb434e2725cc"
+  },
+  "scripts/watch-sessions.ps1": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "81e082cc46e2bbacc592bb5bf3267907",
+    "semantic_hash": "81e082cc46e2bbacc592bb5bf3267907"
+  },
+  "scripts/watch-sessions.ts": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "04655ba55345f9abeefc7c43b1321fc7",
+    "semantic_hash": "04655ba55345f9abeefc7c43b1321fc7"
+  },
+  "src/app/api/calendar/route.ts": {
+    "mtime": 1791360556.8109474,
+    "seen": 1791834789.9828863,
+    "ast_hash": "84203904828b0265678f4cd980651e34",
+    "semantic_hash": "84203904828b0265678f4cd980651e34"
+  },
+  "src/app/api/next-gp/favorites/route.ts": {
+    "mtime": 1791360556.8191645,
+    "seen": 1791834789.9828863,
+    "ast_hash": "71844a7c39072c81d8e72c086738b5ce",
+    "semantic_hash": "71844a7c39072c81d8e72c086738b5ce"
+  },
+  "src/app/api/next-gp/route.ts": {
+    "mtime": 1791360556.8206024,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c39dbe52e27058afaca493c2b82b22ac",
+    "semantic_hash": "c39dbe52e27058afaca493c2b82b22ac"
+  },
+  "src/app/api/riders/standings/route.ts": {
+    "mtime": 1791360556.8206024,
+    "seen": 1791834789.9828863,
+    "ast_hash": "01865d0cd20b77f4fc4c5bec3e8c9f5b",
+    "semantic_hash": "01865d0cd20b77f4fc4c5bec3e8c9f5b"
+  },
+  "src/app/calendario/page.tsx": {
+    "mtime": 1791527255.9637365,
+    "seen": 1791834789.9828863,
+    "ast_hash": "4d7c4517c254bf48850a02d57f1f7da4",
+    "semantic_hash": "4d7c4517c254bf48850a02d57f1f7da4"
+  },
+  "src/app/layout.tsx": {
+    "mtime": 1787960312.1275158,
+    "seen": 1791834789.9828863,
+    "ast_hash": "484b04b1c9f9c5e654d9df505e17d5d6",
+    "semantic_hash": "484b04b1c9f9c5e654d9df505e17d5d6"
+  },
+  "src/app/page.tsx": {
+    "mtime": 1791360556.8206024,
+    "seen": 1791834789.9828863,
+    "ast_hash": "f32ba3eb61c34fcb70b9368ee3a6e74b",
+    "semantic_hash": "f32ba3eb61c34fcb70b9368ee3a6e74b"
+  },
+  "src/components/CalendarView.tsx": {
+    "mtime": 1791527255.9637365,
+    "seen": 1791834789.9828863,
+    "ast_hash": "172178a942256ed863713603b2dcb546",
+    "semantic_hash": "172178a942256ed863713603b2dcb546"
+  },
+  "src/components/ChampionshipStats.tsx": {
+    "mtime": 1791360556.8271902,
+    "seen": 1791834789.9828863,
+    "ast_hash": "b9bf6d4446ae5925925db3b8d06725d4",
+    "semantic_hash": "b9bf6d4446ae5925925db3b8d06725d4"
+  },
+  "src/components/Countdown.tsx": {
+    "mtime": 1788042686.4215236,
+    "seen": 1791834789.9828863,
+    "ast_hash": "29ec592e6d3db1220fa95861de51899d",
+    "semantic_hash": "29ec592e6d3db1220fa95861de51899d"
+  },
+  "src/components/CountryFlag.tsx": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "b0a17def1f61bd1f165c48305f2bdc62",
+    "semantic_hash": "b0a17def1f61bd1f165c48305f2bdc62"
+  },
+  "src/components/GrandPrixFavorites.tsx": {
+    "mtime": 1791360556.8271902,
+    "seen": 1791834789.9828863,
+    "ast_hash": "3db9b615da5395a5ba72bb6a3c78e9d3",
+    "semantic_hash": "3db9b615da5395a5ba72bb6a3c78e9d3"
+  },
+  "src/components/Header.tsx": {
+    "mtime": 1791528326.555298,
+    "seen": 1791834789.9828863,
+    "ast_hash": "98288460339e09e6de35481de937f1a5",
+    "semantic_hash": "98288460339e09e6de35481de937f1a5"
+  },
+  "src/components/NextGrandPrix.tsx": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "fbf456d97bcd875bbfba07ef02d417df",
+    "semantic_hash": "fbf456d97bcd875bbfba07ef02d417df"
+  },
+  "src/components/RiderStandings.tsx": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "dbc9e151840f6f2d41ca52eb0ca76935",
+    "semantic_hash": "dbc9e151840f6f2d41ca52eb0ca76935"
+  },
+  "src/components/StatCard.tsx": {
+    "mtime": 1787960312.1617868,
+    "seen": 1791834789.9828863,
+    "ast_hash": "caa71eea8a830ca0def06609ca117cd0",
+    "semantic_hash": "caa71eea8a830ca0def06609ca117cd0"
+  },
+  "src/lib/prisma.ts": {
+    "mtime": 1791360556.8271902,
+    "seen": 1791834789.9828863,
+    "ast_hash": "4c980f2feba5249df7f45023ecefcced",
+    "semantic_hash": "4c980f2feba5249df7f45023ecefcced"
+  },
+  "src/services/db/favoritesRepository.ts": {
+    "mtime": 1791360556.8355734,
+    "seen": 1791834789.9828863,
+    "ast_hash": "6a80b9e342165400a18608d9bf710b92",
+    "semantic_hash": "6a80b9e342165400a18608d9bf710b92"
+  },
+  "src/services/db/nextGrandPrixRepository.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "2f6e0910a95f52512e68465ef4952631",
+    "semantic_hash": "2f6e0910a95f52512e68465ef4952631"
+  },
+  "src/services/db/riderStandingsRepository.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "cccd720592c75fcde5bbd6ea88dcb83d",
+    "semantic_hash": "cccd720592c75fcde5bbd6ea88dcb83d"
+  },
+  "src/services/db/seasonRepository.ts": {
+    "mtime": 1791360556.8355734,
+    "seen": 1791834789.9828863,
+    "ast_hash": "867f9780d77fee82dac02dc2463a297e",
+    "semantic_hash": "867f9780d77fee82dac02dc2463a297e"
+  },
+  "src/services/importers/bmwAwardImporter.ts": {
+    "mtime": 1791360556.8430717,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ac713e31c89babe843460811ea11f774",
+    "semantic_hash": "ac713e31c89babe843460811ea11f774"
+  },
+  "src/services/importers/championshipStandingImporter.ts": {
+    "mtime": 1791360556.844083,
+    "seen": 1791834789.9828863,
+    "ast_hash": "b495f2db819bbad430a4ee7654192da8",
+    "semantic_hash": "b495f2db819bbad430a4ee7654192da8"
+  },
+  "src/services/importers/cli.ts": {
+    "mtime": 1791360556.8456678,
+    "seen": 1791834789.9828863,
+    "ast_hash": "48efeca45d71cae112b2706e8a43f86b",
+    "semantic_hash": "48efeca45d71cae112b2706e8a43f86b"
+  },
+  "src/services/importers/eventCategoryImporter.ts": {
+    "mtime": 1791360556.8456678,
+    "seen": 1791834789.9828863,
+    "ast_hash": "5e4e85f81a58303296c989895ce5016e",
+    "semantic_hash": "5e4e85f81a58303296c989895ce5016e"
+  },
+  "src/services/importers/eventDetailsImporter.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "69522ba50d4ea6efc11f8897d206dcbf",
+    "semantic_hash": "69522ba50d4ea6efc11f8897d206dcbf"
+  },
+  "src/services/importers/eventImporter.ts": {
+    "mtime": 1791360556.8486907,
+    "seen": 1791834789.9828863,
+    "ast_hash": "7d111676918ebd36e31c970c5bad6728",
+    "semantic_hash": "7d111676918ebd36e31c970c5bad6728"
+  },
+  "src/services/importers/liveSessionSync.ts": {
+    "mtime": 1791360556.8486907,
+    "seen": 1791834789.9828863,
+    "ast_hash": "e1c3ca50801ee4f6bd855a32a7f12060",
+    "semantic_hash": "e1c3ca50801ee4f6bd855a32a7f12060"
+  },
+  "src/services/importers/riderImporter.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "679f64f866e96c3e123b196dda48e205",
+    "semantic_hash": "679f64f866e96c3e123b196dda48e205"
+  },
+  "src/services/importers/riderResolver.ts": {
+    "mtime": 1791360556.8579633,
+    "seen": 1791834789.9828863,
+    "ast_hash": "645ba0a8ff304188f2f0fdea5abead89",
+    "semantic_hash": "645ba0a8ff304188f2f0fdea5abead89"
+  },
+  "src/services/importers/riderStatisticsImporter.ts": {
+    "mtime": 1791360556.8599775,
+    "seen": 1791834789.9828863,
+    "ast_hash": "5cf6d8e433c85fe5186cb030511c5294",
+    "semantic_hash": "5cf6d8e433c85fe5186cb030511c5294"
+  },
+  "src/services/importers/seasonImporter.ts": {
+    "mtime": 1791360556.8599775,
+    "seen": 1791834789.9828863,
+    "ast_hash": "2af00b674813357ba4d194a7ef5c672e",
+    "semantic_hash": "2af00b674813357ba4d194a7ef5c672e"
+  },
+  "src/services/importers/sessionImporter.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "db012580f7f17fea59bc0831a82f5317",
+    "semantic_hash": "db012580f7f17fea59bc0831a82f5317"
+  },
+  "src/services/importers/sessionResultImporter.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "a05547e1e14b20c503716bd087bc4229",
+    "semantic_hash": "a05547e1e14b20c503716bd087bc4229"
+  },
+  "src/services/importers/syncTracking.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "dc109209e54976ad96cc7760c829bb7e",
+    "semantic_hash": "dc109209e54976ad96cc7760c829bb7e"
+  },
+  "src/services/motogp/apiClient.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "d2b5340a75558613d5d513d88cc88302",
+    "semantic_hash": "d2b5340a75558613d5d513d88cc88302"
+  },
+  "src/services/motogp/resultsClient.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "4ed23f6359026a0aedb7c98d0fd046a3",
+    "semantic_hash": "4ed23f6359026a0aedb7c98d0fd046a3"
+  },
+  "src/services/stats/favoritesModel.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "a32c1ca3bcae2776a38bd648341ccb75",
+    "semantic_hash": "a32c1ca3bcae2776a38bd648341ccb75"
+  },
+  "src/types/favorites.ts": {
+    "mtime": 1791360556.861992,
+    "seen": 1791834789.9828863,
+    "ast_hash": "5be3e2ddbefc13c0425de8d8980d908f",
+    "semantic_hash": "5be3e2ddbefc13c0425de8d8980d908f"
+  },
+  "src/types/grandPrix.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "8d3e3b4ae6bf6cc62e9df468c8ca1a59",
+    "semantic_hash": "8d3e3b4ae6bf6cc62e9df468c8ca1a59"
+  },
+  "src/types/rider.ts": {
+    "mtime": 1791527255.9671123,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c31f93d5f0fb5b2a00ba1f5a0762ebb9",
+    "semantic_hash": "c31f93d5f0fb5b2a00ba1f5a0762ebb9"
+  },
+  "src/utils/date.ts": {
+    "mtime": 1791527255.9731958,
+    "seen": 1791834789.9828863,
+    "ast_hash": "02ee8e9ea2552c7a6995b39a3fa00e50",
+    "semantic_hash": "02ee8e9ea2552c7a6995b39a3fa00e50"
+  },
+  "tailwind.config.ts": {
+    "mtime": 1787960312.0681326,
+    "seen": 1791834789.9828863,
+    "ast_hash": "5331ca70f38f204dfce291aff0614fb0",
+    "semantic_hash": "5331ca70f38f204dfce291aff0614fb0"
+  },
+  "tsconfig.json": {
+    "mtime": 1791528326.5563166,
+    "seen": 1791834789.9828863,
+    "ast_hash": "e3c31e59a1b97e6ac59f7f27dbee00fc",
+    "semantic_hash": "e3c31e59a1b97e6ac59f7f27dbee00fc"
+  },
+  ".claude/agents/code-reviewer.md": {
+    "mtime": 1791527255.9565518,
+    "seen": 1791834789.9828863,
+    "ast_hash": "3fa148768bcf2fcd064df84df1c4469f",
+    "semantic_hash": "3fa148768bcf2fcd064df84df1c4469f"
+  },
+  ".claude/agents/database-guardian.md": {
+    "mtime": 1791527255.9574466,
+    "seen": 1791834789.9828863,
+    "ast_hash": "cac428aaae6b735087017798d1eac65e",
+    "semantic_hash": "cac428aaae6b735087017798d1eac65e"
+  },
+  ".claude/agents/debugger.md": {
+    "mtime": 1791527255.9574466,
+    "seen": 1791834789.9828863,
+    "ast_hash": "2cfb6ce7b6e12dc79eaa8de39adbfebc",
+    "semantic_hash": "2cfb6ce7b6e12dc79eaa8de39adbfebc"
+  },
+  ".claude/agents/docs-guardian.md": {
+    "mtime": 1791527255.9584663,
+    "seen": 1791834789.9828863,
+    "ast_hash": "e130f8da9b6db9fe9c9593d463f1e4d2",
+    "semantic_hash": "e130f8da9b6db9fe9c9593d463f1e4d2"
+  },
+  ".claude/agents/frontend-guardian.md": {
+    "mtime": 1791527255.9584663,
+    "seen": 1791834789.9828863,
+    "ast_hash": "d090dc2c3df264dfcf915c4c59ddbe37",
+    "semantic_hash": "d090dc2c3df264dfcf915c4c59ddbe37"
+  },
+  ".claude/agents/import-guardian.md": {
+    "mtime": 1791528326.5348687,
+    "seen": 1791834789.9828863,
+    "ast_hash": "0d344dc506b3feefa8682fc94b0507c8",
+    "semantic_hash": "0d344dc506b3feefa8682fc94b0507c8"
+  },
+  ".claude/agents/typescript-pro.md": {
+    "mtime": 1791528326.5381422,
+    "seen": 1791834789.9828863,
+    "ast_hash": "1e077a985ce525c53b9aa60b9b7957fe",
+    "semantic_hash": "1e077a985ce525c53b9aa60b9b7957fe"
+  },
+  ".claude/agents/ui-designer.md": {
+    "mtime": 1791527255.9601882,
+    "seen": 1791834789.9828863,
+    "ast_hash": "b7f22dd674020bbe136c0ff051f1c223",
+    "semantic_hash": "b7f22dd674020bbe136c0ff051f1c223"
+  },
+  "AGENTS.md": {
+    "mtime": 1791528326.5408876,
+    "seen": 1791834789.9828863,
+    "ast_hash": "cb581c333e5b25256d747bdd1093f302",
+    "semantic_hash": "cb581c333e5b25256d747bdd1093f302"
+  },
+  "DATABASE_ENDPOINT_MAPPING.md": {
+    "mtime": 1791528326.5408876,
+    "seen": 1791834789.9828863,
+    "ast_hash": "9d566f88e5fded572917a7989f4cc6a1",
+    "semantic_hash": "9d566f88e5fded572917a7989f4cc6a1"
+  },
+  "DATABASE_IMPLEMENTATION_PLAN.md": {
+    "mtime": 1791528326.5408876,
+    "seen": 1791834789.9828863,
+    "ast_hash": "3cc68680618e2768df99541f018064b6",
+    "semantic_hash": "3cc68680618e2768df99541f018064b6"
+  },
+  "DEPLOY.md": {
+    "mtime": 1791528326.5408876,
+    "seen": 1791834789.9828863,
+    "ast_hash": "03a06919d6dd782dbd49f40b93eefc82",
+    "semantic_hash": "03a06919d6dd782dbd49f40b93eefc82"
+  },
+  "DEPLOY_DINAHOSTING.md": {
+    "mtime": 1791528326.5408876,
+    "seen": 1791834789.9828863,
+    "ast_hash": "ff679ddaa76a5e6f0128fd2e0b1987ca",
+    "semantic_hash": "ff679ddaa76a5e6f0128fd2e0b1987ca"
+  },
+  "README.md": {
+    "mtime": 1791528326.54502,
+    "seen": 1791834789.9828863,
+    "ast_hash": "c0d77a1c9bec1a68f9d84edc2ff3012b",
+    "semantic_hash": "c0d77a1c9bec1a68f9d84edc2ff3012b"
+  }
+}

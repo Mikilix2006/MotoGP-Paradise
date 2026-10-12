@@ -290,6 +290,16 @@ function areTypesCompatible(
   const normalize = (value: string | null | undefined) => {
     const base = baseSessionType(value);
 
+    /*
+     * "SESSION" es el broadcast.type que versiones anteriores
+     * guardaron por error en Session.type: no es un tipo real, se
+     * trata como desconocido para que esas filas sigan emparejando
+     * con su propio broadcast en vez de duplicarse.
+     */
+    if (base === "SESSION") {
+      return null;
+    }
+
     return base === "PR" ? "FP" : base;
   };
 
@@ -398,14 +408,28 @@ function buildSessionData(
  *
  * Se hacen cuatro pasadas, de más a menos fiable:
  *
- * 1. UUID de broadcast, si ya se importó antes;
- * 2. hora de inicio exacta, válida donde no hay horario de verano;
- * 3. tipo base (FP, Q, RAC...) y orden cronológico dentro del tipo.
+ * 1. UUID de broadcast, si ya se importó antes (exige
+ *    areTypesCompatible);
+ * 2. hora de inicio exacta (exige areTypesCompatible). Las horas de
+ *    Session.dateStart son el reloj de pared local del circuito CON
+ *    horario de verano etiquetado como UTC, igual que lo que deja
+ *    toWallClockDate con la hora de /events; por eso coinciden en el
+ *    caso normal. Pero las dos APIs pueden diferir en minutos por
+ *    reprogramaciones y a veces en el día (calendarios provisionales
+ *    de /results/sessions): entonces esta pasada no acierta y se
+ *    cae a la siguiente, y el tipo evita cruzar carrera y práctica;
+ * 3. tipo base (FP, Q, RAC...) y orden cronológico dentro del tipo
+ *    (no llama a areTypesCompatible: agrupa por tipo base, sin
+ *    equivalencia PR=FP);
+ * 4. orden cronológico a ciegas, sin mirar el tipo, solo si los
+ *    broadcasts sin pareja y las sesiones sin pareja son el mismo
+ *    número (las APIs nombran distinto algunas sesiones, p. ej.
+ *    PR frente a FP3 en Moto2/Moto3).
  *
- * Si ninguna pasada encuentra correspondencia se devuelve sin
- * pareja y la sesión se creará. No se empareja "a ciegas" por
- * orden porque escribir los datos en la sesión equivocada es
- * peor que crear una sesión de más.
+ * Los broadcasts que ninguna pasada empareja no aparecen en el mapa
+ * devuelto y quien llama crea una sesión nueva con ellos. Si no
+ * cuadran los números en la pasada 4 no se fuerza nada: escribir en
+ * la sesión equivocada es peor que crear una sesión de más.
  */
 function matchBroadcastsToSessions(
   broadcasts: ApiBroadcast[],
@@ -1059,12 +1083,15 @@ export async function importEventDetails(
        * resultados, pero las dos APIs no comparten identificador
        * ni horario:
        *
-       * - /results/sessions devuelve la hora estándar del circuito
-       *   (sin horario de verano) etiquetada como +00:00;
-       * - /events devuelve la hora real con su offset.
+       * - /results/sessions devuelve el reloj de pared local del
+       *   circuito (CON horario de verano) etiquetado como +00:00;
+       * - /events devuelve la hora real con su offset (toWallClockDate
+       *   descarta el offset y deja el mismo reloj de pared).
        *
-       * Por eso el emparejamiento no puede basarse solo en la hora
-       * y se hace en varias pasadas, de más a menos fiable.
+       * Aun así la hora no basta: las APIs pueden diferir en minutos
+       * por reprogramaciones y a veces en el día (calendarios
+       * provisionales), por lo que el emparejamiento se hace en
+       * varias pasadas, de más a menos fiable.
        */
 
       for (const [
@@ -1142,7 +1169,14 @@ export async function importEventDetails(
                 eventId: event.id,
                 categoryId,
 
-                type: broadcast.type ?? null,
+                /*
+                 * broadcast.type vale SESSION/MEDIA, no es el código
+                 * de Session.type (FP, Q, RAC...). Se deriva del
+                 * shortname con la misma normalización que usa el
+                 * emparejamiento, para que la siguiente ejecución
+                 * reconozca esta fila y no la duplique.
+                 */
+                type: baseSessionType(broadcast.shortname),
                 status: broadcast.status ?? null,
 
                 dateStart: toWallClockDate(

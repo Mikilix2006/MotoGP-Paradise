@@ -21,7 +21,10 @@ import { trackSyncRun } from "./syncTracking";
  *      para que la web muestre el GP "en curso" en cuanto MotoGP
  *      lo marca así.
  *   1. Localiza los eventos "activos": los que están en curso
- *      según sus fechas (con un día de margen a cada lado).
+ *      según sus fechas: desde 1 día antes de dateStart hasta 2 días
+ *      después de dateEnd (Event.dateEnd es una fecha a medianoche
+ *      UTC, es decir el INICIO del último día; el margen doble cubre
+ *      ese día completo más 1 día de cola).
  *   2. Refresca sus sesiones desde la API de resultados, que es
  *      quien marca cada sesión como FINISHED.
  *   3. Importa la clasificación de las sesiones terminadas que
