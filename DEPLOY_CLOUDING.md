@@ -4,7 +4,7 @@ Guía práctica, paso a paso, para publicar MotoGP Stats en un servidor virtual 
 
 **Servidor de referencia:** VPS Debian 13, 2 vCPU, 3,8 GiB de RAM, disco de 9,8 GB, IP pública fija y acceso `root` por SSH. En esta guía la IP es `IP_DEL_SERVIDOR`: sustitúyela por la tuya.
 
-**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó con éxito y la web abrió por IP tras un despliegue (con una versión anterior de `desplegar.ps1`); el resto se ha probado solo en local o **no se ha probado**.
+**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual y el SSH solo con clave están verificados en el servidor real; HTTPS/dominio y la vuelta atrás automática **no se han probado**.
 
 ## Índice
 
@@ -20,6 +20,7 @@ Guía práctica, paso a paso, para publicar MotoGP Stats en un servidor virtual 
 10. [Actualizaciones](#10-actualizaciones)
 11. [Copias de seguridad](#11-copias-de-seguridad)
 12. [Seguridad](#12-seguridad)
+    - [12.1 Endurecer SSH (solo con clave)](#121-endurecer-ssh-solo-con-clave)
 13. [Problemas frecuentes](#13-problemas-frecuentes)
 14. [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)
 
@@ -261,11 +262,46 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 
 ## 12. Seguridad
 
-- **Endurecer SSH es un paso manual pendiente.** Hoy siguen permitidos el acceso por **contraseña** y el usuario **root**. Lo recomendable es usar clave SSH y un usuario no root, y entonces desactivar la contraseña. **No está automatizado a propósito**, para no dejarte fuera del servidor por error.
+- **SSH solo con clave** (paso manual, **no automatizado a propósito** para no dejarte fuera del servidor por error): ver [12.1](#121-endurecer-ssh-solo-con-clave). Sigue permitido el usuario `root` (solo con clave); un usuario no root con `sudo` y `fail2ban` son mejoras opcionales no hechas.
 - PostgreSQL escucha solo en `localhost`; el puerto 5432 no está abierto.
 - `ufw` deniega todo lo entrante salvo SSH, 80 y 443. El cortafuegos del panel de Clouding es una segunda capa y debe permitir los mismos puertos.
 - `DATABASE_URL` (con la contraseña de la base) vive solo en `/etc/motogp-stats.env`, propietario `root`, grupo `motogp`, modo 640.
 - **Nunca teclees contraseñas como si fueran comandos ni las pegues en chats o documentos.** Si una contraseña se ha expuesto, cámbiala.
+
+### 12.1 Endurecer SSH (solo con clave)
+
+Verificado en el servidor real. **Orden seguro:** instalar la clave, comprobarla desde una ventana nueva y solo después desactivar la contraseña. No cierres la sesión SSH que ya tienes abierta hasta comprobar que la nueva entra con clave.
+
+1. **Clave en tu PC.** Si no tienes, créala en PowerShell (lo más limpio es una clave aparte: `ssh-keygen -t ed25519 -f $HOME\.ssh\id_ed25519_clouding`; si ya existe `~/.ssh/id_ed25519` y la usas para GitHub, los comandos de abajo la reutilizan, y con una clave aparte hay que añadir `-i` y el nombre del fichero o usar `~/.ssh/config`).
+2. **Instalar la clave pública** en el servidor, desde PowerShell **del PC** (el `tr -d '\r'` quita el retorno de carro que añade PowerShell 5.1):
+
+   ```powershell
+   Get-Content $HOME\.ssh\id_ed25519.pub | ssh root@IP_DEL_SERVIDOR "umask 077; mkdir -p ~/.ssh; tr -d '\r' >> ~/.ssh/authorized_keys"
+   ```
+
+3. **Comprobar la huella** (debe ser idéntica): `ssh-keygen -lf $HOME\.ssh\id_ed25519.pub` en el PC y `ssh-keygen -lf ~/.ssh/authorized_keys` en el servidor.
+4. **Probar la clave desde una ventana NUEVA de PowerShell del PC** (indicador `PS C:\...>`, no el del servidor). Debe imprimir `CLAVE_OK`:
+
+   ```powershell
+   ssh -o PasswordAuthentication=no -o PreferredAuthentications=publickey root@IP_DEL_SERVIDOR "echo CLAVE_OK"
+   ```
+
+5. **Desactivar contraseñas** (en el servidor, solo si el paso 4 funcionó). El fichero empieza por `00-` a propósito: `sshd` aplica la **primera** opción que encuentra y una imagen cloud puede traer un `50-cloud-init.conf` que reactive las contraseñas.
+
+   ```bash
+   cat > /etc/ssh/sshd_config.d/00-motogp-ssh.conf <<'EOF'
+   PasswordAuthentication no
+   KbdInteractiveAuthentication no
+   PermitRootLogin prohibit-password
+   EOF
+   sshd -t && systemctl reload ssh
+   ```
+
+6. **Comprobar el resultado:** `sshd -T | grep -Ei 'permitrootlogin|passwordauthentication|kbdinteractiveauthentication'`. En el servidor real pasó de `permitrootlogin yes` y `passwordauthentication yes` a `permitrootlogin without-password` (alias antiguo de `prohibit-password`), `passwordauthentication no` y `kbdinteractiveauthentication no`. Desde el PC, `ssh root@IP_DEL_SERVIDOR "echo ENTRO_CON_CLAVE"` entra con la clave y `ssh -o PubkeyAuthentication=no root@IP_DEL_SERVIDOR` da `Permission denied (publickey)`.
+
+**Reversión:** `rm /etc/ssh/sshd_config.d/00-motogp-ssh.conf && systemctl reload ssh`. Si pierdes la clave privada, la **consola de emergencia** del panel de Clouding sigue aceptando la contraseña de `root` (este cambio solo afecta a SSH).
+
+Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contraseña (siguen entrando como `root`).
 
 ## 13. Problemas frecuentes
 
@@ -279,6 +315,10 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 | Disco lleno / `npm ci` falla | Cada release ocupa unos **650 MB** y se conservan 3, en un disco de 9,8 GB. Revisa con `df -h /` y, si hace falta, borra releases antiguos que no sean `current` ni el anterior, o amplía el disco |
 | `ufw: command not found` o `psql: command not found` | `instalar-servidor.sh` no terminó (instala `ufw` y los clientes de PostgreSQL). Vuelve a ejecutarlo; es repetible. Para `ufw` en una sesión sin `/usr/sbin` en el `PATH`, usa `/usr/sbin/ufw` |
 | `cargar-datos.sh`: "el destino ya tiene N filas" | La base ya tiene datos y la carga se niega a duplicarlos. No se ha tocado nada |
+| Al probar la clave SSH: `Permission denied (publickey,password)` | El comando se ejecutó **dentro del servidor** (indicador `root@NOMBRE:~#`): el servidor intentó conectarse a sí mismo y la clave privada está en tu PC. La prueba va en PowerShell del PC (indicador `PS C:\...>`) |
+| Ya tenías `~/.ssh/id_ed25519` (p. ej. de GitHub) | Los comandos de [12.1](#121-endurecer-ssh-solo-con-clave) la reutilizan. Más limpio: una clave aparte (`ssh-keygen -t ed25519 -f $HOME\.ssh\id_ed25519_clouding`) |
+| Te quedas sin acceso tras endurecer SSH | Por eso no se cierra la sesión antigua hasta comprobar la nueva. Si ya ocurrió: consola de emergencia del panel de Clouding y reversión de [12.1](#121-endurecer-ssh-solo-con-clave) |
+| Pegaste dos líneas juntas y una contraseña acabó escrita como comando | Un `read -s` consumió la segunda línea como contraseña y la real se tecleó como orden. Pega las órdenes de una en una y **cambia la contraseña** si ocurre |
 
 ## Qué está verificado y qué no
 
@@ -286,6 +326,13 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 
 - `instalar-servidor.sh` terminó con "SERVIDOR PREPARADO" en Debian 13.
 - La web abrió por IP tras desplegar con la versión anterior de `desplegar.ps1`.
+- El despliegue con `desplegar.ps1 -Servidor IP_DEL_SERVIDOR -Ref main` funcionó: `/srv/motogp/current/REVISION` mostró `commit=8b95748781d76eb0dc9bf5f92754bedefd1aa7ab`, `ref=main`, `limpio=si`, con 2 releases en `/srv/motogp/releases`.
+- Servicios `motogp-stats`, `caddy` y `postgresql` activos. La app escucha solo en `127.0.0.1:3000` y PostgreSQL solo en `127.0.0.1:5432` y `[::1]:5432`. `ufw` activo con 22, 80 y 443.
+- `motogp-sync` se dispara cada 5 minutos y una pasada refresca las 20 sesiones del evento en curso y termina con éxito (log de journald).
+- `motogp-copia-bd` manual creó `/var/backups/motogp/motogp-FECHA.sql.gz` de 22 MB con permisos 600 y propietario root. El temporizador `motogp-backup` está programado.
+- Disco: 4,7 GB usados de 9,8 GB; cada release ocupa unos 650 MB (1,6 GB en `/srv/motogp` con dos).
+- SSH endurecido (solo clave, `PermitRootLogin prohibit-password`): ver [12.1](#121-endurecer-ssh-solo-con-clave).
+- Carga de datos: indicio de que la temporada está cargada (la web abre y la sincronización refresca sesiones), **sin recuento de filas** del servidor.
 
 **Verificado en local (en el PC, no en el servidor):**
 
@@ -297,11 +344,10 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 
 - HTTPS con dominio.
 - La vuelta atrás automática.
-- El despliegue con `REVISION` y `-Ref` (versión nueva de `desplegar.ps1`).
-- Los temporizadores `motogp-sync` y `motogp-backup` en funcionamiento real.
-- La carga de datos en este servidor.
+- La primera ejecución automática de madrugada de `motogp-backup` (solo se ha probado la copia manual).
+- El recuento de filas de la carga de datos en este servidor.
 - `systemd-analyze verify` sobre las unidades.
-- El endurecimiento de SSH (ni siquiera existe automatizado).
+- Los `import:*` en el servidor.
 - Las cifras de referencia de la Fase 5 en la base cargada en el servidor.
 - El truco de `sslip.io`.
 - Las instantáneas del panel de Clouding.
