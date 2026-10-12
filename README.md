@@ -1281,7 +1281,7 @@ Scripts adicionales, fuera de la cadena anterior:
 | `watch:sessions` | La misma sincronización en proceso continuo (es lo que ejecuta el *worker* de Railway) |
 | `fix:duplicate-riders` | Mantenimiento: fusiona las filas duplicadas de `riders` por `legacyId` (`scripts/merge-duplicate-riders.ts`). Idempotente; no registra `SyncRun` |
 | `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en producción) |
-| `package:dinahosting` | Empaqueta la app para el hosting de Dinahosting en `dist/dinahosting/` (`scripts/package-dinahosting.mjs`); ver [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) |
+| `package:dinahosting` | Empaqueta la app en `dist/dinahosting/` (`scripts/package-dinahosting.mjs`; el nombre es histórico). Es el paquete que sube `scripts/clouding/desplegar.ps1` al VPS de Clouding; ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) |
 
 Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
 
@@ -1610,8 +1610,9 @@ motogp-stats/
 │
 ├── scripts/                       Puntos de entrada (import-*.ts, merge-duplicate-riders.ts,
 │   │                              watch-sessions.ts) y utilidades de Windows (*.ps1)
-│   ├── package-dinahosting.mjs    Empaquetador para Dinahosting (npm run package:dinahosting)
-│   ├── dinahosting/               app.js (entrada de Passenger), sync-cron.ts (cron) y htaccess.seguridad
+│   ├── package-dinahosting.mjs    Empaquetador (npm run package:dinahosting); genera dist/dinahosting/ (desplegar.ps1 le añade el fichero REVISION)
+│   ├── clouding/                  Despliegue en el VPS de Clouding: instalar-servidor.sh, desplegar.ps1 (-Servidor, -Usuario, -Puerto, -Ref, -SoloEmpaquetar), instalar-release.sh, copia-bd.sh y systemd/ (unidades y temporizadores)
+│   ├── dinahosting/               app.js (entrada de Node; modo proxy con PORT/HOST o modo Passenger), sync-cron.ts y htaccess.seguridad
 │   ├── deploy/                    volcar-datos.ps1, cargar-datos.sh, filtro-volcado.awk, comprobaciones.sql
 │   └── ...
 │
@@ -1643,9 +1644,11 @@ motogp-stats/
 │
 ├── .claude/agents/                Agentes (ver AGENTS.md)
 ├── .env.example
-├── .env.production.example        Plantilla de variables de producción (Dinahosting, sin secretos)
+├── .env.production.example        Plantilla de variables de producción (sin secretos)
+├── .gitattributes                 Fuerza finales de línea LF en scripts/deploy, scripts/dinahosting, scripts/clouding y package-dinahosting.mjs
+├── .gitignore                     Ignora .env* (salvo las plantillas), *.sql.gz, motogp-datos*, dist/ y scripts/tmp-*.ts
 ├── package.json
-├── README.md, AGENTS.md, DEPLOY.md, DEPLOY_DINAHOSTING.md
+├── README.md, AGENTS.md, DEPLOY.md, DEPLOY_CLOUDING.md, DEPLOY_DINAHOSTING.md
 └── DATABASE_IMPLEMENTATION_PLAN.md, DATABASE_ENDPOINT_MAPPING.md
 ```
 
@@ -1663,7 +1666,7 @@ Base de datos
 
 # 27. Despliegue
 
-El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md). Para el hosting de Dinahosting, ver [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+El despliegue de producción está en Railway con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`). El procedimiento completo está en [DEPLOY.md](DEPLOY.md). El despliegue alternativo vigente es un VPS de Clouding (Debian) con Caddy, systemd y PostgreSQL local, descrito en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) (`scripts/clouding/`; `desplegar.ps1` acepta `-Ref` para desplegar exactamente un commit y deja un fichero `REVISION` en cada release). El intento en el hosting compartido de Dinahosting está abandonado y solo queda como histórico en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 Para desplegar la aplicación se deben considerar dos componentes separados:
 
@@ -1858,12 +1861,13 @@ El proyecto también cuenta con documentos adicionales:
 ```text
 AGENTS.md
 DEPLOY.md
+DEPLOY_CLOUDING.md
 DEPLOY_DINAHOSTING.md
 DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
 
-`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es la guía paso a paso del despliegue en el hosting Linux Profesional de Dinahosting (empaquetado con `npm run package:dinahosting`, plantilla `.env.production.example`, scripts de `scripts/dinahosting/` y `scripts/deploy/`, cron en lugar del worker); solo se ha ejecutado en un servidor real la Fase 0 de comprobaciones (sin Node ni `psql` en el `PATH` de la sesión SSH), el despliegue en sí no, y la propia guía lista lo no verificado.
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) es la guía práctica, para quien no tiene experiencia en consola, del despliegue vigente en un VPS de Clouding con Debian (scripts de `scripts/clouding/`, volcado y carga de datos de `scripts/deploy/`, temporizadores systemd en lugar del worker); el servidor se preparó y la web abrió por IP, pero la guía lista lo no verificado (HTTPS con dominio, vuelta atrás automática, temporizadores, carga de datos en el servidor). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es histórico: el hosting compartido de Dinahosting no permite ejecutar la aplicación; se conserva por los scripts de `scripts/deploy/` y la lección sobre CRLF.
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 

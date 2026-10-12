@@ -1,6 +1,6 @@
 # Desplegar en Railway
 
-> **Alcance:** este documento cubre solo Railway. Para el hosting Linux Profesional de Dinahosting (Passenger, cron en lugar de *worker*, carga de datos por volcado) consulta [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+> **Alcance:** este documento cubre solo Railway. Para el despliegue en un VPS de Clouding (Debian, Caddy, systemd, temporizadores en lugar de *worker*, carga de datos por volcado) consulta [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md). El intento en el hosting compartido de Dinahosting (abandonado) está en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 La app necesita **dos servicios** compartiendo la misma base de datos:
 
