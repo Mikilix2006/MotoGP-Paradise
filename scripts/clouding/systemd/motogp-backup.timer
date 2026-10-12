@@ -1,0 +1,13 @@
+# Copia diaria de madrugada. Persistent=true: si el servidor estaba apagado a esa
+# hora, la copia se hace al arrancar.
+[Unit]
+Description=MotoGP Stats - copia diaria de la base de datos
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15min
+Persistent=true
+Unit=motogp-backup.service
+
+[Install]
+WantedBy=timers.target

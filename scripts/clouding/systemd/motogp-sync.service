@@ -1,0 +1,36 @@
+# Una pasada de la sincronización en vivo de sesiones (bundle sync-sessions.cjs).
+# La lanza motogp-sync.timer cada 5 minutos; no se habilita por sí sola.
+[Unit]
+Description=MotoGP Stats - sincronización de sesiones (una pasada)
+After=network-online.target postgresql.service
+Wants=network-online.target
+# Sin release desplegado no hace nada (y no cuenta como fallo).
+ConditionPathExists=/srv/motogp/current/sync-sessions.cjs
+
+[Service]
+Type=oneshot
+User=motogp
+Group=motogp
+WorkingDirectory=/srv/motogp/current
+EnvironmentFile=/etc/motogp-stats.env
+Environment=HOME=/srv/motogp
+ExecStart=/usr/local/bin/node sync-sessions.cjs
+# El bundle se aborta solo a los 20 min (código 2); este tope es el cinturón de seguridad.
+TimeoutStartSec=25min
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=motogp-sync
+
+# Escribe solo tmp/sync-sessions.lock dentro del release.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/motogp/releases
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+LockPersonality=true

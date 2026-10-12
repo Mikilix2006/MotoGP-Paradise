@@ -1,0 +1,15 @@
+# Copia diaria de la base de datos (la lanza motogp-backup.timer).
+# copia-bd.sh se instala en /usr/local/sbin/motogp-copia-bd.
+[Unit]
+Description=MotoGP Stats - copia de seguridad de PostgreSQL
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/motogp-copia-bd
+TimeoutStartSec=30min
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=motogp-backup
+PrivateTmp=true

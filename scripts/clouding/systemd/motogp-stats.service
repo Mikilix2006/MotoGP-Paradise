@@ -1,0 +1,46 @@
+# Aplicación web MotoGP Stats (Next.js) en producción.
+# Se instala en /etc/systemd/system/ con instalar-servidor.sh.
+# La app escucha en 127.0.0.1:3000 (PORT y HOST vienen de /etc/motogp-stats.env);
+# Caddy hace de proxy inverso y es lo único accesible desde fuera.
+[Unit]
+Description=MotoGP Stats (Next.js)
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+# No arranca hasta que exista un release desplegado (instalar-release.sh).
+ConditionPathExists=/srv/motogp/current/app.js
+
+[Service]
+Type=simple
+User=motogp
+Group=motogp
+WorkingDirectory=/srv/motogp/current
+EnvironmentFile=/etc/motogp-stats.env
+Environment=HOME=/srv/motogp
+ExecStart=/usr/local/bin/node app.js
+Restart=always
+RestartSec=5
+# SIGTERM: app.js cierra el servidor HTTP y sale. Si no termina, SIGKILL a los 20 s.
+TimeoutStopSec=20
+# Los logs van a journald: journalctl -u motogp-stats -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=motogp-stats
+
+# Endurecimiento. La app solo escribe dentro de su release (.next/cache, tmp/);
+# /srv/motogp/releases es la única ruta de escritura (current es un enlace a ella).
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/motogp/releases
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+LockPersonality=true
+# (No se activa MemoryDenyWriteExecute: V8 necesita memoria ejecutable para el JIT.)
+
+[Install]
+WantedBy=multi-user.target
