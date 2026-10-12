@@ -45,6 +45,11 @@ ORIGEN="$(cd "$ORIGEN" && pwd)"
 for f in app.js package.json package-lock.json sync-sessions.cjs .next prisma; do
   [ -e "$ORIGEN/$f" ] || fallo "el paquete no es valido: falta $f en $ORIGEN"
 done
+# REVISION (la escribe desplegar.ps1): que version se esta instalando.
+if [ -f "$ORIGEN/REVISION" ]; then
+  paso "Version a instalar (REVISION)"
+  sed 's/^/    /' "$ORIGEN/REVISION"
+fi
 id "$APP_USER" >/dev/null 2>&1 || fallo "no existe el usuario $APP_USER: ejecute antes instalar-servidor.sh"
 [ -f "$ENV_FILE" ] || fallo "falta $ENV_FILE: ejecute antes instalar-servidor.sh"
 [ -f "/etc/systemd/system/$SERVICIO" ] || fallo "falta la unidad $SERVICIO: ejecute antes instalar-servidor.sh"
@@ -138,6 +143,7 @@ if comprobar; then
     done
   fi
   printf '\nDESPLIEGUE CORRECTO: %s\n' "$(basename "$NUEVO")"
+  if [ -f "$NUEVO/REVISION" ]; then sed 's/^/    /' "$NUEVO/REVISION"; fi
   exit 0
 fi
 
