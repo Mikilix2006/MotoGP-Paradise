@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Countdown } from "./Countdown";
+import CountryFlag from "./CountryFlag";
 import {
 CalendarDays,
 MapPin,
-Flag,
 LoaderCircle,
 } from "lucide-react";
 
@@ -19,6 +19,8 @@ short_name: string;
 
 date_start: string;
 date_end: string;
+
+flag_url?: string | null;
 
 status: string;
 
@@ -221,12 +223,13 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
     </div>
 
     <div className="mt-8 flex items-center gap-2 border-t border-white/10 pt-6 text-sm text-zinc-500">
-      <Flag size={16} />
+      <CountryFlag
+        url={grandPrix.flag_url ?? null}
+        iso={grandPrix.country.iso}
+        name={grandPrix.country.name}
+      />
 
-      <span>
-        {grandPrix.country.iso} ·{" "}
-        {grandPrix.additional_name}
-      </span>
+      <span>{grandPrix.additional_name}</span>
     </div>
   </div>
 </article>

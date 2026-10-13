@@ -89,7 +89,8 @@ return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-
     </p>
 
     <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-      Minutos
+      <span className="sm:hidden">Min</span>
+      <span className="hidden sm:inline">Minutos</span>
     </p>
   </div>
 
@@ -99,7 +100,8 @@ return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-
     </p>
 
     <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-      Segundos
+      <span className="sm:hidden">Seg</span>
+      <span className="hidden sm:inline">Segundos</span>
     </p>
   </div>
 </div>

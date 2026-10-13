@@ -18,14 +18,16 @@ export default function Home() {
           <ChampionshipStats />
         </div>
 
-        <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
+        <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr] lg:items-start">
           {/* CLASIFICACIÓN */}
-          <div className="card overflow-hidden">
+          <div className="card order-2 overflow-hidden lg:order-1">
           <RiderStandings />
           </div>
 
           {/* FAVORITOS DEL GP */}
-          <GrandPrixFavorites />
+          <div className="order-1 lg:order-2">
+            <GrandPrixFavorites />
+          </div>
         </section>
       </section>
     </main>

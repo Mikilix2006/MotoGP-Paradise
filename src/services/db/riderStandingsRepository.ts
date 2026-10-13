@@ -80,6 +80,7 @@ export async function getMotoGPRiderStandings(): Promise<MotoGPRider[]> {
             motogpUuid: true,
             name: true,
             legacyId: true,
+            color: true,
           },
         },
 
@@ -137,6 +138,7 @@ export async function getMotoGPRiderStandings(): Promise<MotoGPRider[]> {
         id: team?.motogpUuid ?? team?.id ?? "",
         name: team?.name ?? "",
         legacy_id: team?.legacyId ?? 0,
+        color: team?.color ?? null,
       },
 
       statistics: {

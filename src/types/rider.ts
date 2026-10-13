@@ -8,6 +8,7 @@ export interface RiderTeam {
   id: string;
   name: string;
   legacy_id: number;
+  color: string | null;
 }
 
 export interface RiderStatistics {

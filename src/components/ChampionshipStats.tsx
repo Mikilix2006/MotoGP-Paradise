@@ -226,7 +226,7 @@ export default function ChampionshipStats() {
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
       {/* LÍDER */}
-      <div className="card p-5">
+      <div className="card p-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Líder
@@ -249,7 +249,7 @@ export default function ChampionshipStats() {
       </div>
 
       {/* PUNTOS DEL LÍDER */}
-      <div className="card p-5">
+      <div className="card p-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Puntos del líder
@@ -271,7 +271,7 @@ export default function ChampionshipStats() {
       </div>
 
       {/* DATOS DEL CIRCUITO */}
-      <div className="card p-5">
+      <div className="card p-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Circuito
@@ -336,7 +336,7 @@ export default function ChampionshipStats() {
       </div>
 
       {/* SPRINT */}
-      <div className="card p-5">
+      <div className="card p-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Sprint
