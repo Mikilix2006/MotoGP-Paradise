@@ -1401,7 +1401,7 @@ Nunca se debe enviar `null` a un campo obligatorio de Prisma.
 
 # 23. Consultas utilizadas por la interfaz
 
-Toda la interfaz lee de PostgreSQL a través de los repositorios de `src/services/db/` (`nextGrandPrixRepository.ts`, `riderStandingsRepository.ts`, `favoritesRepository.ts`, `seasonRepository.ts`); la API externa solo la usan los importadores (`src/services/motogp/`).
+Toda la interfaz lee de PostgreSQL a través de los repositorios de `src/services/db/` (`nextGrandPrixRepository.ts`, `riderStandingsRepository.ts`, `constructorStandingsRepository.ts`, `favoritesRepository.ts`, `seasonRepository.ts`); la API externa solo la usan los importadores (`src/services/motogp/`).
 
 La temporada actual es la fila de `Season` con `current = true`.
 
@@ -1467,11 +1467,11 @@ La aplicación cuenta con las siguientes páginas principales. Todas leen de Pos
 
 Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 
-- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito y cuenta atrás. API: `/api/next-gp`
+- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. API: `/api/next-gp`
 - `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. API: `/api/riders/standings` y `/api/next-gp`
-- `RiderStandings.tsx` — clasificación de pilotos de MotoGP, con la bandera del país de cada piloto (`country.flag_url`). API: `/api/riders/standings`
-- `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`
-- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix`. Tanto ella como la tarjeta Sprint usan `getMadridTimestamp` (ver [Hora de las sesiones](#hora-de-las-sesiones) para la limitación fuera de Europa)
+- `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. API: `/api/riders/standings` y `/api/constructors/standings`
+- `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
+- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix` (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint usan `getMadridTimestamp` (ver [Hora de las sesiones](#hora-de-las-sesiones) para la limitación fuera de Europa)
 
 ---
 
@@ -1490,7 +1490,17 @@ Qué muestra:
 - cada card se despliega (con animación) y muestra la tabla de horarios de MotoGP, Moto2 y Moto3, con una columna por día;
 - un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito.
 
-`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView` y `RiderStandings`.
+`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView`, `NextGrandPrix` y `RiderStandings`.
+
+---
+
+## Fondo y botón «Volver arriba» (`layout.tsx`)
+
+Los monta `src/app/layout.tsx` en todas las páginas.
+
+- `GridBackground.tsx` — rejilla fija de fondo (clase `.gridbg` en `src/app/globals.css`; ajustes con las variables CSS `--cell`, `--line-glow` y `--radius`). Una capa interior (`.gridbg-glow`) repite la rejilla en rojo, enmascarada con un halo que sigue al cursor (el componente escribe `--mx`/`--my` en un `requestAnimationFrame`, sin re-render). La capa roja solo se muestra con `(hover: hover) and (pointer: fine)` y sin `prefers-reduced-motion`; en táctiles solo se ve la rejilla fina.
+- `ScrollToTop.tsx` — botón flotante que aparece al bajar más de 300 px y sube al inicio (sin animación con `prefers-reduced-motion`).
+- La barra de desplazamiento del navegador está oculta en `globals.css`.
 
 ---
 
@@ -1593,7 +1603,17 @@ Todos los Grandes Premios de la temporada actual (sin tests), ordenados por fech
 
 Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos. Caché de 60 s. 500 si no hay temporada actual o falla la consulta. La lista de pilotos sale de `BmwAwardStanding` (un piloto sin `RiderSeasonStatistics` de la temporada se omite), los puntos y la posición de `RiderSeasonStatistics` y el dorsal de `RiderSeasonEntry`; no lee `ChampionshipStanding`.
 
-**Respuesta (`data`):** array de pilotos con `id`, `full_name`, `country` (`iso`, `name`, `flag_url`), `legacy_id`, `riders_id`, `number`, `team` (`id`, `name`, `legacy_id`) y `statistics` (`constructor`, `starts`, `first_position`, `second_position`, `third_position`, `podiums`, `poles`, `points`, `position`). `country.flag_url` es `Country.flagUrl` (`null` si no se ha importado).
+**Respuesta (`data`):** array de pilotos con `id`, `full_name`, `country` (`iso`, `name`, `flag_url`), `legacy_id`, `riders_id`, `number`, `team` (`id`, `name`, `legacy_id`, `color`) y `statistics` (`constructor`, `starts`, `first_position`, `second_position`, `third_position`, `podiums`, `poles`, `points`, `position`). `country.flag_url` es `Country.flagUrl` (`null` si no se ha importado). `team.color` es `Team.color` (`null` si falta).
+
+---
+
+### `/api/constructors/standings`
+
+Clasificación de constructores de MotoGP de la temporada actual (`constructorStandingsRepository.ts`). Caché de 60 s. 500 si no hay temporada actual o falla la consulta.
+
+**Es un cálculo propio, no la clasificación oficial**: no existe tabla de constructores. Se suman los `SessionResult.points` de las sesiones `RAC` y `SPR` de MotoGP (eventos no test de la temporada actual) por `constructorId`; solo entran resultados con constructor. Orden y desempate: puntos, luego victorias (posición 1 solo en `RAC`) y luego poles (posición 1 en la sesión `Q2`).
+
+**Respuesta (`data`):** array con `id` (`motogpUuid` del constructor), `name`, `position`, `points`, `wins`, `poles` y `color`. `color` es el color del equipo (`Team.color`) del primer piloto inscrito con ese constructor que lo tenga (`null` si ninguno); el constructor no guarda color.
 
 ---
 
@@ -1611,7 +1631,7 @@ El flujo es:
 React Component
       │
       ▼
-/api/next-gp, /api/calendar, /api/riders/standings, /api/next-gp/favorites
+/api/next-gp, /api/calendar, /api/riders/standings, /api/constructors/standings, /api/next-gp/favorites
       │
       ▼
 src/services/db/*Repository.ts
@@ -1653,11 +1673,13 @@ motogp-stats/
 │   │   └── api/
 │   │       ├── next-gp/           route.ts y favorites/route.ts
 │   │       ├── calendar/
+│   │       ├── constructors/standings/
 │   │       └── riders/standings/
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │                              GrandPrixFavorites, CalendarView, Countdown,
-│   │                              CountryFlag, Header, StatCard
+│   │                              CountryFlag, Header, StatCard, GridBackground,
+│   │                              ScrollToTop
 │   │
 │   ├── lib/
 │   │   └── prisma.ts

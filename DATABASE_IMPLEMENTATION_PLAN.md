@@ -909,6 +909,7 @@ fix:duplicate-riders
 
 -   [x] `/api/next-gp` desde base de datos
 -   [x] `/api/riders/standings` desde base de datos
+-   [x] `/api/constructors/standings` desde base de datos (cálculo propio con `SessionResult`, sin tabla nueva)
 -   [x] `/api/next-gp/favorites` y `/api/calendar` desde base de datos
 -   [x] página `/calendario` desde base de datos
 -   [ ] páginas de pilotos desde base de datos
