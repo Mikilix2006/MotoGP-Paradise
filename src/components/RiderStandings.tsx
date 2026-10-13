@@ -78,7 +78,7 @@ function teamGradient(constructorName: string | null | undefined): React.CSSProp
 
 function StandingsSkeleton({ label = "Piloto" }: { label?: string }) {
   return (
-    <div aria-busy="true" aria-label="Cargando clasificación">
+    <div role="status" aria-busy="true" aria-label="Cargando clasificación">
       <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
         <span>Pos.</span>
         <span>{label}</span>

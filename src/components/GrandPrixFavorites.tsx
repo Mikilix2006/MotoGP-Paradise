@@ -359,6 +359,7 @@ export default function GrandPrixFavorites() {
           <div className="mt-1 h-4 w-32 animate-pulse rounded bg-white/10" />
 
           <div
+            role="status"
             aria-busy="true"
             aria-label="Cargando favoritos"
             className="mt-7 space-y-5"

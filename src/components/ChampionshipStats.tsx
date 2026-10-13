@@ -197,6 +197,7 @@ export default function ChampionshipStats() {
   if (loading) {
     return (
       <div
+        role="status"
         aria-busy="true"
         aria-label="Cargando estadísticas del campeonato"
         className="grid animate-pulse grid-cols-1 gap-4 md:grid-cols-2"

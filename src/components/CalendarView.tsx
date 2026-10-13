@@ -352,9 +352,7 @@ function SessionSchedule({
                 return (
                   <li
                     key={session.id}
-                    className={`border-b border-white/5 px-2 py-1.5 last:border-b-0 sm:flex sm:items-baseline sm:gap-3 sm:px-3 ${
-                      finished ? "opacity-60" : ""
-                    }`}
+                    className={`border-b border-white/5 px-2 py-1.5 last:border-b-0 sm:flex sm:items-baseline sm:gap-3 sm:px-3`}
                   >
                     <span
                       className={`block text-sm font-bold tabular-nums sm:w-11 sm:shrink-0 ${
@@ -385,9 +383,19 @@ function SessionSchedule({
                         {SESSION_LABELS[key] ?? key}
                       </span>
                       {finished && (
-                        <span className="ml-1.5 inline-block rounded-full border border-white/10 bg-zinc-900 px-1.5 py-px align-middle text-[9px] font-semibold normal-case tracking-normal text-zinc-400">
-                          Terminada
-                        </span>
+                        <>
+                          <CheckCircle2
+                            size={14}
+                            role="img"
+                            aria-label="Terminada"
+                            className="ml-1.5 inline-block align-middle text-zinc-400 sm:hidden"
+                          >
+                            <title>Terminada</title>
+                          </CheckCircle2>
+                          <span className="ml-1.5 hidden rounded-full border border-white/10 bg-white/5 px-1.5 py-px align-middle text-[10px] font-semibold normal-case tracking-normal text-zinc-400 sm:inline-block">
+                            Terminada
+                          </span>
+                        </>
                       )}
                     </span>
                   </li>
@@ -610,9 +618,24 @@ export function CalendarView() {
 
   if (loading) {
     return (
-      <div role="status" aria-label="Cargando calendario" className="grid animate-pulse gap-4">
+      <div role="status" aria-label="Cargando calendario" className="animate-pulse">
+        <div className="mb-4 h-3.5 w-44 rounded bg-white/10" />
+        <div className="card p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-20 rounded-full bg-white/10" />
+            <div className="h-6 w-24 rounded-full bg-white/10" />
+          </div>
+          <div className="mt-4 h-7 w-2/3 max-w-sm rounded bg-white/10" />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="h-10 rounded bg-white/5" />
+            <div className="h-10 rounded bg-white/5" />
+          </div>
+        </div>
+        <div className="mb-8 mt-10 border-t border-white/10" />
+        <div className="mb-4 h-3.5 w-72 max-w-full rounded bg-white/10" />
+        <div className="grid gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="card border border-white/10 p-5">
+          <div key={i} className="card p-5">
             <div className="flex items-center gap-3">
               <div className="h-6 w-20 rounded-full bg-white/10" />
               <div className="h-6 w-24 rounded-full bg-white/10" />
@@ -624,6 +647,7 @@ export function CalendarView() {
             </div>
           </div>
         ))}
+        </div>
       </div>
     );
   }

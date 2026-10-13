@@ -118,6 +118,7 @@ loadGrandPrix();
 if (loading) {
 return (
   <article
+    role="status"
     aria-busy="true"
     aria-label="Cargando próximo Gran Premio"
     className="card animate-pulse p-7 md:p-10"
@@ -130,7 +131,7 @@ return (
 
     <div className="mt-10">
       <div className="h-3 w-40 rounded bg-white/10" />
-      <div className="mt-4 h-9 w-3/4 max-w-2xl rounded bg-white/10 md:h-12" />
+      <div className="mt-4 h-9 w-3/4 max-w-2xl rounded bg-white/10 md:h-14" />
     </div>
 
     <div className="mt-8 grid gap-6 md:grid-cols-2">
@@ -138,8 +139,8 @@ return (
         <div key={i} className="flex gap-3">
           <div className="mt-1 h-5 w-5 shrink-0 rounded bg-white/10" />
           <div className="flex-1">
-            <div className="h-5 w-48 max-w-full rounded bg-white/10" />
-            <div className="mt-2 h-3 w-36 rounded bg-white/10" />
+            <div className="h-6 w-48 max-w-full rounded bg-white/10" />
+            <div className="mt-1 h-5 w-36 rounded bg-white/10" />
           </div>
         </div>
       ))}
@@ -147,7 +148,14 @@ return (
 
     <div className="mt-10">
       <div className="mb-3 h-3 w-56 rounded bg-white/10" />
-      <div className="h-24 rounded-xl bg-white/10" />
+      <div className="mt-10 grid grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-20 rounded-xl border border-white/10 bg-black/20"
+          />
+        ))}
+      </div>
     </div>
 
     <div className="mt-8 flex items-center gap-2 border-t border-white/10 pt-6">
@@ -187,7 +195,7 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
         {grandPrix.short_name}
       </span>
 
-      <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+      <span className="text-xs font-medium uppercase tracking-widest text-zinc-400">
         {formatStatus(grandPrix.status)}
       </span>
     </div>
