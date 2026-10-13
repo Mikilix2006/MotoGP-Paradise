@@ -591,6 +591,18 @@ function toCalendarSessions(
       type: session.type ?? "",
       status: session.status ?? "",
       date_start: toAbsoluteIso(wallClock, event.timeZone),
+      // Misma duración sobre el inicio ya corregido (reloj de pared, misma trampa horaria).
+      date_end:
+        wallClock && session.dateStart && session.dateEnd
+          ? toAbsoluteIso(
+              new Date(
+                wallClock.getTime() +
+                  session.dateEnd.getTime() -
+                  session.dateStart.getTime()
+              ),
+              event.timeZone
+            )
+          : null,
 
       // Día local del circuito: los campos UTC son su reloj de pared.
       weekday: wallClock ? wallClock.getUTCDay() : null,

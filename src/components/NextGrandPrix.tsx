@@ -6,7 +6,6 @@ import CountryFlag from "./CountryFlag";
 import {
 CalendarDays,
 MapPin,
-LoaderCircle,
 } from "lucide-react";
 
 interface GrandPrix {
@@ -117,14 +116,43 @@ loadGrandPrix();
 }, []);
 
 if (loading) {
-return ( <article className="card flex min-h-[380px] items-center justify-center p-8"> <div className="flex items-center gap-3 text-zinc-500"> <LoaderCircle
-         size={20}
-         className="animate-spin"
-       />
+return (
+  <article
+    aria-busy="true"
+    aria-label="Cargando próximo Gran Premio"
+    className="card animate-pulse p-7 md:p-10"
+  >
+    <div className="flex items-center justify-between">
+      <div className="h-6 w-20 rounded-full bg-white/10" />
+      <div className="h-6 w-14 rounded-full bg-white/10" />
+      <div className="h-3 w-20 rounded bg-white/10" />
+    </div>
 
-      <span>
-        Cargando próximo Gran Premio...
-      </span>
+    <div className="mt-10">
+      <div className="h-3 w-40 rounded bg-white/10" />
+      <div className="mt-4 h-9 w-3/4 max-w-2xl rounded bg-white/10 md:h-12" />
+    </div>
+
+    <div className="mt-8 grid gap-6 md:grid-cols-2">
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} className="flex gap-3">
+          <div className="mt-1 h-5 w-5 shrink-0 rounded bg-white/10" />
+          <div className="flex-1">
+            <div className="h-5 w-48 max-w-full rounded bg-white/10" />
+            <div className="mt-2 h-3 w-36 rounded bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div className="mt-10">
+      <div className="mb-3 h-3 w-56 rounded bg-white/10" />
+      <div className="h-24 rounded-xl bg-white/10" />
+    </div>
+
+    <div className="mt-8 flex items-center gap-2 border-t border-white/10 pt-6">
+      <div className="h-5 w-7 rounded bg-white/10" />
+      <div className="h-4 w-32 rounded bg-white/10" />
     </div>
   </article>
 );

@@ -76,10 +76,16 @@ function teamGradient(constructorName: string | null | undefined): React.CSSProp
   };
 }
 
-function StandingsSkeleton() {
+function StandingsSkeleton({ label = "Piloto" }: { label?: string }) {
   return (
     <div aria-busy="true" aria-label="Cargando clasificación">
-      {Array.from({ length: 10 }).map((_, i) => (
+      <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
+        <span>Pos.</span>
+        <span>{label}</span>
+        <span className="text-center">Victorias</span>
+        <span className="text-right">Puntos</span>
+      </div>
+      {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
           className="grid animate-pulse grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-white/5 px-5 py-4 sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:px-6"
@@ -128,7 +134,7 @@ function ConstructorsTable({
     );
   }
 
-  if (!constructors) return <StandingsSkeleton />;
+  if (!constructors) return <StandingsSkeleton label="Equipo" />;
 
   if (constructors.length === 0) {
     return (

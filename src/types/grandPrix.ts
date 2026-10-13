@@ -82,6 +82,8 @@ name: string;
 type: string;
 status: string;
 date_start: string | null;
+/** Fin de la sesión (instante absoluto ISO); null si no hay fin o zona. */
+date_end: string | null;
 weekday: number | null;
 /** Categoría para mostrar tal cual: "MotoGP", "Moto2" o "Moto3". */
 category: string;

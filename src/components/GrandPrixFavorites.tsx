@@ -355,17 +355,37 @@ export default function GrandPrixFavorites() {
 
       {/* CARGANDO */}
       {loading && (
-        <div className="mt-7 space-y-5">
-          {Array.from({ length: INITIAL_VISIBLE }).map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="flex justify-between">
-                <div className="h-4 w-40 rounded bg-white/10" />
-                <div className="h-4 w-12 rounded bg-white/10" />
+        <>
+          <div className="mt-1 h-4 w-32 animate-pulse rounded bg-white/10" />
+
+          <div
+            aria-busy="true"
+            aria-label="Cargando favoritos"
+            className="mt-7 space-y-5"
+          >
+            {Array.from({ length: INITIAL_VISIBLE }).map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-5 rounded bg-white/10" />
+                    <div>
+                      <div className="h-4 w-40 rounded bg-white/10" />
+                      <div className="mt-1.5 h-3 w-28 rounded bg-white/10" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="ml-auto h-4 w-14 rounded bg-white/10" />
+                      <div className="mt-1.5 h-3 w-20 rounded bg-white/10" />
+                    </div>
+                    <div className="h-4 w-4 rounded bg-white/10" />
+                  </div>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-zinc-800" />
               </div>
-              <div className="mt-2 h-2 rounded-full bg-zinc-800" />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* ERROR */}

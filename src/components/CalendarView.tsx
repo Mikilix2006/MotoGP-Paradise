@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   CalendarDays,
   MapPin,
-  LoaderCircle,
   CheckCircle2,
   Clock,
   ChevronDown,
@@ -29,6 +28,7 @@ interface CalendarEventData {
   circuit: {
     name: string;
     place: string;
+    track?: { infoImageUrl: string | null } | null;
   };
   sessions?: CalendarSession[];
   // Zona IANA del circuito (llega en mayúsculas, p. ej. "ASIA/TOKYO"); null si no hay.
@@ -187,6 +187,14 @@ const GRID_COLS: Record<number, string> = {
   4: "grid-cols-4",
 };
 
+// Terminada: estado FINISHED de la BD o, si va por detrás (el watcher tarda),
+// fin de sesión (instante absoluto ya convertido desde la hora del circuito) pasado.
+function isSessionFinished(session: CalendarSession, now: number) {
+  if (session.status === "FINISHED") return true;
+  const end = session.date_end ? new Date(session.date_end).getTime() : NaN;
+  return !Number.isNaN(end) && end < now;
+}
+
 function formatSessionTime(date: string | null, zone: string | undefined) {
   if (!date) return "—";
   const parsed = new Date(date);
@@ -262,7 +270,9 @@ function SessionSchedule({
   circuitAvailable,
   offsetLabel,
   onModeChange,
+  now,
 }: {
+  now: number;
   columns: ScheduleColumn[];
   idPrefix: string;
   zone: string | undefined;
@@ -337,12 +347,14 @@ function SessionSchedule({
               {column.sessions.map((session) => {
                 const key = session.shortname.trim();
                 const highlight = key === "RAC" || key === "RAC2" || key === "SPR";
-                const finished = session.status === "FINISHED";
+                const finished = isSessionFinished(session, now);
                 const motogp = session.category === "MotoGP";
                 return (
                   <li
                     key={session.id}
-                    className="border-b border-white/5 px-2 py-1.5 last:border-b-0 sm:flex sm:items-baseline sm:gap-3 sm:px-3"
+                    className={`border-b border-white/5 px-2 py-1.5 last:border-b-0 sm:flex sm:items-baseline sm:gap-3 sm:px-3 ${
+                      finished ? "opacity-60" : ""
+                    }`}
                   >
                     <span
                       className={`block text-sm font-bold tabular-nums sm:w-11 sm:shrink-0 ${
@@ -372,6 +384,11 @@ function SessionSchedule({
                       >
                         {SESSION_LABELS[key] ?? key}
                       </span>
+                      {finished && (
+                        <span className="ml-1.5 inline-block rounded-full border border-white/10 bg-zinc-900 px-1.5 py-px align-middle text-[9px] font-semibold normal-case tracking-normal text-zinc-400">
+                          Terminada
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
@@ -398,7 +415,9 @@ function EventCard({
   mode,
   userZone,
   onModeChange,
+  now,
 }: {
+  now: number;
   event: CalendarEventData;
   // Estado compartido por todas las cards (vive en CalendarView).
   mode: TimeMode;
@@ -530,6 +549,7 @@ function EventCard({
                 circuitAvailable={circuitZone !== null}
                 offsetLabel={offsetLabel}
                 onModeChange={onModeChange}
+                now={now}
               />
             </div>
           </div>
@@ -558,6 +578,13 @@ export function CalendarView() {
   // fetch en el navegador, así que no hay desajuste de hidratación.
   const [mode, setMode] = useState<TimeMode>("tu");
   const [userZone] = useState(getUserZone);
+  // Reloj para marcar sesiones terminadas sin recargar (se refresca cada 60 s).
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     async function loadEvents() {
@@ -583,11 +610,20 @@ export function CalendarView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="flex items-center gap-3 text-zinc-500">
-          <LoaderCircle size={20} className="animate-spin" />
-          <span>Cargando calendario...</span>
-        </div>
+      <div role="status" aria-label="Cargando calendario" className="grid animate-pulse gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="card border border-white/10 p-5">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-20 rounded-full bg-white/10" />
+              <div className="h-6 w-24 rounded-full bg-white/10" />
+            </div>
+            <div className="mt-4 h-7 w-2/3 max-w-sm rounded bg-white/10" />
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="h-10 rounded bg-white/5" />
+              <div className="h-10 rounded bg-white/5" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -620,6 +656,7 @@ export function CalendarView() {
             event={nextGp}
             idPrefix="proximo"
             featured
+            now={now}
             mode={mode}
             userZone={userZone}
             onModeChange={setMode}
@@ -636,6 +673,7 @@ export function CalendarView() {
           <EventCard
             key={event.id}
             event={event}
+            now={now}
             mode={mode}
             userZone={userZone}
             onModeChange={setMode}

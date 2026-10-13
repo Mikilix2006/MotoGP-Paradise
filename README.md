@@ -1467,10 +1467,10 @@ La aplicación cuenta con las siguientes páginas principales. Todas leen de Pos
 
 Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 
-- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. API: `/api/next-gp`
-- `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. API: `/api/riders/standings` y `/api/next-gp`
-- `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. API: `/api/riders/standings` y `/api/constructors/standings`
-- `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
+- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. Mientras carga muestra un esqueleto `animate-pulse` con la forma de la tarjeta. API: `/api/next-gp`
+- `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT). API: `/api/riders/standings` y `/api/next-gp`
+- `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. Mientras carga muestra un esqueleto `animate-pulse` (cabecera de columnas y 12 filas; la cabecera dice «Piloto» o «Equipo» según la vista). API: `/api/riders/standings` y `/api/constructors/standings`
+- `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. Mientras carga muestra esqueletos `animate-pulse` con la forma de cada fila. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
 - `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix` (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint usan `getMadridTimestamp` (ver [Hora de las sesiones](#hora-de-las-sesiones) para la limitación fuera de Europa)
 
 ---
@@ -1488,7 +1488,9 @@ Qué muestra:
 - una card destacada con el próximo GP (el evento con `is_next_gp`), seguida de la lista de todos los GP de la temporada en orden cronológico;
 - en cada card: badge `ROUND N`, bandera del GP (`flag_url`), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
 - cada card se despliega (con animación) y muestra la tabla de horarios de MotoGP, Moto2 y Moto3, con una columna por día;
-- un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito.
+- un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito;
+- las sesiones terminadas (también en la card destacada del próximo GP) salen atenuadas y con una pastilla «Terminada». Una sesión cuenta como terminada si su `status` es `FINISHED` o si su `date_end` ya pasó (el watcher puede ir por detrás del estado real); `CalendarView` refresca su reloj cada 60 s para actualizarlo sin recargar;
+- mientras carga muestra esqueletos `animate-pulse` (4 cards).
 
 `CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView`, `NextGrandPrix` y `RiderStandings`.
 
@@ -1581,6 +1583,7 @@ Todos los Grandes Premios de la temporada actual (sin tests), ordenados por fech
       "type": "RAC",
       "status": "NOT-STARTED",
       "date_start": "2026-09-27T05:00:00.000Z",
+      "date_end": "2026-09-27T05:40:00.000Z",
       "weekday": 0,
       "category": "MotoGP",
       "category_legacy_id": 3
@@ -1593,6 +1596,7 @@ Todos los Grandes Premios de la temporada actual (sin tests), ordenados por fech
 - `is_next_gp`: `true` solo en un evento, con la misma definición que la portada (`findCurrentOrNextEventId`).
 - `sessions`: sesiones de Moto3, Moto2 y MotoGP (`category_legacy_id` 1, 2 y 3; `category` es `"Moto3"`, `"Moto2"` o `"MotoGP"`), ordenadas por instante. Se omiten MotoE y las categorías históricas.
 - `sessions[].date_start`: **instante absoluto** ISO (UTC) ya convertido con `wallClockToInstant` y `time_zone`; `null` si falta la zona o la fecha.
+- `sessions[].date_end`: **instante absoluto** ISO (UTC) del fin de la sesión: el inicio corregido por zona más la duración original (`dateEnd - dateStart` en BD); `null` si falta la zona, el inicio o el fin.
 - `sessions[].weekday`: día de la semana **local del circuito** (0 = domingo … 6 = sábado), para agrupar por días sin depender de la zona del usuario.
 - Para eventos con calendario provisional en la API de resultados, el día de cada sesión se corrige con `EventScheduleDay` (`findProvisionalCorrector`, ver [Hora de las sesiones](#hora-de-las-sesiones)). Los duplicados «fantasma» de carreras reiniciadas se descartan.
 - Se omiten los eventos sin circuito, sin país o sin carrera de MotoGP con fecha.

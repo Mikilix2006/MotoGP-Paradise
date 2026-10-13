@@ -196,21 +196,59 @@ export default function ChampionshipStats() {
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map(
-          (_, index) => (
-            <div
-              key={index}
-              className="card animate-pulse p-5"
-            >
+      <div
+        aria-busy="true"
+        aria-label="Cargando estadísticas del campeonato"
+        className="grid animate-pulse grid-cols-1 gap-4 md:grid-cols-2"
+      >
+        {/* LÍDER y PUNTOS */}
+        {[0, 1].map((i) => (
+          <div key={i} className="card p-5">
+            <div className="flex items-center justify-between">
               <div className="h-3 w-24 rounded bg-white/10" />
-
-              <div className="mt-4 h-8 w-36 rounded bg-white/10" />
-
-              <div className="mt-3 h-3 w-28 rounded bg-white/10" />
+              <div className="h-[18px] w-[18px] rounded bg-white/10" />
             </div>
-          )
-        )}
+            <div className="mx-auto mt-4 h-7 w-40 rounded bg-white/10" />
+            <div className="mx-auto mt-2 h-4 w-32 rounded bg-white/10" />
+          </div>
+        ))}
+
+        {/* CIRCUITO */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div className="h-3 w-20 rounded bg-white/10" />
+            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-3">
+            <div className="mx-auto h-40 w-full max-w-[16rem] rounded bg-white/10" />
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                <div className="mx-auto h-8 w-14 rounded bg-white/10" />
+                <div className="mx-auto mt-1 h-3 w-12 rounded bg-white/10" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SPRINT */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div className="h-3 w-16 rounded bg-white/10" />
+            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+          </div>
+          <div className="mt-5">
+            <div className="mx-auto h-7 w-44 rounded bg-white/10" />
+            <div className="mx-auto mt-2 h-4 w-28 rounded bg-white/10" />
+          </div>
+          <div className="mt-4">
+            <div className="mx-auto h-9 w-24 rounded bg-white/10" />
+            <div className="mx-auto mt-1 h-3 w-28 rounded bg-white/10" />
+          </div>
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="mx-auto h-9 w-12 rounded bg-white/10" />
+            <div className="mx-auto mt-1 h-3 w-16 rounded bg-white/10" />
+          </div>
+        </div>
       </div>
     );
   }
