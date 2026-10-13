@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function CalendarPage() {
   return (
-    <main className="min-h-screen grid-bg">
+    <main className="min-h-screen">
       <Header />
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
         <div className="mb-8">
