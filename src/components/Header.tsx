@@ -83,17 +83,25 @@ export function Header() {
             <span className="h-6 w-1.5 rounded bg-red-600" />
             MOTO<span className="text-red-600">GP</span><span className="text-zinc-500">STATS</span>
           </a>
-          <nav aria-label="Menú principal" className="hidden gap-7 text-sm text-zinc-400 md:flex">
+          {/* self-stretch + -my-4: el nav ocupa todo el alto del header para que el semicírculo
+              del enlace activo toque justo el borde superior. */}
+          <nav aria-label="Menú principal" className="-my-4 hidden gap-7 self-stretch text-sm text-zinc-400 md:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
                 <a
                   key={link.label}
                   href={link.href}
-                  className={active ? "text-white" : undefined}
+                  className={`relative flex items-center transition-colors hover:text-white motion-reduce:transition-none ${active ? "text-white" : ""}`}
                   aria-current={active ? "page" : undefined}
                 >
                   {link.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute left-1/2 top-0 h-[5px] w-2.5 -translate-x-1/2 rounded-b-full bg-white"
+                    />
+                  )}
                 </a>
               );
             })}
