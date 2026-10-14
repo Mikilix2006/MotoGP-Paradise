@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { getMadridTimestamp } from "@/utils/date";
 
 import {
   Trophy,
@@ -81,7 +80,7 @@ function formatSprintDate(
       day: "numeric",
       month: "long",
     }
-  ).format(new Date(getMadridTimestamp(date)));
+  ).format(new Date(date));
 }
 
 function formatSprintTime(
@@ -99,7 +98,7 @@ function formatSprintTime(
       hour12: false,
       timeZone: "Europe/Madrid",
     }
-  ).format(new Date(getMadridTimestamp(date)));
+  ).format(new Date(date));
 }
 
 export default function ChampionshipStats() {

@@ -705,11 +705,11 @@ conditionWeather
 wallClockToInstant(date, timeZone)   // src/utils/date.ts, usa Intl y respeta el horario de verano
 ```
 
-La usa el calendario (`/api/calendar`); `liveSessionSync.ts` tiene su propia función `wallClockToInstant` para calcular cuándo termina cada sesión, con la misma conversión salvo en un caso: sin zona horaria devuelve la hora tal cual en lugar de exigirla (ver deudas en `AGENTS.md`).
+La usan el calendario (`/api/calendar`) y `getNextGrandPrix` (`/api/next-gp`: `nextMotoGPRace` y `track.sprintDate`); `liveSessionSync.ts` tiene su propia función `wallClockToInstant` para calcular cuándo termina cada sesión, con la misma conversión salvo en un caso: sin zona horaria devuelve la hora tal cual en lugar de exigirla (ver deudas en `AGENTS.md`).
 
 Hay dos cautelas conocidas:
 
-- `getMadridTimestamp()` (`src/utils/date.ts`), que usan la cuenta atrás y la tarjeta Sprint de la portada, sigue interpretando ese reloj como hora de Madrid, por lo que para los GP fuera de Europa salen desfasadas (deuda conocida, ver `AGENTS.md`).
+- `getMadridTimestamp()` (`src/utils/date.ts`) interpreta ese reloj como hora de Madrid. Solo se usa como respaldo en `nextGrandPrixRepository.ts` cuando el evento no tiene `timeZone` válida; en ese caso la cuenta atrás y la tarjeta Sprint de la portada salen desfasadas para los GP fuera de Europa.
 - Para eventos aún no celebrados, la API de resultados publica a veces un calendario provisional con las sesiones desplazadas varios días (en 2026: QAT, POR y VAL). Cuando alguna sesión de MotoGP cae fuera de `[Event.dateStart, Event.dateEnd]`, el repositorio del calendario (`findProvisionalCorrector`) toma el día de `EventScheduleDay` (por `gpDay`) y la hora de la propia sesión.
 
 ---
@@ -1471,7 +1471,7 @@ Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 - `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT). API: `/api/riders/standings` y `/api/next-gp`
 - `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. Mientras carga muestra un esqueleto `animate-pulse` (cabecera de columnas y 12 filas; la cabecera dice «Piloto» o «Equipo» según la vista). API: `/api/riders/standings` y `/api/constructors/standings`
 - `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. Mientras carga muestra esqueletos `animate-pulse` con la forma de cada fila. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
-- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix` (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint usan `getMadridTimestamp` (ver [Hora de las sesiones](#hora-de-las-sesiones) para la limitación fuera de Europa)
+- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix` (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint reciben un instante absoluto ISO y lo leen con `new Date(...)` (ver [Hora de las sesiones](#hora-de-las-sesiones))
 
 ---
 
@@ -1561,7 +1561,7 @@ Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consu
 
 - `round`: posición cronológica del evento entre los eventos no test de la temporada (`null` si es un test o no tiene fecha). Ya no se deriva de `legacy_id`.
 - `flag_url`: `Event.flagUrl`; `null` si no se ha importado.
-- `nextMotoGPRace` y `track.sprintDate` son el reloj de pared local del circuito etiquetado como UTC (ver [Hora de las sesiones](#hora-de-las-sesiones)), no instantes absolutos.
+- `nextMotoGPRace` y `track.sprintDate` son **instantes absolutos** ISO (UTC), convertidos con `wallClockToInstant` y `Event.timeZone` (ver [Hora de las sesiones](#hora-de-las-sesiones)). Si el evento no tiene zona válida, se usa `getMadridTimestamp` como respaldo.
 
 ---
 

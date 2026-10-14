@@ -6,7 +6,7 @@ import GrandPrixFavorites from "@/components/GrandPrixFavorites";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="home-cards min-h-screen">
       <Header />
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
 

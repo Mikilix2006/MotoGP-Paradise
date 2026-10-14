@@ -53,9 +53,9 @@ src/utils/date.ts                Utilidades de fecha
 
 ## Trampa horaria conocida
 
-`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad `Session.dateStart` es el **reloj de pared local del circuito** (incluye el horario de verano local) etiquetado como `+00:00`. Para Grandes Premios fuera de Europa la cuenta atrás y la tarjeta Sprint quedan desfasadas.
+`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad `Session.dateStart` es el **reloj de pared local del circuito** (incluye el horario de verano local) etiquetado como `+00:00`. `getNextGrandPrix` ya devuelve `nextMotoGPRace` y `track.sprintDate` como instante absoluto ISO (convertido con `wallClockToInstant(date, timeZone)` y `Event.timeZone`), y `Countdown`/`ChampionshipStats` los leen con `new Date(...)`. `getMadridTimestamp` solo queda como respaldo en el repositorio cuando no hay zona válida (ahí sí salen desfasadas fuera de Europa).
 
-No lo arregles a la ligera: afecta a la cuenta atrás y a cualquier hora que muestres. Si vas a tocarlo, avisa al usuario y propón la corrección completa (convertir usando `Event.timeZone`, que ya se importa). `wallClockToInstant(date, timeZone)` de `src/utils/date.ts` ya hace esa conversión y la usa el calendario (`/api/calendar`).
+No uses `getMadridTimestamp` en componentes: afecta a la cuenta atrás y a cualquier hora que muestres. `wallClockToInstant` también la usa el calendario (`/api/calendar`).
 
 ## Idioma y estados
 
