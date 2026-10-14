@@ -101,7 +101,7 @@ Mobile-first con los breakpoints de Tailwind: `sm` (≥640) muestra columnas ext
 ## Deuda de diseño conocida (propón, no "arregles" sin avisar)
 
 - **Calendario** ([CalendarView.tsx](src/components/CalendarView.tsx)): ya usa la paleta del sistema (Finalizado en zinc, En curso en rojo, Próximamente en pill de contorno), destaca el próximo GP, muestra la bandera de cada GP con `CountryFlag` y tiene cards desplegables con la tabla de horarios y el conmutador TU HORA / HORA LOCAL. Audítalo como cualquier otro componente.
-- **Header:** ya marca el enlace activo según la ruta y tiene menú desplegable en móvil; "Pilotos/Equipos/Predicciones" son `#` (páginas aún sin crear) y el selector "2026" y la búsqueda no hacen nada.
+- **Header:** ya marca el enlace activo según la ruta y tiene menú desplegable en móvil; "Equipos/Predicciones" son `#` (páginas aún sin crear; "Pilotos" enlaza a `/pilotos`) y el selector "2026" y la búsqueda no hacen nada.
 - **Estados de error inconsistentes** entre componentes (`ChampionshipStats` no muestra error; solo oculta la tarjeta).
 - Banderas de país: el componente compartido es [CountryFlag.tsx](src/components/CountryFlag.tsx) (recorte tipo cover sobre la zona pintada de las SVG de `photos.motogp.com`; si falla, el código ISO en una pill) y lo usan el calendario y la clasificación de pilotos. `NextGrandPrix` sigue con un icono `Flag` genérico.
 

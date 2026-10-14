@@ -1,5 +1,6 @@
 import { importEventCategories } from "../src/services/importers/eventCategoryImporter";
 import { prisma } from "../src/lib/prisma";
+import { getSeasonYearArgument } from "../src/services/importers/cli";
 
 import {
   trackSyncRun,
@@ -19,7 +20,7 @@ async function main() {
         updated: value.eventCategoriesUpdated,
       }),
     },
-    importEventCategories
+    () => importEventCategories({ seasonYear: getSeasonYearArgument() })
   );
 
   console.log("\n✅ Importación completada");

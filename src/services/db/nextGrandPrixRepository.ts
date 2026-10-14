@@ -7,6 +7,7 @@ import { getCurrentSeason } from "./seasonRepository";
 import { getMadridTimestamp, wallClockToInstant } from "@/utils/date";
 
 import type { CalendarSession, MotoGPEvent } from "@/types/grandPrix";
+import { countryNameEs } from "@/utils/country";
 
 /*
  * legacy_id de la categoría MotoGP en la API de resultados.
@@ -383,7 +384,7 @@ function toNextGrandPrixData(
 
     country: {
       iso: country.iso,
-      name: country.name,
+      name: countryNameEs(country.iso, country.name),
       region_iso: country.regionIso ?? "",
     },
 

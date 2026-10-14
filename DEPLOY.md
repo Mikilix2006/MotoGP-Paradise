@@ -34,6 +34,8 @@ En el servicio que Railway creó del repo:
 
 `start:web` ejecuta `prisma migrate deploy` antes de `next start`, así que las migraciones se aplican solas en cada despliegue — no hace falta correrlas a mano.
 
+La página `/pilotos` usa `next/image`: `next.config.ts` solo admite imágenes de `photos.motogp.com` y `next start` las redimensiona en `/_next/image` con `sharp` (dependencia opcional de Next, presente en `package-lock.json`). No hace falta ninguna variable nueva; no se ha medido la memoria ni la CPU del optimizador en Railway.
+
 ## 4. Añadir el servicio **worker**
 
 **+ New → Empty Service** (o "GitHub Repo" otra vez apuntando al mismo repo).
@@ -65,7 +67,7 @@ npm run import:bmw-award -- 2026
 npm run fix:duplicate-riders
 ```
 
-(Repite `event-details`/`session-results`/`riders`/`rider-statistics`/`championship-standings`/`bmw-award` para años anteriores si quieres histórico completo — sin `-- <año>` recorren todo, tarda horas). Ver [import-guardian](.claude/agents/import-guardian.md) para el pipeline completo.
+(Repite `event-details`/`session-results`/`riders`/`rider-statistics`/`championship-standings`/`bmw-award` para años anteriores si quieres histórico completo — sin `-- <año>` recorren todo, tarda horas). `import:riders` también carga las biografías de `/pilotos` (`rider_biographies`); las estadísticas de 500cc de pilotos que ya no corren solo llegan con `import:rider-statistics` sin año. Ver [import-guardian](.claude/agents/import-guardian.md) para el pipeline completo.
 
 A partir de ahí, el **worker** mantiene la temporada al día solo.
 

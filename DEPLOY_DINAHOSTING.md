@@ -298,7 +298,7 @@ set -a; . ~/.motogp-stats.env; set +a
 npx prisma migrate deploy
 ```
 
-El repositorio tiene 6 migraciones (`ls prisma/migrations`); `comprobaciones.sql` espera ver las 6 aplicadas.
+El repositorio tiene 8 migraciones (`ls prisma/migrations`); `comprobaciones.sql` lista las aplicadas y su comentario indica «deben ser 8». Tras `migrate deploy` deben salir todas con `ok = t`.
 
 `prisma migrate deploy` **no necesita `psql`**: solo Node más el CLI de Prisma, ya sea por SSH en el servidor (como arriba) o desde tu PC con conexión remota a la base de datos (opción B del apartado 4.4).
 
@@ -349,7 +349,7 @@ Comprobaciones posteriores (solo lectura; también requieren `psql`, en el servi
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
 ```
 
-Qué debe salir (viene comentado en el propio SQL): las 6 migraciones con `ok = t`; el recuento por tabla igual al de tu base local; ninguna FK sin validar; 0 secuencias (los id son UUID generados por Prisma); datos clave coherentes; estadísticas al día.
+Qué debe salir (viene comentado en el propio SQL): las 8 migraciones con `ok = t`; el recuento por tabla igual al de tu base local; ninguna FK sin validar; 0 secuencias (los id son UUID generados por Prisma); datos clave coherentes; estadísticas al día.
 
 Resultado de la prueba en local: recuentos y hash md5 por tabla idénticos en las 25 tablas con datos y `prisma migrate status` al día; la carga completa tardó 58 s. **Con PostgreSQL 12 real no se ha probado.**
 
@@ -515,8 +515,8 @@ Si Apache devuelve `500` tras añadir el bloque, quita el bloque entre `MOTOGP-S
 
 | Paquete | Gravedad | Detalle |
 |---|---|---|
-| `next` 16.3.3 | crítica | RCE en `next/og` `ImageResponse` (GHSA-vcvr-r3jv-pc5j). La app **no** usa `next/og`, ni `opengraph-image`, ni `next/image`, así que no es explotable aquí; conviene actualizar Next cuando haya parche |
-| `sharp` 0.35.4 | alta | Solo lo usa Next para optimizar imágenes, que la app no usa |
+| `next` 16.3.3 | crítica | RCE en `next/og` `ImageResponse` (GHSA-vcvr-r3jv-pc5j). La app **no** usa `next/og` ni `opengraph-image`, así que esa vía no es explotable aquí; conviene actualizar Next cuando haya parche. Desde la página `/pilotos` la app **sí** usa `next/image` (`images.remotePatterns` solo admite `photos.motogp.com`), cosa que esta auditoría no contemplaba |
+| `sharp` 0.35.4 | alta | Lo usa Next para optimizar imágenes. **Desde `/pilotos` la app sí las optimiza** (`/_next/image` redimensiona las fotos `PROFILE` de `photos.motogp.com`), así que este hallazgo ya no es «no afecta»: hay que valorarlo en la decisión sobre `npm audit` |
 | `source-map-js` | alta | Solo interviene en el build |
 
 ---

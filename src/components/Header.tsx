@@ -9,7 +9,7 @@ import { Menu, Search, ChevronDown, X } from "lucide-react";
 const NAV_LINKS = [
   { label: "Inicio", href: "/" },
   { label: "Calendario", href: "/calendario" },
-  { label: "Pilotos", href: "#" },
+  { label: "Pilotos", href: "/pilotos" },
   { label: "Equipos", href: "#" },
   { label: "Predicciones", href: "#" },
 ];

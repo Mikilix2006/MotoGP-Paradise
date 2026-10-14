@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentSeason } from "./seasonRepository";
 
 import type { MotoGPRider } from "@/types/rider";
+import { countryNameEs } from "@/utils/country";
 
 const MOTOGP_CATEGORY_LEGACY_ID = 3;
 
@@ -124,7 +125,7 @@ export async function getMotoGPRiderStandings(): Promise<MotoGPRider[]> {
 
       country: {
         iso: rider.country?.iso ?? "",
-        name: rider.country?.name ?? "",
+        name: countryNameEs(rider.country?.iso, rider.country?.name ?? ""),
         flag_url: rider.country?.flagUrl ?? null,
       },
 

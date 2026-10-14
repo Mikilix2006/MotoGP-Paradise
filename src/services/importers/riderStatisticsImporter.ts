@@ -253,8 +253,6 @@ export async function importRiderStatistics(
         });
 
       const statisticsData = {
-        constructorId,
-
         starts: item.starts ?? null,
 
         wins:
@@ -292,10 +290,20 @@ export async function importRiderStatistics(
           riderId: rider.id,
           seasonId: season.id,
           categoryId: category.id,
+          constructorId,
           ...statisticsData,
         },
 
-        update: statisticsData,
+        /*
+         * Si el constructor no se resuelve (nombre ausente en la
+         * API o no encontrado en BD) se conserva el que ya hubiera
+         * en vez de pisarlo con null: la reimportación completa
+         * perdía así constructores ya resueltos.
+         */
+        update: {
+          ...statisticsData,
+          ...(constructorId !== null ? { constructorId } : {}),
+        },
       });
 
       if (existingStatistic) {

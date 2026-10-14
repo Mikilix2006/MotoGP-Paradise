@@ -248,7 +248,7 @@ npm run import:championship-standings
 npm run import:bmw-award
 ```
 
-Todos los importadores excepto `import:seasons` e `import:event-categories` admiten acotar la importación a una sola temporada (sin año recorren todo el histórico, lo que puede tardar horas), lo que es muy recomendable para una primera prueba:
+Todos los importadores excepto `import:seasons` admiten acotar la importación a una sola temporada (sin año recorren todo el histórico, lo que puede tardar horas), lo que es muy recomendable para una primera prueba:
 
 ```bash
 npm run import:event-details -- 2024
@@ -325,7 +325,7 @@ npx prisma migrate deploy
 
 Aplica las migraciones pendientes sin interactividad (es lo que ejecuta `npm run start:web` antes de arrancar en Railway, ver [DEPLOY.md](DEPLOY.md); en el VPS de Clouding lo hace `instalar-release.sh`, ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)). `prisma migrate dev` es interactivo y no funciona en entornos no interactivos.
 
-El esquema contiene **27 modelos** y el historial de `prisma/migrations/` es:
+El esquema contiene **28 modelos** y el historial de `prisma/migrations/` es:
 
 | Migración | Cambio |
 |---|---|
@@ -335,6 +335,10 @@ El esquema contiene **27 modelos** y el historial de `prisma/migrations/` es:
 | `20260911120000_rider_legacy_id_unique` | `Rider.legacyId` pasa a ser único (antes hay que ejecutar `npm run fix:duplicate-riders`) |
 | `20261006120000_event_flag_url` | `Event.flagUrl` (columna `flag_url`, opcional) |
 | `20261007120000_country_flag_url` | `Country.flagUrl` (columna `flag_url`, opcional) |
+| `20261014120000_rider_biography` | Tabla `rider_biographies` (`RiderBiography`), única `(rider_id, language)` y borrado en cascada con el piloto |
+| `20261014120100_category_500cc` | Solo datos, sin cambio de esquema: inserta la categoría «500cc» (`legacy_id` -1) si no existe ninguna con ese `legacy_id` (idempotente). Ver [Category](#category) |
+
+Las migraciones se aplican solas al desplegar (`start:web`, `instalar-release.sh`). Ninguna carga datos de pilotos: las biografías llegan con `npm run import:riders` y las estadísticas de 500cc con `npm run import:rider-statistics` (sin año), no con la migración.
 
 ---
 
@@ -413,6 +417,12 @@ priority
 active
 ```
 
+`legacyId` no es único. La clase reina hasta 2001 es una fila propia, **«500cc»** (`legacyId` -1, `motogpUuid` nulo, `active` false, sin acrónimo ni `timing_id`), sembrada por la migración `20261014120100_category_500cc`: ningún importador la crea, solo la buscan. `legacyId` 3 es solo MotoGP (desde 2002). La API de resultados, en cambio, llama «500cc» a la clase reina con el mismo uuid y `legacy_id` 3 que MotoGP, por eso cada importador la resuelve de forma distinta (reglas por endpoint en [DATABASE_ENDPOINT_MAPPING.md](DATABASE_ENDPOINT_MAPPING.md#categoría-500cc)):
+
+- `import:event-categories` conserva la fila MotoGP (no la renombra a «500cc») al procesar eventos anteriores a 2002.
+- `import:riders` (`career[].category.legacy_id` -1) y `import:rider-statistics` (nombre «500cc») usan la fila 500cc.
+- Las sesiones, `EventCategory` y las clasificaciones anteriores a 2002 siguen colgando de la fila MotoGP (ver deudas en `AGENTS.md`).
+
 ---
 
 ### Rider
@@ -428,7 +438,24 @@ Un piloto puede tener información relacionada con:
 - estadísticas;
 - clasificaciones;
 - BMW Award;
+- biografías (`RiderBiography`);
 - Live Timing.
+
+---
+
+### RiderBiography
+
+Biografía oficial del piloto por idioma (tabla `rider_biographies`).
+
+Campos principales:
+
+```text
+riderId
+language
+text
+```
+
+La combinación `(riderId, language)` es única y `text` es obligatorio (un idioma vacío no genera fila). Se borra en cascada con el piloto. `language` es el código que trae la API en `biography.text.<idioma>` de `GET /riders/{ridersApiUuid}` (de, es, fr, id, it, ja, pt, en). `text` es el HTML tal como llega (a veces texto plano); lo rellena `import:riders` ([Fase 7](#fase-7--pilotos-y-entradas-por-temporada)) y la conversión a texto plano la hace la lectura (`htmlToPlainText` en `src/utils/text.ts`): el HTML original no se renderiza nunca.
 
 ---
 
@@ -837,7 +864,7 @@ eventId               (opcional)
 
 La combinación `(riderId, seasonId, categoryId)` es única.
 
-`eventId` existe en el esquema pero ningún importador lo rellena. `import:rider-statistics` recorre los pilotos con `legacyId` y guarda **todas** las temporadas (existentes en la base de datos) que devuelve la API para cada uno: el año de temporada solo acota qué pilotos se consultan (los que tienen inscripción o resultados ese año), no qué estadísticas se guardan. La categoría y el constructor se enlazan por nombre normalizado porque la API solo da el nombre. Si la categoría no se encuentra (o falta) la fila se omite con un aviso (`statisticsSkipped`); si el constructor no se encuentra, la fila se guarda con `constructorId` a `null` y, al reimportar, ese `null` pisa un constructor resuelto antes (ver deudas en `AGENTS.md`).
+`eventId` existe en el esquema pero ningún importador lo rellena. `import:rider-statistics` recorre los pilotos con `legacyId` y guarda **todas** las temporadas (existentes en la base de datos) que devuelve la API para cada uno: el año de temporada solo acota qué pilotos se consultan (los que tienen inscripción o resultados ese año), no qué estadísticas se guardan. La categoría y el constructor se enlazan por nombre normalizado (minúsculas, sin «™») porque la API solo da el nombre; «500cc» enlaza con la fila 500cc de [Category](#category). Si la categoría no se encuentra (o falta) la fila se omite con un aviso (`statisticsSkipped`); si el constructor no se encuentra, la fila se crea con `constructorId` a `null` (aviso «Constructor no encontrado») y, al reimportar, el `update` no toca `constructorId` mientras no se resuelva, así que conserva el que ya hubiera (ver deudas en `AGENTS.md` por los nombres que no se resuelven). `points` es `Int`: trunca los medios puntos que da la API (Moto2 509,5 se guarda como 509).
 
 ---
 
@@ -878,11 +905,15 @@ categoryId
 
 debe identificar una participación concreta del piloto.
 
+`number` es `null` cuando la API da dorsal 0 (no es un dorsal real). `import:riders` rellena la combinación con un solo paso de `career[]` aunque la API traiga varios (ver [Fase 7](#fase-7--pilotos-y-entradas-por-temporada)).
+
 ---
 
 ## RiderSeasonImage
 
 Permite almacenar imágenes relacionadas con la participación de un piloto en una temporada.
+
+Solo se guardan URL de `https://photos.motogp.com/` (único host que admite `next/image`, ver [`/pilotos`](#pilotos-pilotos)); las antiguas de `PORTRAIT` (`www.motogp.com/en/api/rider/photo/grid/old/...`) dan 404 y el importador las ignora y no pisa la URL que hubiera (las filas que ya estaban en la base de datos siguen ahí, ver deudas en `AGENTS.md`). La interfaz solo usa el tipo `PROFILE`.
 
 ---
 
@@ -1111,6 +1142,8 @@ Incluye datos como:
 - distancias;
 - información específica por categoría.
 
+`npm run import:event-categories -- <año>` acota el recorrido a los eventos de esa temporada (sin año recorre todo el histórico). En eventos anteriores a 2002 la API llama «500cc» a la categoría con `legacy_id` 3: el importador no renombra la fila MotoGP ni vacía su acrónimo, `timing_id` ni prioridad (solo actualiza `legacyId`); si la fila no existiera aún, la crea con el nombre «MotoGP™». Ver [Category](#category).
+
 ---
 
 ## Fase 4 — Sesiones
@@ -1196,6 +1229,7 @@ Importar:
 ```text
 RiderSeasonEntry
 RiderSeasonImage
+RiderBiography
 ```
 
 También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimiento, año de debut, leyenda), del equipo (tipo, colores e imágenes), el constructor del equipo y el país del piloto (`Country.flagUrl`, a partir de `country.flag` de la ficha `/riders/{uuid}`).
@@ -1203,6 +1237,17 @@ También completa datos del piloto (nombre, apellidos, fecha y ciudad de nacimie
 El año acota el **listado** de pilotos que se consulta, pero la ficha individual trae todo el historial del piloto y se importan todas las entradas de su `career[]` cuyo año y categoría existan en la base de datos.
 
 Importante: el `current_career_step` del listado por temporada corresponde **siempre** a la temporada actual, no a la consultada. El historial real está en el `career[]` de la ficha individual, que es lo que se importa.
+
+Reglas de la importación de la ficha:
+
+- **Solo llega a los pilotos que devuelve el listado `/riders`** (99 el 2026-10-14: la API ignora `seasonUuid` y siempre devuelve los actuales). Un piloto histórico que no esté ahí (Rossi, Doohan...) no tiene ficha, biografía ni entradas; sus estadísticas sí llegan por `import:rider-statistics`.
+- **Biografías** (`RiderBiography`): una fila por idioma con el HTML tal cual de `biography.text.<idioma>`. Un idioma `null`, vacío o solo espacios no crea fila ni borra la existente; solo se escribe si el texto cambia. Contadores `biographiesCreated` y `biographiesUpdated`.
+- **Varios pasos para la misma clave** `(piloto, temporada, categoría)`: se guarda uno solo (`pickCareerSteps`) y gana el paso con `current: true`, luego el de dorsal real y luego el que tiene equipo; a igualdad, el último. Los demás cuentan en `entriesSuperseded`.
+- **Dorsal 0** de la API se guarda como `null`. `teamId` y `constructorId` nunca se pisan con `null` en el `update`.
+- **Categoría**: se resuelve por `legacyId` (`career[].category.legacy_id`); -1 enlaza con la fila 500cc ([Category](#category)).
+- **Imágenes**: solo URL de `https://photos.motogp.com/`; otra no se guarda ni pisa la existente y cuenta en `imagesRejected`.
+
+`scripts/import-riders.ts` imprime los contadores de todo lo anterior. Las biografías no tienen script propio: van con `npm run import:riders`.
 
 ---
 
@@ -1220,7 +1265,7 @@ Importar:
 RiderSeasonStatistics
 ```
 
-Ver la [sección 11](#11-estadísticas-históricas-de-pilotos) para el alcance del argumento de temporada.
+Ver la [sección 11](#11-estadísticas-históricas-de-pilotos) para el alcance del argumento de temporada. Con año solo se consultan los pilotos con inscripción o resultados ese año: las estadísticas de 500cc (1949-2001) de pilotos que no corren hoy solo llegan con la pasada completa, sin año.
 
 ---
 
@@ -1287,7 +1332,7 @@ Scripts disponibles, en orden de ejecución:
 | `import:sessions` | `sessionImporter` | `Session` (incluidas condiciones de pista) |
 | `import:event-details` | `eventDetailsImporter` | `CircuitTrack`, `CircuitAsset`, `CircuitDescription`, `EventScheduleDay`, `EventUrl` y completa `Circuit`, `Event` (incluida `flagUrl`), `Category` y `Session` |
 | `import:session-results` | `sessionResultImporter` | `Country`, `Rider`, `Team`, `Constructor`, `SessionResult` |
-| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage` y completa `Rider`, `Team`, `Constructor` y `Country.flagUrl` |
+| `import:riders` | `riderImporter` | `RiderSeasonEntry`, `RiderSeasonImage`, `RiderBiography` y completa `Rider`, `Team`, `Constructor` y `Country.flagUrl` |
 | `import:rider-statistics` | `riderStatisticsImporter` | `RiderSeasonStatistics` |
 | `import:championship-standings` | `championshipStandingImporter` | `ChampionshipStanding` |
 | `import:bmw-award` | `bmwAwardImporter` | `BmwAwardStanding` |
@@ -1302,7 +1347,7 @@ Scripts adicionales, fuera de la cadena anterior:
 | `start:web` | `prisma migrate deploy` + `next start` (arranque del servicio web en Railway; en Clouding arranca `app.js` y las migraciones las aplica `instalar-release.sh`) |
 | `package:dinahosting` | Empaqueta la app en `dist/dinahosting/` (`scripts/package-dinahosting.mjs`; el nombre es histórico). Es el paquete que sube `scripts/clouding/desplegar.ps1` al VPS de Clouding; ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) |
 
-Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons` e `import:event-categories`.
+Todos los `import:*` registran su ejecución en `SyncRun` mediante `trackSyncRun`, y hoy solo `eventDetailsImporter` y `championshipStandingImporter` guardan la respuesta original en `ApiSnapshot` (mediante `saveApiSnapshot`). Todos aceptan el año de temporada como primer argumento (`npm run import:riders -- 2026`) salvo `import:seasons`.
 
 ### Banderas
 
@@ -1401,7 +1446,7 @@ Nunca se debe enviar `null` a un campo obligatorio de Prisma.
 
 # 23. Consultas utilizadas por la interfaz
 
-Toda la interfaz lee de PostgreSQL a través de los repositorios de `src/services/db/` (`nextGrandPrixRepository.ts`, `riderStandingsRepository.ts`, `constructorStandingsRepository.ts`, `favoritesRepository.ts`, `seasonRepository.ts`); la API externa solo la usan los importadores (`src/services/motogp/`).
+Toda la interfaz lee de PostgreSQL a través de los repositorios de `src/services/db/` (`nextGrandPrixRepository.ts`, `riderStandingsRepository.ts`, `riderCarouselRepository.ts`, `constructorStandingsRepository.ts`, `favoritesRepository.ts`, `seasonRepository.ts`); la API externa solo la usan los importadores (`src/services/motogp/`).
 
 La temporada actual es la fila de `Season` con `current = true`.
 
@@ -1492,7 +1537,28 @@ Qué muestra:
 - las sesiones terminadas (también en la card destacada del próximo GP) salen atenuadas y con una pastilla «Terminada». Una sesión cuenta como terminada si su `status` es `FINISHED` o si su `date_end` ya pasó (el watcher puede ir por detrás del estado real); `CalendarView` refresca su reloj cada 60 s para actualizarlo sin recargar;
 - mientras carga muestra esqueletos `animate-pulse` (4 cards).
 
-`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView`, `NextGrandPrix` y `RiderStandings`.
+`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView`, `NextGrandPrix`, `RiderStandings` y `RiderSlide`.
+
+---
+
+## Pilotos (`/pilotos`)
+
+Página con los pilotos titulares de la temporada actual (`src/app/pilotos/page.tsx`, que monta `RidersPage` bajo el `Header` con el título «Pilotos 2026», año fijo a mano como en `/calendario`).
+
+- Componentes: `src/components/RidersPage.tsx` (cliente: pide los datos, gestiona el estado y la categoría elegida) y `src/components/riders/` (`RiderCarousel.tsx`, `RiderSlide.tsx`, `RiderStatsCard.tsx`, que no hacen `fetch` ni tienen datos propios).
+- API: `/api/riders/carousel?category=` (contrato en la [sección 25](#apiriderscarousel)). Repositorio: `riderCarouselRepository.ts`, función `getRiderCarousel()`.
+
+Qué muestra:
+
+- un selector de categoría **Moto3 / Moto2 / MotoGP** (arranca en MotoGP) y, debajo, un carrusel con un piloto cada vez (flechas de la interfaz y teclado ← →, circular), con un contador «N / total»;
+- la parrilla es la de las inscripciones de la temporada actual con `type = 'Official'` (decisión del usuario: no incluye suplentes ni invitados), ordenada por posición en el campeonato (los que no tienen posición, por dorsal y nombre);
+- por piloto: imagen `PROFILE` (cuerpo entero) con `next/image`, equipo (con su color), nombre, dorsal, bandera y nacionalidad, y constructor;
+- «Sobre el piloto»: la biografía en español en texto plano (se recorta con «Leer más» si es larga). Si el piloto no tiene biografía, una descripción de reserva compuesta con dorsal, país, edad, ciudad de nacimiento, equipo y marca;
+- una ficha estadística con cinco pestañas (la elegida se conserva al cambiar de piloto): **Temporada** (posición, puntos, victorias, podios y poles; en MotoGP también sprints ganadas), **Victorias y poles** (toda la carrera; en MotoGP también las de MotoGP, las sprints y, si difieren, la clase reina 500cc + MotoGP), **Carreras** (disputadas y podios), **Mundiales** (por categoría, sin contar la temporada en curso) y **Trayectoria** (las temporadas consecutivas idénticas en categoría, equipo, marca y dorsal se unen en un tramo; el más reciente arriba). Moto2 y Moto3 no muestran sprints ni cifras de MotoGP;
+- estados: esqueleto `animate-pulse` mientras carga, mensaje con botón «Reintentar» si la ruta falla, y mensaje de vacío si la categoría no tiene titulares;
+- si un piloto no tiene imagen (`image_url` nulo) o esta no carga, se muestra «Imagen del piloto no disponible». **Solo en desarrollo** el carrusel avisa de ello (una vez por piloto y motivo) a `POST /api/dev/image-issue`, que lo anota en `logs/imagenes-pilotos.log`; en producción no se llama.
+
+`next/image` solo admite imágenes de `photos.motogp.com` (`images.remotePatterns` en `next.config.ts`): una URL de otro host lanza un error en desarrollo que tumba la página. Por eso el importador solo guarda URL de ese host y el repositorio devuelve `image_url` nulo para cualquier otra. El resto de la aplicación sigue usando `<img>` (`CountryFlag`, el circuito de `ChampionshipStats`).
 
 ---
 
@@ -1508,7 +1574,7 @@ Los monta `src/app/layout.tsx` en todas las páginas.
 
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las dos páginas. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Pilotos, Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
+Cabecera común a las tres páginas (Inicio, Calendario y Pilotos). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
 
 ---
 
@@ -1516,7 +1582,6 @@ Cabecera común a las dos páginas. Es un componente cliente: marca como activo 
 
 Las siguientes páginas están planificadas pero no implementadas:
 
-- `/pilotos` - Listado de pilotos con estadísticas
 - `/equipos` - Listado de equipos
 - `/circuitos` - Información de circuitos
 
@@ -1524,7 +1589,7 @@ Las siguientes páginas están planificadas pero no implementadas:
 
 # 25. API interna de la aplicación
 
-El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que leen de PostgreSQL mediante los repositorios de `src/services/db/`. Todas responden `{ "data": ... }` en éxito y `{ "error": "mensaje en español" }` con el status adecuado en caso contrario, y usan nombres en `snake_case`. Sus tipos están en `src/types/` (`grandPrix.ts`, `rider.ts`, `favorites.ts`).
+El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que leen de PostgreSQL mediante los repositorios de `src/services/db/`. Todas responden `{ "data": ... }` en éxito y `{ "error": "mensaje en español" }` con el status adecuado en caso contrario, y usan nombres en `snake_case`. El nombre del país (`country.name`) de `/api/next-gp`, `/api/calendar`, `/api/riders/standings` y `/api/riders/carousel` va en español: `countryNameEs(iso, fallback)` (`src/utils/country.ts`) usa `Intl.DisplayNames('es')`, con `YU` → «Yugoslavia» y, si Intl no conoce el código (p. ej. «XX»), el nombre guardado en la base de datos. Sus tipos están en `src/types/` (`grandPrix.ts`, `rider.ts`, `favorites.ts`, `riderCarousel.ts`).
 
 ## Endpoints disponibles
 
@@ -1536,7 +1601,7 @@ Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consu
 ```json
 {
   "id": "...",
-  "country": { "iso": "ES", "name": "Spain", "region_iso": "..." },
+  "country": { "iso": "ES", "name": "España", "region_iso": "..." },
   "circuit": {
     "id": "...", "name": "...", "legacy_id": 0, "place": "...", "nation": "...", "events_id": null,
     "track": {
@@ -1611,6 +1676,32 @@ Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos.
 
 ---
 
+### `/api/riders/carousel`
+
+Pilotos titulares de una categoría en la temporada actual, con todo lo que muestra la página `/pilotos` ([24.1](#pilotos-pilotos)). `GET /api/riders/carousel?category=MotoGP|Moto2|Moto3` (por defecto `MotoGP`). La ruta no lleva `revalidate`: lee la URL, es dinámica y no se cachea (consultas agrupadas para todos los pilotos a la vez, sin N+1).
+
+El **contrato completo** (campos, tipos y qué puede ser `null`) está en `src/types/riderCarousel.ts` (`RiderCarouselResponse`, `RiderCarouselItem`); aquí solo las reglas:
+
+- Errores: 400 si `category` no es una de las tres; 404 si no existe la categoría en la base de datos; 500 si no hay temporada actual o falla la consulta. Una temporada sin titulares importados **no** es error: responde 200 con `riders: []`.
+- `data`: `{ season, category, riders[] }`. Titulares = inscripciones de la temporada actual y la categoría con `type = 'Official'`, ordenados por `season_stats.position` (sin posición al final), luego dorsal y nombre.
+- Por piloto: `id` (`motogpUuid`, o el interno si falta), `legacy_id`, `full_name` (espacios normalizados), `number` (dorsal 0 → `null`), `country` (`iso`, `name`, `flag_url`), `team` (`name`, `color`, `text_color`), `constructor_name`, `birth_date` (ISO `yyyy-mm-dd`), `birth_city`.
+- `image_url`: imagen `PROFILE` de la inscripción actual; `null` si no hay o si la URL no empieza por `https://photos.motogp.com/` (el host que admite `next/image`).
+- `biography`: texto plano de la biografía en español (`RiderBiography` con `language = 'es'` pasada por `htmlToPlainText`, párrafos separados por `\n\n`); `null` si no hay.
+- `season_stats`: posición y puntos de `ChampionshipStanding` (si falta, de `RiderSeasonStatistics`; los puntos de Moto2 pueden traer medios puntos), y victorias, podios y poles de `RiderSeasonStatistics`. `sprint_wins` (sesiones `SPR` con posición 1 de la temporada) solo en MotoGP y `null` en Moto2 y Moto3. Todo el objeto es `null` si el piloto no tiene clasificación ni estadísticas de la temporada.
+- `career`: totales de **todas** las categorías sumando `RiderSeasonStatistics` (`starts`, `wins`, `podiums`, `poles`; no incluyen sprints) y `titles`: una entrada por categoría con los años en que `championship_position = 1`, **sin la temporada en curso** (su posición 1 es provisional). El nombre de la categoría es el de la base de datos (`"500cc"`, `"MotoGP™"`...).
+- `motogp`: solo en el carrusel de MotoGP (`null` en Moto2 y Moto3). `wins`/`poles` de la categoría `legacyId` 3, `premier_wins`/`premier_poles` de la clase reina (`legacyId` 3 y -1, es decir MotoGP + 500cc) y `sprint_wins` histórico.
+- `trajectory`: un paso por temporada y categoría (`RiderSeasonEntry`), de la más antigua a la más reciente; `constructor_name` sale de `RiderSeasonStatistics` de ese año y categoría (más fiable) y, si falta, de la inscripción; `team_name` es el nombre del equipo enlazado, y `teams` no guarda temporada: en los pasos antiguos puede ser el nombre actual del equipo, no el de la época (ver deudas en `AGENTS.md`).
+
+---
+
+### `POST /api/dev/image-issue`
+
+**Solo desarrollo.** Registra en `logs/imagenes-pilotos.log` las imágenes de piloto que `/pilotos` no ha podido mostrar. Con `NODE_ENV=production` responde 404 `{ "error": "No encontrado" }` y no escribe nada; el cliente ni siquiera lo llama en producción.
+
+Cuerpo JSON (`Content-Type` exactamente `application/json`, máximo 4000 caracteres): `rider_id`, `full_name`, `image_url` (opcional, puede ser `null`) y `reason`, que es `"null"` (no hay URL válida en la base de datos) o `"error"` (la URL existe pero no se pudo cargar). Un cuerpo no válido o con otro `Content-Type` responde 400. Éxito: `{ "data": { "logged": true } }`; `logged` es `false` si esa combinación piloto, motivo y URL ya se registró desde que arrancó el servidor. Cada registro es una línea `fecha ISO | nombre (id) | motivo | URL o «sin URL»`; si no se puede escribir, 500. La carpeta `logs/` no se versiona (ver [AGENTS.md](AGENTS.md#carpeta-logs)).
+
+---
+
 ### `/api/constructors/standings`
 
 Clasificación de constructores de MotoGP de la temporada actual (`constructorStandingsRepository.ts`). Caché de 60 s. 500 si no hay temporada actual o falla la consulta.
@@ -1635,7 +1726,7 @@ El flujo es:
 React Component
       │
       ▼
-/api/next-gp, /api/calendar, /api/riders/standings, /api/constructors/standings, /api/next-gp/favorites
+/api/next-gp, /api/calendar, /api/riders/standings, /api/riders/carousel, /api/constructors/standings, /api/next-gp/favorites
       │
       ▼
 src/services/db/*Repository.ts
@@ -1674,16 +1765,19 @@ motogp-stats/
 │   ├── app/
 │   │   ├── page.tsx               Inicio (/)
 │   │   ├── calendario/page.tsx    Calendario (/calendario)
+│   │   ├── pilotos/page.tsx       Pilotos (/pilotos)
 │   │   └── api/
 │   │       ├── next-gp/           route.ts y favorites/route.ts
 │   │       ├── calendar/
 │   │       ├── constructors/standings/
-│   │       └── riders/standings/
+│   │       ├── riders/            standings/ y carousel/
+│   │       └── dev/image-issue/   Solo desarrollo (404 en producción)
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
-│   │                              GrandPrixFavorites, CalendarView, Countdown,
-│   │                              CountryFlag, Header, StatCard, GridBackground,
-│   │                              ScrollToTop
+│   │   │                          GrandPrixFavorites, CalendarView, Countdown,
+│   │   │                          CountryFlag, Header, StatCard, GridBackground,
+│   │   │                          ScrollToTop, RidersPage
+│   │   └── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
 │   │
 │   ├── lib/
 │   │   └── prisma.ts
@@ -1694,15 +1788,18 @@ motogp-stats/
 │   │   ├── motogp/                Clientes de las dos APIs externas (solo los usan los importadores)
 │   │   └── stats/                 Modelos estadísticos puros (favoritesModel.ts)
 │   │
-│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites)
+│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites, riderCarousel)
 │   └── utils/
-│       └── date.ts                getMadridTimestamp y wallClockToInstant
+│       ├── date.ts                getMadridTimestamp y wallClockToInstant
+│       └── text.ts                htmlToPlainText (biografías HTML a texto plano)
 │
+├── logs/                          No se versiona. Logs de desarrollo de los agentes e informes (ver AGENTS.md)
 ├── .claude/agents/                Agentes (ver AGENTS.md)
+├── next.config.ts                 images.remotePatterns: solo https://photos.motogp.com
 ├── .env.example
 ├── .env.production.example        Plantilla de variables de producción (sin secretos; orientada a Dinahosting, el paquete la copia como .env.example; en Clouding `instalar-servidor.sh` crea `/etc/motogp-stats.env`)
 ├── .gitattributes                 Fuerza finales de línea LF en scripts/deploy, scripts/dinahosting, scripts/clouding y package-dinahosting.mjs
-├── .gitignore                     Ignora .env* (salvo las plantillas), *.sql.gz, motogp-datos*, dist/ y scripts/tmp-*.ts
+├── .gitignore                     Ignora .env* (salvo las plantillas), logs/ y *.log, *.sql.gz, motogp-datos*, dist/ y scripts/tmp-*.ts
 ├── package.json
 ├── README.md, AGENTS.md, DEPLOY.md, DEPLOY_CLOUDING.md, DEPLOY_DINAHOSTING.md
 └── DATABASE_IMPLEMENTATION_PLAN.md, DATABASE_ENDPOINT_MAPPING.md

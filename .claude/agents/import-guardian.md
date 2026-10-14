@@ -30,11 +30,11 @@ Cada script es un punto de entrada que envuelve un importador en `trackSyncRun` 
 |---|---|---|---|---|---|---|
 | 1 | `import:seasons` | results | `/seasons` | Season | no | todo (1 llamada) |
 | 2 | `import:events` | results | `/events?seasonUuid=` | Country, Circuit, Event, EventLegacyMapping, EventDocument | **sí** | 1 llamada por temporada |
-| 3 | `import:event-categories` | results | `/categories?eventUuid=` | Category, EventCategory | no | todos los eventos |
+| 3 | `import:event-categories` | results | `/categories?eventUuid=` | Category, EventCategory | **sí** | eventos de la temporada; sin año, todos |
 | 4 | `import:sessions` | results | `/sessions?eventUuid=&categoryUuid=` | Session | **sí** (y `eventIds` desde código) | evento×categoría de la temporada |
 | 5 | `import:event-details` | general | `/events?seasonYear=` | CircuitTrack/Asset/Description, EventScheduleDay, EventUrl, enriquece Event (zona horaria, `flagUrl`), Category y **Session** (vueltas, nombre, broadcastUuid, flags) | **sí** (`-- 2026`) | 1 llamada por temporada |
 | 6 | `import:session-results` | results | `/session/{uuid}/classification?seasonYear=` (+`&test=true` en tests) | SessionResult, Rider, Team, Constructor, Country | **sí** (y `sessionIds` desde código) | sesiones de la temporada; **sin año: todo el histórico, horas** |
-| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Country.flagUrl, Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage | **sí** (acota el listado; la ficha trae toda la carrera del piloto y se importa entera) | 1 + N pilotos por temporada |
+| 7 | `import:riders` | general | `/riders?seasonUuid=` + `/riders/{uuid}` | Rider (nombre, nacimiento, país), Country.flagUrl, Team, Constructor, RiderSeasonEntry (dorsal, equipo, tipo Official/Substitute/Wildcard), RiderSeasonImage, RiderBiography | **sí** (acota el listado; la ficha trae toda la carrera del piloto y se importa entera) | 1 + N pilotos por temporada |
 | 8 | `import:rider-statistics` | general | `/riders/{legacyId}/statistics` | RiderSeasonStatistics | **sí** (pilotos con inscripción o resultados ese año; de cada uno se guardan todas sus temporadas) | sin año: todos los pilotos con legacyId |
 | 9 | `import:championship-standings` | results | `/standings?seasonUuid=&categoryUuid=` | ChampionshipStanding | **sí** | temporada × categoría |
 | 10 | `import:bmw-award` | results | `/standings/bmwaward?seasonUuid=` | BmwAwardStanding | **sí** | 1 llamada por temporada |
@@ -43,7 +43,7 @@ Cada script es un punto de entrada que envuelve un importador en `trackSyncRun` 
 
 `LiveTimingSnapshot` / `LiveRiderTiming` (fuente TIMING) **no tienen importador todavía**.
 
-Sintaxis del argumento de temporada: `npm run import:event-details -- 2026` (los dos guiones son obligatorios con npm; con tsx directo: `npx tsx scripts/import-event-details.ts 2026`). Los scripts `events`, `sessions`, `session-results`, `rider-statistics` y `bmw-award` lo leen con `getSeasonYearArgument()` de [cli.ts](src/services/importers/cli.ts); `event-details`, `riders` y `championship-standings` llevan una copia local equivalente; `seasons` y `event-categories` no aceptan año.
+Sintaxis del argumento de temporada: `npm run import:event-details -- 2026` (los dos guiones son obligatorios con npm; con tsx directo: `npx tsx scripts/import-event-details.ts 2026`). Los scripts `events`, `event-categories`, `sessions`, `session-results`, `rider-statistics` y `bmw-award` lo leen con `getSeasonYearArgument()` de [cli.ts](src/services/importers/cli.ts); `event-details`, `riders` y `championship-standings` llevan una copia local equivalente; `seasons` no acepta año.
 
 ## Sincronización en vivo (la vía normal durante la temporada)
 
