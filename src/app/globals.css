@@ -19,3 +19,5 @@ a { color: inherit; text-decoration: none; }
 html, body { scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .card { border: 1px solid var(--line); background: rgba(18,18,18,.92); border-radius: 18px; }
+.home-cards .card { transition: box-shadow .25s, filter .25s, border-color .25s; }
+.home-cards .card:hover { filter: brightness(1.12); border-color: rgba(239,68,68,.45); box-shadow: 0 10px 40px -8px rgba(220,38,38,.55); }
