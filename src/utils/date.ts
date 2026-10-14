@@ -131,7 +131,7 @@ function getZoneOffsetMs(instant: number, timeZone: string): number {
  * 14:00 = AEDT), no la hora estándar. Por eso basta con convertir
  * el reloj de pared usando el desfase vigente de la zona.
  *
- * No sustituye a getMadridTimestamp (deuda conocida, no se toca).
+ * getMadridTimestamp solo queda como respaldo cuando no hay zona válida.
  */
 export function wallClockToInstant(
   date: Date,
