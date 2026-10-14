@@ -127,7 +127,6 @@ Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interact
 
 ## Deudas conocidas (no las "arregles" sin hablarlo)
 
-- **`getMadridTimestamp` sigue existiendo como respaldo.** Las horas de `Session.dateStart` son el reloj local del circuito (con horario de verano) etiquetado como UTC. `getNextGrandPrix` ya devuelve `nextMotoGPRace` y `track.sprintDate` como instante absoluto (`wallClockToInstant` + `Event.timeZone`) y solo recurre a `getMadridTimestamp` (que las trata como hora de Madrid, desfasadas fuera de Europa) si el evento no tiene zona válida. Pendiente: decidir si ese respaldo debe eliminarse.
 - **Dos copias de `wallClockToInstant`.** `src/utils/date.ts` y `src/services/importers/liveSessionSync.ts` tienen cada una la suya, con comportamiento distinto sin zona horaria (la de `date.ts` exige zona; la de `liveSessionSync` devuelve la hora tal cual).
 - **El año 2026 está fijo en la interfaz.** El título de `/calendario` y el selector de año de `Header.tsx` lo escriben a mano.
 - **Equipos duplicados.** La API de resultados los modela por temporada y la general como entidad única, y sus `legacy_id` no coinciden. Unificarlos exige una decisión de modelo del usuario.
