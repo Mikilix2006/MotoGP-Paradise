@@ -9,12 +9,7 @@ import type {
   RiderTrajectoryStep,
 } from "@/types/riderCarousel";
 
-export type StatsTabKey =
-  | "season"
-  | "wins"
-  | "races"
-  | "titles"
-  | "trajectory";
+export type StatsTabKey = "season" | "wins" | "races" | "titles" | "trajectory";
 
 const TABS: { key: StatsTabKey; label: string }[] = [
   { key: "season", label: "Temporada" },
@@ -26,15 +21,14 @@ const TABS: { key: StatsTabKey; label: string }[] = [
 
 const NUMBER = new Intl.NumberFormat("es-ES");
 
-const EYEBROW =
-  "text-[10px] font-bold uppercase tracking-widest text-zinc-500";
+const EYEBROW = "text-[10px] font-bold uppercase tracking-widest text-zinc-500";
 
 // Los nombres de categoría llegan tal cual de la BD ("MotoGP™", "Moto2™"): sin la marca registrada.
 function cleanCategory(category: string): string {
   return category.replace(/™/g, "");
 }
 
-function Cell({
+function Stat({
   label,
   value,
   big = false,
@@ -44,10 +38,10 @@ function Cell({
   big?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+    <div className="min-w-0">
       <p className={EYEBROW}>{label}</p>
       <p
-        className={`mt-2 font-black text-white ${big ? "text-4xl" : "text-3xl"}`}
+        className={`mt-1 font-black text-white ${big ? "text-4xl" : "text-3xl"}`}
       >
         {typeof value === "number" ? NUMBER.format(value) : (value ?? "—")}
       </p>
@@ -55,21 +49,36 @@ function Cell({
   );
 }
 
-function Group({
+// Sección de texto: las que no son la primera se separan con una línea sutil.
+function Section({
   title,
   children,
   gridClass,
+  accent = false,
 }: {
   title: string;
   children: React.ReactNode;
   gridClass: string;
+  accent?: boolean;
 }) {
   return (
-    <div>
-      <p className={EYEBROW}>{title}</p>
-      <div className={`mt-2 grid gap-3 ${gridClass}`}>{children}</div>
-    </div>
+    <section className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+      <p
+        className={
+          accent
+            ? "text-[10px] font-bold uppercase tracking-widest text-red-500"
+            : EYEBROW
+        }
+      >
+        {title}
+      </p>
+      <div className={`mt-3 grid gap-x-4 gap-y-4 ${gridClass}`}>{children}</div>
+    </section>
   );
+}
+
+function plural(n: number, one: string, many: string): string {
+  return `${NUMBER.format(n)} ${n === 1 ? one : many}`;
 }
 
 function Note({ children }: { children: React.ReactNode }) {
@@ -112,29 +121,44 @@ function SeasonPanel({
   // sprint_wins solo existe en MotoGP: en Moto2 y Moto3 la celda no aparece.
   const hasSprints = stats.sprint_wins !== null;
 
+  const parts = [
+    stats.position !== null && `${stats.position}ª posición`,
+    stats.points !== null && plural(stats.points, "punto", "puntos"),
+    stats.wins !== null && plural(stats.wins, "victoria", "victorias"),
+    stats.podiums !== null && plural(stats.podiums, "podio", "podios"),
+    stats.poles !== null && plural(stats.poles, "pole", "poles"),
+  ].filter(Boolean);
+
   return (
-    <div className="space-y-3">
-      <p className={EYEBROW}>
-        Temporada {season} · {category}
-      </p>
-      <div className="grid grid-cols-2 gap-3">
-        <Cell
+    <div className="space-y-4">
+      <Section
+        title={`Temporada ${season} · ${category}`}
+        gridClass="grid-cols-2"
+        accent
+      >
+        <Stat
           big
           label="Posición"
           value={stats.position === null ? null : `${stats.position}º`}
         />
-        <Cell big label="Puntos" value={stats.points} />
-      </div>
-      <div
-        className={`grid gap-3 ${
-          hasSprints ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
-        }`}
+        <Stat big label="Puntos" value={stats.points} />
+      </Section>
+      <Section
+        title="Resultados"
+        gridClass={hasSprints ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}
       >
-        <Cell label="Victorias" value={stats.wins} />
-        <Cell label="Podios" value={stats.podiums} />
-        <Cell label="Poles" value={stats.poles} />
-        {hasSprints && <Cell label="Sprints ganadas" value={stats.sprint_wins} />}
-      </div>
+        <Stat label="Victorias" value={stats.wins} />
+        <Stat label="Podios" value={stats.podiums} />
+        <Stat label="Poles" value={stats.poles} />
+        {hasSprints && (
+          <Stat label="Sprints ganadas" value={stats.sprint_wins} />
+        )}
+      </Section>
+      {parts.length > 0 && (
+        <p className="border-t border-white/10 pt-4 text-sm text-zinc-400">
+          En {season}, {parts.join(", ")}.
+        </p>
+      )}
     </div>
   );
 }
@@ -149,24 +173,27 @@ function WinsPanel({ rider }: { rider: RiderCarouselItem }) {
 
   return (
     <div className="space-y-4">
-      <Group title="Toda la carrera" gridClass="grid-cols-2">
-        <Cell label="Victorias" value={career.wins} />
-        <Cell label="Poles" value={career.poles} />
-      </Group>
+      <Section title="Toda la carrera" gridClass="grid-cols-2" accent>
+        <Stat label="Victorias" value={career.wins} />
+        <Stat label="Poles" value={career.poles} />
+      </Section>
 
       {/* Solo pilotos de MotoGP: Moto2 y Moto3 no muestran esta parte ni como «0». */}
       {motogp && (
         <>
-          <Group title="En MotoGP" gridClass="grid-cols-3">
-            <Cell label="Victorias" value={motogp.wins} />
-            <Cell label="Poles" value={motogp.poles} />
-            <Cell label="Sprints ganadas" value={motogp.sprint_wins} />
-          </Group>
+          <Section title="En MotoGP" gridClass="grid-cols-3">
+            <Stat label="Victorias" value={motogp.wins} />
+            <Stat label="Poles" value={motogp.poles} />
+            <Stat label="Sprints ganadas" value={motogp.sprint_wins} />
+          </Section>
           {showPremier && (
-            <Group title="Clase reina · 500cc + MotoGP" gridClass="grid-cols-2">
-              <Cell label="Victorias" value={motogp.premier_wins} />
-              <Cell label="Poles" value={motogp.premier_poles} />
-            </Group>
+            <Section
+              title="Clase reina · 500cc + MotoGP"
+              gridClass="grid-cols-2"
+            >
+              <Stat label="Victorias" value={motogp.premier_wins} />
+              <Stat label="Poles" value={motogp.premier_poles} />
+            </Section>
           )}
         </>
       )}
@@ -180,12 +207,23 @@ function WinsPanel({ rider }: { rider: RiderCarouselItem }) {
 }
 
 function RacesPanel({ rider }: { rider: RiderCarouselItem }) {
+  const { starts, podiums } = rider.career;
+  const podiumRate =
+    typeof starts === "number" && typeof podiums === "number" && starts > 0
+      ? Math.round((podiums / starts) * 100)
+      : null;
+
   return (
     <div className="space-y-5">
-      <Group title="Toda la carrera" gridClass="grid-cols-2">
-        <Cell big label="Carreras disputadas" value={rider.career.starts} />
-        <Cell big label="Podios" value={rider.career.podiums} />
-      </Group>
+      <Section title="Toda la carrera" gridClass="grid-cols-2" accent>
+        <Stat big label="Carreras disputadas" value={rider.career.starts} />
+        <Stat big label="Podios" value={rider.career.podiums} />
+      </Section>
+      {podiumRate !== null && (
+        <p className="border-t border-white/10 pt-4 text-sm text-zinc-400">
+          Sube al podio en el {podiumRate} % de las carreras que disputa.
+        </p>
+      )}
       {rider.motogp && (
         <Note>Solo cuentan las carreras del domingo, sin las sprint.</Note>
       )}
@@ -193,8 +231,19 @@ function RacesPanel({ rider }: { rider: RiderCarouselItem }) {
   );
 }
 
+// Clase reina primero (MotoGP, 500cc), luego Moto2/250cc y por último Moto3/125cc.
+function categoryRank(category: string): number {
+  const name = cleanCategory(category).toLowerCase();
+  if (name.includes("motogp") || name.includes("500")) return 0;
+  if (name.includes("moto2") || name.includes("250")) return 1;
+  if (name.includes("moto3") || name.includes("125")) return 2;
+  return 3;
+}
+
 function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
-  const titles = rider.career.titles.filter((t) => t.years.length > 0);
+  const titles = rider.career.titles
+    .filter((t) => t.years.length > 0)
+    .sort((a, b) => categoryRank(a.category) - categoryRank(b.category));
   const total = titles.reduce((sum, t) => sum + t.years.length, 0);
 
   if (total === 0) {
@@ -218,16 +267,15 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
         </p>
       </div>
 
-      <ul className="space-y-3">
+      <ul className="divide-y divide-white/10 border-t border-white/10">
         {titles.map((title) => (
-          <li
-            key={title.category}
-            className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
-          >
+          <li key={title.category} className="py-4 last:pb-0">
             <div className="flex items-center justify-between gap-3">
               <p className="flex min-w-0 items-center gap-2 font-bold text-white">
                 <Trophy size={16} className="shrink-0 text-red-500" />
-                <span className="truncate">{cleanCategory(title.category)}</span>
+                <span className="truncate">
+                  {cleanCategory(title.category)}
+                </span>
               </p>
               <span className={EYEBROW}>
                 {title.years.length}{" "}
@@ -241,7 +289,7 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
                 .map((year) => (
                   <li
                     key={year}
-                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-white"
+                    className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-sm font-bold text-amber-300"
                   >
                     {year}
                   </li>
@@ -321,7 +369,9 @@ function TrajectoryPanel({ rider }: { rider: RiderCarouselItem }) {
               )}
             </div>
 
-            <p className="mt-1 text-sm text-zinc-100">{step.team_name ?? "—"}</p>
+            <p className="mt-1 text-sm text-zinc-100">
+              {step.team_name ?? "—"}
+            </p>
             {step.constructor_name && (
               <p className="text-xs text-zinc-500">{step.constructor_name}</p>
             )}
@@ -415,7 +465,7 @@ export function RiderStatsCard({
         id={panelId}
         aria-labelledby={tabId(tab)}
         tabIndex={0}
-        className="mt-5 h-[22rem] overflow-y-auto border-t border-white/10 pt-5[scrollbar-color:#3f3f46_transparent] [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 sm:h-[20rem]"
+        className="mt-5 h-[22rem] overflow-y-auto border-t border-white/10 pt-5 [scrollbar-color:#3f3f46_transparent] [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 sm:h-[20rem]"
       >
         {tab === "season" && (
           <SeasonPanel rider={rider} season={season} category={category} />
