@@ -5,6 +5,10 @@ const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["var(--font-display)", "Arial Narrow", "Arial", "sans-serif"],
+        body: ["var(--font-body)", "Arial", "Helvetica", "sans-serif"]
+      },
       colors: {
         white: rgb("--fg-rgb"),
         black: rgb("--bg-rgb"),

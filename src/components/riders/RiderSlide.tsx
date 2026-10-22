@@ -216,7 +216,7 @@ export function RiderSlide({
           </div>
 
           <h2
-            className={`mt-3 break-words font-black leading-9 text-white md:leading-[3rem] lg:leading-10 xl:leading-[3rem] ${
+            className={`mt-3 break-words font-display font-black leading-9 text-white md:leading-[3rem] lg:leading-10 xl:leading-[3rem] ${
               longName
                 ? "text-2xl md:text-5xl lg:text-3xl xl:text-4xl"
                 : "text-3xl md:text-5xl lg:text-4xl xl:text-5xl"

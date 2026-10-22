@@ -64,41 +64,41 @@ return () => clearInterval(interval);
 
 }, [targetDate]);
 
-return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center"> <p className="text-2xl font-black md:text-3xl">
+return ( <div className="mt-10 grid grid-cols-4 gap-4"> <div className="border-t border-white/10 pt-3 text-center"> <p className="text-3xl font-display font-black tabular-nums md:text-5xl">
 {formatNumber(timeRemaining.days)} </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
       Días
     </p>
   </div>
 
-  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="border-t border-white/10 pt-3 text-center">
+    <p className="text-3xl font-display font-black tabular-nums md:text-5xl">
       {formatNumber(timeRemaining.hours)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
       Horas
     </p>
   </div>
 
-  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="border-t border-white/10 pt-3 text-center">
+    <p className="text-3xl font-display font-black tabular-nums md:text-5xl">
       {formatNumber(timeRemaining.minutes)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
       <span className="sm:hidden">Min</span>
       <span className="hidden sm:inline">Minutos</span>
     </p>
   </div>
 
-  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="border-t border-white/10 pt-3 text-center">
+    <p className="text-3xl font-display font-black tabular-nums md:text-5xl">
       {formatNumber(timeRemaining.seconds)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
       <span className="sm:hidden">Seg</span>
       <span className="hidden sm:inline">Segundos</span>
     </p>

@@ -22,7 +22,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className="text-sm text-zinc-400 underline-offset-4 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+      className="-m-3 p-3 text-sm text-zinc-400 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
     >
       {dark ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
     </button>

@@ -98,7 +98,7 @@ function FavoriteDetails({
 
       {/* CIRCUITO */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           En este circuito
         </p>
 
@@ -192,7 +192,7 @@ function FavoriteDetails({
       {/* MOTO */}
       {bike.constructor_name && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
             La moto · {bike.constructor_name}
           </p>
 
@@ -260,7 +260,7 @@ function FavoriteDetails({
 
       {/* TEMPORADA */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           Esta temporada
         </p>
 
@@ -332,12 +332,12 @@ export default function GrandPrixFavorites() {
     : favorites.slice(0, INITIAL_VISIBLE);
 
   return (
-    <aside className="card pt-6">
-      <p className="text-xs uppercase tracking-widest text-zinc-500">
+    <aside className="section">
+      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
         Índice estadístico
       </p>
 
-      <h2 className="mt-1 flex items-center gap-2 text-2xl font-black">
+      <h2 className="mt-1 flex items-center gap-2 text-2xl font-display font-black">
         Favoritos del GP
       </h2>
 
@@ -415,7 +415,7 @@ export default function GrandPrixFavorites() {
                 >
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center">
-                      <b className="mr-3 text-zinc-600">
+                      <b className="mr-3 text-zinc-500">
                         {String(favorite.rank).padStart(2, "0")}
                       </b>
 
@@ -464,7 +464,7 @@ export default function GrandPrixFavorites() {
             <button
               type="button"
               onClick={() => setShowAll((value) => !value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10"
+              className="w-full rounded-lg border border-white/10 bg-white/5 min-h-11 py-2 text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10"
             >
               {showAll
                 ? "Ver solo los favoritos"

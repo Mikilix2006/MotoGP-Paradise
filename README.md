@@ -94,6 +94,7 @@ La aplicación no debe depender de consultar continuamente la API externa para c
 - React
 - TypeScript
 - Tailwind CSS
+- Barlow Condensed (titulares y cifras) y Barlow (cuerpo), de Google Fonts autoalojadas con `next/font/google`
 - Lucide React (solo usos puntuales: sol/luna del tema, chevrones del carrusel, `ArrowUp`, `Menu`/`X`)
 
 ## Backend
@@ -1512,11 +1513,11 @@ La aplicación cuenta con las siguientes páginas principales. Todas leen de Pos
 
 Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 
-- `NextGrandPrix.tsx` — próximo GP o GP en curso: badge `ROUND N` (o el `short_name` si no hay round), nombre, circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. Mientras carga muestra un esqueleto `animate-pulse` con la forma de la tarjeta. API: `/api/next-gp`
-- `ChampionshipStats.tsx` — cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT). API: `/api/riders/standings` y `/api/next-gp`
+- `NextGrandPrix.tsx` — próximo GP o GP en curso: eyebrow «Próximo Gran Premio» y nombre del GP como titular, badge `RONDA N` (o el `short_name` si no hay round), circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. Mientras carga muestra un esqueleto `animate-pulse` con la forma de la sección. API: `/api/next-gp`
+- `ChampionshipStats.tsx` — sección con eyebrow «Campeonato» y titular «Estadísticas» (envoltorio `StatsSection`, que también envuelve los estados de carga y error) con las cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT); si la carga falla, un mensaje de error (`role="alert"`) en lugar del bloque. API: `/api/riders/standings` y `/api/next-gp`
 - `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. Mientras carga muestra un esqueleto `animate-pulse` (cabecera de columnas y 12 filas; la cabecera dice «Piloto» o «Equipo» según la vista). API: `/api/riders/standings` y `/api/constructors/standings`
 - `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. Mientras carga muestra esqueletos `animate-pulse` con la forma de cada fila. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
-- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix` (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint reciben un instante absoluto ISO y lo leen con `new Date(...)` (ver [Hora de las sesiones](#hora-de-las-sesiones))
+- `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix`, sin cajas: cuatro cifras grandes (`tabular-nums`) con un filete superior y su etiqueta (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint reciben un instante absoluto ISO y lo leen con `new Date(...)` (ver [Hora de las sesiones](#hora-de-las-sesiones))
 
 ---
 
@@ -1531,7 +1532,7 @@ Página con el calendario completo de la temporada actual (`src/app/calendario/p
 Qué muestra:
 
 - una card destacada con el próximo GP (el evento con `is_next_gp`), seguida de la lista de todos los GP de la temporada en orden cronológico;
-- en cada card: badge `ROUND N`, bandera del GP (`flag_url`), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
+- en cada card: badge `RONDA N`, bandera del GP (`flag_url`), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
 - cada card se despliega (con animación) y muestra la tabla de horarios de MotoGP, Moto2 y Moto3, con una columna por día;
 - un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito;
 - las sesiones terminadas (también en la card destacada del próximo GP) salen atenuadas y con una pastilla «Terminada». Una sesión cuenta como terminada si su `status` es `FINISHED` o si su `date_end` ya pasó (el watcher puede ir por detrás del estado real); `CalendarView` refresca su reloj cada 60 s para actualizarlo sin recargar;
@@ -1567,8 +1568,10 @@ Qué muestra:
 Los monta `src/app/layout.tsx` en todas las páginas.
 
 - Tema claro/oscuro: claro por defecto. El script en línea de `layout.tsx` lee `localStorage["theme"]` antes de pintar y, si vale `dark`, pone `data-theme="dark"` en `<html>`. `ThemeToggle.tsx` (botón sol/luna en el `Header`) alterna el atributo y guarda la elección. Los colores salen de variables CSS (`--bg-rgb`, `--fg-rgb`, `--muted*-rgb`, `--accent*-rgb`, `--pos-rgb`, `--warn-rgb`) definidas en `:root` y `[data-theme="dark"]` de `src/app/globals.css`; `tailwind.config.ts` reasigna `white`, `black`, `zinc`, `red`, `emerald` y `amber` a esas variables, de modo que las clases existentes (`text-white`, `bg-black`, `text-zinc-400`…) cambian con el tema.
-- Estilo sin adornos: sin tarjetas con caja, rejilla de fondo, cristal/desenfoque, degradados, bento ni emojis. La clase `.card` solo dibuja un filete superior (`border-top`).
+- Estilo sin adornos: sin tarjetas con caja, rejilla de fondo, cristal/desenfoque, degradados, bento ni emojis. La clase `.card` solo dibuja un filete superior fino (`border-top: 1px solid var(--line)`, con `--line` al 20 % del color de texto). Las secciones principales de la portada (`NextGrandPrix`, `ChampionshipStats`, `RiderStandings` y `GrandPrixFavorites`) usan `.section`: filete de 2 px en `var(--fg)` con una pestaña roja de 3 rem en el extremo izquierdo y `padding-top` propio; los subbloques dentro de ellas siguen con `.card`. `page.tsx` las separa con `gap-x-10 gap-y-12` y `mt-16` entre las dos filas.
 - `ScrollToTop.tsx` — botón flotante que aparece al bajar más de 300 px y sube al inicio (sin animación con `prefers-reduced-motion`).
+- Tipografía: `layout.tsx` carga **Barlow Condensed** (`--font-display`) y **Barlow** (`--font-body`) con `next/font/google` y pone ambas variables en `<html>`; `tailwind.config.ts` las expone como `fontFamily.display` y `fontFamily.body` (respaldo Arial). `globals.css` usa Barlow en `body` y la display en `h1`, `h2` y `.uppercase`; las cifras llevan `font-display` y `tabular-nums` en los componentes.
+- Accesibilidad global en `globals.css`: `:focus-visible` con contorno rojo, cursor de mano en botones habilitados y, con `prefers-reduced-motion: reduce`, animaciones y transiciones desactivadas (la cuenta atrás, al ser JS, sigue funcionando). Los controles pequeños tienen un área táctil de al menos 44 px.
 - La barra de desplazamiento del navegador está oculta en `globals.css`.
 
 ---

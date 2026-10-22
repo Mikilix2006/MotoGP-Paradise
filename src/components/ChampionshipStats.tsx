@@ -95,6 +95,18 @@ function formatSprintTime(
   ).format(new Date(date));
 }
 
+function StatsSection({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="section">
+      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+        Campeonato
+      </p>
+      <h2 className="mt-1 text-2xl font-display font-black">Estadísticas</h2>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
 export default function ChampionshipStats() {
   const [stats, setStats] =
     useState<ChampionshipStatsData | null>(
@@ -189,6 +201,7 @@ export default function ChampionshipStats() {
 
   if (loading) {
     return (
+      <StatsSection>
       <div
         role="status"
         aria-busy="true"
@@ -244,17 +257,26 @@ export default function ChampionshipStats() {
           </div>
         </div>
       </div>
+      </StatsSection>
     );
   }
 
   if (!stats) {
-    return null;
+    return (
+      <StatsSection>
+        <div role="alert" className="card pt-5 text-center">
+          <p className="font-medium text-red-400">No se pudieron cargar las estadísticas del campeonato</p>
+          <p className="mt-2 text-sm text-zinc-500">Inténtalo de nuevo más tarde.</p>
+        </div>
+      </StatsSection>
+    );
   }
 
   const track =
     grandPrix?.circuit.track;
 
   return (
+    <StatsSection>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
       {/* LÍDER */}
@@ -265,7 +287,7 @@ export default function ChampionshipStats() {
           </span>
         </div>
 
-        <p className="mt-4 text-xl font-black text-white">
+        <p className="mt-4 text-2xl font-display font-black tabular-nums text-white">
           {stats.leader.full_name}
         </p>
 
@@ -283,7 +305,7 @@ export default function ChampionshipStats() {
           </span>
         </div>
 
-        <p className="mt-4 text-3xl font-black text-white">
+        <p className="mt-4 text-3xl font-display font-black tabular-nums text-white">
           {stats.leader.statistics.points}
         </p>
 
@@ -318,7 +340,7 @@ export default function ChampionshipStats() {
           </div>
           {/* KILÓMETROS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.lengthKm ?? "—"}
             </p>
 
@@ -329,7 +351,7 @@ export default function ChampionshipStats() {
 
           {/* CURVAS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.totalCorners ?? "—"}
             </p>
 
@@ -340,7 +362,7 @@ export default function ChampionshipStats() {
 
           {/* VUELTAS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.laps ?? "—"}
             </p>
 
@@ -362,7 +384,7 @@ export default function ChampionshipStats() {
 
         {/* FECHA */}
         <div className="mt-5">
-          <p className="text-xl font-black capitalize text-white">
+          <p className="text-2xl font-display font-black capitalize text-white">
             {formatSprintDate(
               track?.sprintDate ?? null
             )}
@@ -375,7 +397,7 @@ export default function ChampionshipStats() {
 
         {/* HORA */}
         <div className="mt-4">
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-display font-black tabular-nums text-white">
             {formatSprintTime(
               track?.sprintDate ?? null
             )}
@@ -388,7 +410,7 @@ export default function ChampionshipStats() {
 
         {/* VUELTAS */}
         <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-display font-black tabular-nums text-white">
             {track?.sprintLaps ?? "—"}
           </p>
 
@@ -399,5 +421,6 @@ export default function ChampionshipStats() {
       </div>
 
     </div>
+    </StatsSection>
   );
 }

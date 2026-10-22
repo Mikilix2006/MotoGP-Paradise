@@ -10,7 +10,7 @@ export default function Home() {
       <Header />
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
 
-        <div className="grid gap-5 lg:grid-cols-[1.65fr_.85fr]">
+        <div className="grid gap-x-10 gap-y-12 lg:grid-cols-[1.65fr_.85fr]">
           {/* HERO / PRÓXIMO GP */}
           <NextGrandPrix />
 
@@ -18,7 +18,7 @@ export default function Home() {
           <ChampionshipStats />
         </div>
 
-        <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr] lg:items-start">
+        <section className="mt-16 grid gap-x-10 gap-y-12 lg:grid-cols-[1.25fr_.75fr] lg:items-start">
           {/* CLASIFICACIÓN */}
           <div className="order-2 overflow-hidden lg:order-1">
           <RiderStandings />

@@ -20,7 +20,7 @@ const TABS: { key: StatsTabKey; label: string }[] = [
 
 const NUMBER = new Intl.NumberFormat("es-ES");
 
-const EYEBROW = "text-[10px] font-bold uppercase tracking-widest text-zinc-500";
+const EYEBROW = "text-[11px] font-bold uppercase tracking-widest text-zinc-500";
 
 // Los nombres de categoría llegan tal cual de la BD ("MotoGP™", "Moto2™"): sin la marca registrada.
 function cleanCategory(category: string): string {
@@ -40,7 +40,7 @@ function Stat({
     <div className="min-w-0">
       <p className={EYEBROW}>{label}</p>
       <p
-        className={`mt-1 font-black text-white ${big ? "text-4xl" : "text-3xl"}`}
+        className={`mt-1 font-display font-black text-white ${big ? "text-4xl" : "text-3xl"}`}
       >
         {typeof value === "number" ? NUMBER.format(value) : (value ?? "—")}
       </p>
@@ -65,7 +65,7 @@ function Section({
       <p
         className={
           accent
-            ? "text-[10px] font-bold uppercase tracking-widest text-red-500"
+            ? "text-[11px] font-bold uppercase tracking-widest text-red-500"
             : EYEBROW
         }
       >
@@ -258,7 +258,7 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
   return (
     <div className="space-y-4">
       <div className="flex items-end gap-3">
-        <p className="text-5xl font-black text-white">{total}</p>
+        <p className="text-5xl font-display font-black text-white">{total}</p>
         <p className="pb-1 text-sm text-zinc-400">
           {total === 1 ? "Mundial ganado" : "Mundiales ganados"}
         </p>
@@ -352,14 +352,14 @@ function TrajectoryPanel({ rider }: { rider: RiderCarouselItem }) {
             />
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-black text-white">
+              <span className="text-base font-display font-black tabular-nums text-white">
                 {from === to ? from : `${from}–${to}`}
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                 {cleanCategory(step.category)}
               </span>
               {step.number !== null && (
-                <span className="text-sm font-black text-red-500">
+                <span className="text-base font-display font-black tabular-nums text-red-500">
                   #{step.number}
                 </span>
               )}
@@ -418,7 +418,7 @@ export function RiderStatsCard({
       <p className="text-xs uppercase tracking-widest text-zinc-500">
         Estadísticas
       </p>
-      <h3 className="mt-1 flex items-center gap-2 text-2xl font-black">
+      <h3 className="mt-1 flex items-center gap-2 text-2xl font-display font-black">
         Ficha estadística
       </h3>
 

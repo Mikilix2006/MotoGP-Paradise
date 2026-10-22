@@ -101,14 +101,14 @@ function CarouselSkeleton() {
             {/* Misma altura fija que el panel real para que al cargar no salte la ficha */}
             <div className="mt-5 h-[22rem] border-t border-white/10 pt-5 sm:h-[20rem]">
               <div className="grid grid-cols-2 gap-3">
-                <div className="h-24 rounded-none border border-white/10 bg-black/20" />
-                <div className="h-24 rounded-none border border-white/10 bg-black/20" />
+                <div className="h-24 bg-white/10" />
+                <div className="h-24 bg-white/10" />
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-none border border-white/10 bg-black/20"
+                    className="h-20 bg-white/10"
                   />
                 ))}
               </div>

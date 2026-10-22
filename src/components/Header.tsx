@@ -79,7 +79,7 @@ export function Header() {
           <a
             href="/"
             aria-label="MotoGP Stats, ir al inicio"
-            className={`flex items-center gap-2 rounded-md font-black tracking-tight text-xl ${FOCUS_RING}`}
+            className={`flex items-center gap-2 rounded-md font-display font-black tracking-tight text-xl ${FOCUS_RING}`}
           >
             MOTO<span className="text-red-600">GP</span><span className="text-zinc-500">STATS</span>
           </a>

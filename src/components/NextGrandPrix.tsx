@@ -117,7 +117,7 @@ return (
     role="status"
     aria-busy="true"
     aria-label="Cargando próximo Gran Premio"
-    className="card animate-pulse pt-7 md:pt-10"
+    className="section animate-pulse"
   >
     <div className="flex items-center justify-between">
       <div className="h-6 w-20 rounded-full bg-white/10" />
@@ -148,7 +148,7 @@ return (
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-20 rounded-none border border-white/10 bg-black/20"
+            className="h-16 bg-white/10"
           />
         ))}
       </div>
@@ -164,7 +164,7 @@ return (
 }
 
 if (error || !grandPrix) {
-return ( <article className="card flex min-h-[380px] items-center justify-center pt-8"> <div className="text-center"> <p className="font-medium text-red-400">
+return ( <article className="section flex min-h-[380px] items-center justify-center"> <div className="text-center"> <p className="font-medium text-red-400">
 {error ||
 "No hay información disponible"} </p>
 
@@ -179,12 +179,22 @@ return ( <article className="card flex min-h-[380px] items-center justify-center
 
 const { round } = grandPrix;
 
-return ( <article className="card pt-7 md:pt-10">
+return ( <article className="section">
 
   <div>
-    <div className="flex items-center justify-between">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+        Próximo Gran Premio
+      </p>
+
+      <h2 className="mt-4 max-w-2xl text-4xl font-display font-black leading-none md:text-6xl">
+        {grandPrix.sponsored_name || grandPrix.name}
+      </h2>
+    </div>
+
+    <div className="mt-6 flex items-center justify-between">
       <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
-        {round ? `ROUND ${round}` : grandPrix.short_name}
+        {round ? `RONDA ${round}` : grandPrix.short_name}
       </span>
 
       <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
@@ -194,16 +204,6 @@ return ( <article className="card pt-7 md:pt-10">
       <span className="text-xs font-medium uppercase tracking-widest text-zinc-400">
         {formatStatus(grandPrix.status)}
       </span>
-    </div>
-
-    <div className="mt-10">
-      <p className="text-xs font-bold uppercase tracking-[.22em] text-red-500">
-        Próximo Gran Premio
-      </p>
-
-      <h2 className="mt-4 max-w-2xl text-3xl font-black leading-tight md:text-5xl">
-        {grandPrix.sponsored_name || grandPrix.name}
-      </h2>
     </div>
 
     <div className="mt-8 grid gap-6 md:grid-cols-2">
@@ -237,7 +237,7 @@ return ( <article className="card pt-7 md:pt-10">
     </div>
 
     <div className="mt-10">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-red-500">
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-500">
             Cuenta atrás para el Gran Premio
         </p>
 

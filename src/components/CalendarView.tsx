@@ -58,7 +58,7 @@ function getStatusBadge(status: string) {
     },
     "NOT-STARTED": {
       // Pill de contorno en zinc claro: se distingue del "Finalizado" (relleno
-      // apagado) y del rojo de "En curso" / "ROUND N", sin salir de la paleta.
+      // apagado) y del rojo de "En curso" / "RONDA N", sin salir de la paleta.
       style: "border-white/20 bg-transparent text-zinc-200",
       icon: null,
       label: "Próximamente",
@@ -253,7 +253,7 @@ function getScheduleColumns(
 }
 
 const MODE_BUTTON_BASE =
-  "rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50";
+  "rounded-md px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50";
 
 function SessionSchedule({
   columns,
@@ -313,7 +313,7 @@ function SessionSchedule({
             onClick={() => onModeChange("circuito")}
             className={`${MODE_BUTTON_BASE} ${
               !circuitAvailable
-                ? "cursor-not-allowed text-zinc-600"
+                ? "cursor-not-allowed text-zinc-500"
                 : mode === "circuito"
                   ? "cursor-pointer bg-white/10 text-white"
                   : "cursor-pointer text-zinc-500 hover:text-zinc-300"
@@ -332,7 +332,7 @@ function SessionSchedule({
           <div key={column.key} className="min-w-0">
             <h4
               id={`${idPrefix}-dia-${column.key}`}
-              className="border-b border-white/5 px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:px-3"
+              className="border-b border-white/5 px-2 py-2 text-[11px] font-bold uppercase tracking-widest text-zinc-500 sm:px-3"
             >
               {column.label}
             </h4>
@@ -354,7 +354,7 @@ function SessionSchedule({
                     >
                       {formatSessionTime(session.date_start, zone)}
                     </span>
-                    <span className="block min-w-0 text-[10px] font-bold uppercase leading-tight tracking-wider sm:text-xs">
+                    <span className="block min-w-0 text-[11px] font-bold uppercase leading-tight tracking-wider sm:text-xs">
                       <span
                         className={
                           motogp && !finished ? "text-white" : "text-zinc-500"
@@ -377,7 +377,7 @@ function SessionSchedule({
                       </span>
                       {finished && (
                         <>
-                          <span className="ml-1.5 rounded-full border border-white/10 px-1.5 py-px align-middle text-[10px] font-semibold normal-case tracking-normal text-zinc-400 inline-block">
+                          <span className="ml-1.5 rounded-full border border-white/10 px-1.5 py-px align-middle text-[11px] font-semibold normal-case tracking-normal text-zinc-400 inline-block">
                             Terminada
                           </span>
                         </>
@@ -444,7 +444,7 @@ function EventCard({
     <>
       <span className="flex flex-wrap items-center gap-3 pr-14">
         <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
-          {round ? `ROUND ${round}` : event.short_name}
+          {round ? `RONDA ${round}` : event.short_name}
         </span>
         {getStatusBadge(event.status)}
       </span>
