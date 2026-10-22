@@ -53,19 +53,19 @@ src/utils/date.ts                Utilidades de fecha
 
 ## Trampa horaria conocida
 
-`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad `Session.dateStart` es el **reloj de pared local del circuito** (incluye el horario de verano local) etiquetado como `+00:00`. Para Grandes Premios fuera de Europa la cuenta atrás y la tarjeta Sprint quedan desfasadas.
+`getMadridTimestamp()` en [src/utils/date.ts](src/utils/date.ts) interpreta la hora de la API como hora de Madrid. En realidad `Session.dateStart` es el **reloj de pared local del circuito** (incluye el horario de verano local) etiquetado como `+00:00`. `getNextGrandPrix` ya devuelve `nextMotoGPRace` y `track.sprintDate` como instante absoluto ISO (convertido con `wallClockToInstant(date, timeZone)` y `Event.timeZone`), y `Countdown`/`ChampionshipStats` los leen con `new Date(...)`. `getMadridTimestamp` solo queda como respaldo en el repositorio cuando no hay zona válida (ahí sí salen desfasadas fuera de Europa).
 
-No lo arregles a la ligera: afecta a la cuenta atrás y a cualquier hora que muestres. Si vas a tocarlo, avisa al usuario y propón la corrección completa (convertir usando `Event.timeZone`, que ya se importa). `wallClockToInstant(date, timeZone)` de `src/utils/date.ts` ya hace esa conversión y la usa el calendario (`/api/calendar`).
+No uses `getMadridTimestamp` en componentes: afecta a la cuenta atrás y a cualquier hora que muestres. `wallClockToInstant` también la usa el calendario (`/api/calendar`).
 
 ## Idioma y estados
 
 - **Todo el texto visible va en español.** Incluidos mensajes de error y estados vacíos.
-- Toda vista que cargue datos necesita sus tres estados: cargando, error y vacío. Reutiliza los patrones existentes (skeleton con `animate-pulse` para rejillas de tarjetas, `LoaderCircle` con `animate-spin` para bloques destacados) en lugar de inventar uno nuevo.
+- Toda vista que cargue datos necesita sus tres estados: cargando, error y vacío. Reutiliza los patrones existentes (skeleton con `animate-pulse` para listas, texto «Cargando…» para bloques destacados) en lugar de inventar uno nuevo.
 - Formatea fechas y números con `Intl` y locale `es-ES`, como ya hacen los componentes.
 
 ## Estilo visual
 
-El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase `.card`, labels en mayúsculas con `tracking`). **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
+El proyecto tiene una identidad visual definida (tema claro por defecto con modo oscuro y botón de cambio, acento rojo, contenido directamente sobre la página sin cards ni glass ni rejillas, `.card` solo como filete, iconos lucide escasos, sin emojis, labels en mayúsculas con `tracking`). Usa los colores tematizados (`text-white` = color de texto, `bg-black` = fondo) para que todo valga en claro y oscuro. **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
 
 ## Decisiones de framework (Next.js 16 / React 19)
 
@@ -74,7 +74,7 @@ El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase
 - El patrón actual es componente cliente + `fetch("/api/...")`. Mover una vista a "server component que llama al repositorio directamente" es un cambio de arquitectura: **propónlo con pros y contras y espera aprobación**.
 - Caché: los datos solo cambian cuando corre un importador o el watcher, por eso las rutas llevan `revalidate = 60`. Toda ruta nueva con datos de BD debe justificar su política.
 - Navegación: el `Header` ya es un componente cliente y marca el enlace activo con `usePathname`, pero sigue usando `<a href>` (recarga la página completa); `next/link` daría navegación cliente. Mejora detectada: proponla antes de aplicarla (es un componente visible).
-- Imágenes: las del circuito vienen de `photos.motogp.com` (SVG) y se pintan con `<img>`; pasar a `next/image` exige `images.remotePatterns` en `next.config.ts`. No lo cambies sin preguntar.
+- Imágenes: las del circuito y las banderas vienen de `photos.motogp.com` (SVG) y se pintan con `<img>`; `next/image` solo se usa en la ficha de `/pilotos` (`RiderSlide`), con `images.remotePatterns` de `next.config.ts` limitado a `photos.motogp.com` (otro host tumba la página en desarrollo). No cambies el resto a `next/image` sin preguntar.
 - `loading.tsx`, `error.tsx` y `not-found.tsx` aún no se usan; si los propones, deben reutilizar los patrones visuales existentes.
 - Despliegue vigente en un VPS de Clouding ([DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)); alternativa en Railway con dos servicios sobre la misma base de datos ([DEPLOY.md](DEPLOY.md)): `web` (`npm run start:web`, que ejecuta `prisma migrate deploy` antes de `next start`) y `worker` (`npm run watch:sessions`). No cambies scripts de arranque ni migraciones sin hablarlo.
 - Desarrollo en Windows: `next dev` no admite dos instancias sobre el mismo proyecto. Si el puerto 3000 ya lo usa un `next dev` de este directorio, reutilízalo (log en `.next/dev/logs/next-development.log`). El aviso de Turbopack sobre un `package-lock.json` fuera del repositorio es conocido e inofensivo.

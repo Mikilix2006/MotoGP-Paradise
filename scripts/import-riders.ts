@@ -85,7 +85,15 @@ async function main() {
   );
 
   console.log(
+    `Pasos descartados por repetir piloto/temporada/categoría: ${result.entriesSuperseded}`
+  );
+
+  console.log(
     `Imágenes procesadas: ${result.imagesProcessed}`
+  );
+
+  console.log(
+    `URL de imagen ignoradas (host distinto de photos.motogp.com): ${result.imagesRejected}`
   );
 
   console.log(
@@ -94,6 +102,14 @@ async function main() {
 
   console.log(
     `Constructores procesados: ${result.constructorsProcessed}`
+  );
+
+  console.log(
+    `Biografías creadas: ${result.biographiesCreated}`
+  );
+
+  console.log(
+    `Biografías actualizadas: ${result.biographiesUpdated}`
   );
 }
 

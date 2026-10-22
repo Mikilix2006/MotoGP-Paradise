@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 import { getCurrentSeason } from "./seasonRepository";
 
-import { wallClockToInstant } from "@/utils/date";
+import { getMadridTimestamp, wallClockToInstant } from "@/utils/date";
 
 import type { CalendarSession, MotoGPEvent } from "@/types/grandPrix";
+import { countryNameEs } from "@/utils/country";
 
 /*
  * legacy_id de la categoría MotoGP en la API de resultados.
@@ -37,9 +38,8 @@ export interface CircuitTrackDetails {
   infoImageUrl: string | null;
 
   /**
-   * Hora de inicio de la Sprint tal y como está guardada:
-   * hora del circuito etiquetada como UTC. Se interpreta con
-   * getMadridTimestamp() igual que la carrera principal.
+   * Instante absoluto (ISO) de inicio de la Sprint, convertido
+   * desde la hora del circuito con su zona horaria.
    */
   sprintDate: string | null;
   sprintLaps: number | null;
@@ -50,7 +50,7 @@ export interface NextGrandPrixData extends MotoGPEvent {
     track: CircuitTrackDetails | null;
   };
 
-  /** Hora de inicio de la carrera principal de MotoGP. */
+  /** Instante absoluto (ISO) de inicio de la carrera principal de MotoGP. */
   nextMotoGPRace: string;
 
   race: {
@@ -159,6 +159,17 @@ type CalendarEventWithDetails = Prisma.EventGetPayload<{
 type CalendarSessionRow = CalendarEventWithDetails["sessions"][number];
 
 type Track = NonNullable<EventWithDetails["circuit"]>["tracks"][number];
+
+/**
+ * Instante absoluto (ISO) de una hora de pared del circuito guardada
+ * como UTC. Sin zona válida, se mantiene la lectura antigua (Madrid).
+ */
+function toInstantIso(dateStart: Date, timeZone: string | null): string {
+  return (
+    toAbsoluteIso(dateStart, timeZone) ??
+    new Date(getMadridTimestamp(dateStart.toISOString())).toISOString()
+  );
+}
 
 function toDateOnly(date: Date | null): string {
   return date ? date.toISOString().slice(0, 10) : "";
@@ -326,8 +337,9 @@ function buildTrackDetails(
 
     infoImageUrl: infoAsset?.path ?? null,
 
-    sprintDate:
-      sprintSession?.dateStart?.toISOString() ?? null,
+    sprintDate: sprintSession?.dateStart
+      ? toInstantIso(sprintSession.dateStart, event.timeZone)
+      : null,
 
     sprintLaps,
   };
@@ -372,7 +384,7 @@ function toNextGrandPrixData(
 
     country: {
       iso: country.iso,
-      name: country.name,
+      name: countryNameEs(country.iso, country.name),
       region_iso: country.regionIso ?? "",
     },
 
@@ -406,7 +418,7 @@ function toNextGrandPrixData(
 
     round,
 
-    nextMotoGPRace: raceSession.dateStart.toISOString(),
+    nextMotoGPRace: toInstantIso(raceSession.dateStart, event.timeZone),
 
     race: {
       seasonUuid: season.motogpUuid ?? season.id,

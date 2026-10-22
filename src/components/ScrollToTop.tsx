@@ -25,11 +25,11 @@ export default function ScrollToTop() {
       onClick={goTop}
       aria-label="Volver arriba"
       tabIndex={visible ? 0 : -1}
-      className={`fixed bottom-4 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-red-500/30 bg-black/80 text-red-500 backdrop-blur transition duration-300 hover:bg-red-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 motion-reduce:transition-none md:bottom-6 md:right-6 ${
+      className={`fixed bottom-4 right-4 z-30 flex h-11 w-11 items-center justify-center border border-white/20 bg-black text-lg text-white  transition duration-300 hover:border-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 motion-reduce:transition-none md:bottom-6 md:right-6 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
       }`}
     >
-      <ArrowUp size={20} />
+      <ArrowUp size={20} aria-hidden />
     </button>
   );
 }

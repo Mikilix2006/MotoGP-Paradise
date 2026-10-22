@@ -2,20 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --bg: #080808; --panel: #121212; --line: #252525; --muted: #9ca3af; --accent: #e10600; }
+/* Paleta: claro por defecto; oscuro con <html data-theme="dark">. Los canales -rgb alimentan tailwind.config.ts */
+:root {
+  --bg-rgb: 255 255 255; --fg-rgb: 17 17 17;
+  --muted-rgb: 63 63 70; --muted2-rgb: 82 82 91; --muted3-rgb: 113 113 122;
+  --accent-rgb: 200 5 0; --accent-text-rgb: 200 5 0;
+  --pos-rgb: 4 120 87; --warn-rgb: 146 64 14;
+  --bg: rgb(var(--bg-rgb)); --fg: rgb(var(--fg-rgb)); --muted: rgb(var(--muted2-rgb));
+  --line: rgb(var(--fg-rgb) / .2); --accent: #e10600;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg-rgb: 8 8 8; --fg-rgb: 245 245 245;
+  --muted-rgb: 161 161 170; --muted2-rgb: 140 140 150; --muted3-rgb: 113 113 122;
+  --accent-rgb: 225 6 0; --accent-text-rgb: 248 113 113;
+  --pos-rgb: 52 211 153; --warn-rgb: 252 211 77;
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: #fff; font-family: Arial, Helvetica, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body), Arial, Helvetica, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
-/* Fondo: rejilla fina + la misma rejilla en rojo bajo el cursor. Ajustes: --cell (paso), --line-glow (alfa de la línea roja), --radius (halo) */
-.gridbg { --cell: 44px; --line-glow: .6; --radius: 240px; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-  background-size: var(--cell) var(--cell); }
-.gridbg-glow { position: absolute; inset: 0; display: none;
-  background-image: linear-gradient(rgba(225,6,0,var(--line-glow)) 1px, transparent 1px), linear-gradient(90deg, rgba(225,6,0,var(--line-glow)) 1px, transparent 1px);
-  background-size: var(--cell) var(--cell);
-  -webkit-mask-image: radial-gradient(circle var(--radius) at var(--mx, -999px) var(--my, -999px), #000 10%, transparent);
-  mask-image: radial-gradient(circle var(--radius) at var(--mx, -999px) var(--my, -999px), #000 10%, transparent); }
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) { .gridbg-glow { display: block; } }
 html, body { scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
-.card { border: 1px solid var(--line); background: rgba(18,18,18,.92); border-radius: 18px; }
+/* Sin caja: solo un filete superior. */
+.card { border-top: 1px solid var(--line); }
+/* Sección principal: filete grueso del color de texto + pestaña roja corta. Los subbloques siguen con .card (filete fino). */
+.section { position: relative; border-top: 2px solid var(--fg); padding-top: 1.75rem; }
+.section::before { content: ""; position: absolute; top: -2px; left: 0; width: 3rem; height: 2px; background: var(--accent); }
+@media (min-width: 768px) { .section { padding-top: 2.25rem; } }
+/* Titulares y etiquetas en mayúsculas con la fuente display (Barlow Condensed). */
+h1, h2, .uppercase { font-family: var(--font-display), "Arial Narrow", Arial, sans-serif; }
+h1 { letter-spacing: -0.01em; line-height: 1.05; }
+/* Controles clicables: cursor de mano y foco visible coherente (rojo sutil). */
+button:not(:disabled), [role="button"], summary { cursor: pointer; }
+:focus-visible { outline: 2px solid rgb(var(--accent-text-rgb) / .5); outline-offset: 2px; }
+/* Sin animaciones decorativas si el usuario lo pide (la cuenta atrás es JS y sigue funcionando). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

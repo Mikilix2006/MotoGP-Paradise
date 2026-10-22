@@ -1,7 +1,7 @@
 -- Comprobaciones de solo lectura tras la carga: psql "$URL_SIN_SCHEMA" -f comprobaciones.sql
 select version();
 show server_encoding;
--- 1) Migraciones aplicadas (deben ser 6, todas con finished_at y sin rolled_back_at)
+-- 1) Migraciones aplicadas (deben ser 8, todas con finished_at y sin rolled_back_at)
 select migration_name, finished_at is not null as ok, rolled_back_at from _prisma_migrations order by 1;
 -- 2) Recuento por tabla (comparar con el origen)
 select table_name, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', table_name), false, true, '')))[1]::text::int as filas

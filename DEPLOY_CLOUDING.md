@@ -188,6 +188,8 @@ cat /srv/motogp/current/REVISION
 
 La base de datos del servidor está vacía. Los datos se llevan desde tu base local con un volcado. **Orden obligatorio:** primero la Fase 4 (el despliegue crea las tablas con `prisma migrate deploy`) y después la carga; `cargar-datos.sh` necesita que las tablas existan.
 
+> **Semilla 500cc (ajuste sin probar en el servidor):** la migración `20261014120100_category_500cc` deja una fila en `categories` al desplegar (la categoría «500cc», con `id` `b1491d87-f579-429d-b2c0-46c75169888c` fijado en la propia migración) y el volcado de la base local trae esa misma fila. Para que no choque, `cargar-datos.sh` la borra si es lo único que hay en el destino (exactamente 1 fila en total) antes de comprobar que todo está vacío; si hay más filas, aborta como siempre con «el destino ya tiene N filas». Este ajuste solo se ha comprobado con `bash -n`; no se ha ejecutado una carga real en el servidor. Ver [AGENTS.md](AGENTS.md), deudas conocidas.
+
 **1. Volcado en tu PC** (PowerShell, raíz del repositorio). `volcar-datos.ps1` lee la conexión de las variables de entorno estándar `PG*` de **esa sesión** (no lee `.env`); pon los valores de tu base local y la contraseña solo en la sesión, nunca en un fichero:
 
 ```powershell
@@ -222,7 +224,7 @@ Comprueba el `.sha256` y la integridad del gzip, **aborta si alguna tabla ya tie
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
 ```
 
-Cifras de referencia del volcado de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, 239.259 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (hay 6 carpetas en `prisma/migrations/`). Las 6 migraciones deben salir con `ok = t`, el recuento por tabla debe igualar al de origen y no debe haber FK sin validar. Son cifras **orientativas, no exactas**: en el servidor la sincronización cada 5 minutos añade filas después de la carga (ver las cifras medidas en [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)). Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+Cifras de referencia del volcado de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, 239.259 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (las que había entonces en `prisma/migrations/`; hoy hay 8: las dos de `20261014…` se aplican en el servidor con `prisma migrate deploy` al desplegar, ver [README](README.md#5-base-de-datos-y-prisma)). Todas las migraciones aplicadas deben salir con `ok = t` (`comprobaciones.sql` indica «deben ser 8»), el recuento por tabla debe igualar al de origen y no debe haber FK sin validar. Son cifras **orientativas, no exactas**: en el servidor la sincronización cada 5 minutos añade filas después de la carga (ver las cifras medidas en [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)). Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 ## 8. Fase 6 — Comprobar la web y comandos útiles
 
@@ -374,7 +376,8 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 - La primera ejecución automática de madrugada de `motogp-backup` (solo se ha probado la copia manual).
 - `systemd-analyze verify` sobre las unidades.
 - Los `import:*` en el servidor.
+- La página `/pilotos` en el servidor: usa `next/image` (`/_next/image` redimensiona fotos de `photos.motogp.com` de 3-4 MB con `sharp`, dependencia opcional de Next que figura en `package-lock.json`), y no se ha comprobado que `sharp` se instale ni cuánta memoria y CPU consume el optimizador en el VPS.
 - El truco de `sslip.io`.
 - Las instantáneas del panel de Clouding.
 
-**Limitación conocida:** los importadores `import:*` completos no se empaquetan. Con un VPS se podrían ejecutar desde un checkout del repositorio en el servidor, pero **eso no está documentado ni probado**; hoy los datos nuevos se importan en local y se llevan por volcado (ver [AGENTS.md](AGENTS.md), deudas conocidas).
+**Limitación conocida:** los importadores `import:*` completos no se empaquetan. Con un VPS se podrían ejecutar desde un checkout del repositorio en el servidor, pero **eso no está documentado ni probado**; hoy los datos nuevos se importan en local y se llevan por volcado (ver [AGENTS.md](AGENTS.md), deudas conocidas). Por ejemplo, las biografías de `/pilotos` (`rider_biographies`, que `prisma migrate deploy` crea vacía) y las estadísticas de 500cc llegan al servidor con un volcado nuevo, no con la migración; `cargar-datos.sh` aborta si el destino ya tiene filas.

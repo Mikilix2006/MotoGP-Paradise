@@ -22,6 +22,13 @@ gzip -t "$ARCHIVO"
 FILAS=$("${PSQL[@]}" -Atc "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', t.table_schema, t.table_name), false, true, '')))[1]::text::int),0) from information_schema.tables t where t.table_schema='public' and t.table_type='BASE TABLE' and t.table_name <> '_prisma_migrations' and not exists (select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=format('%I.%I', t.table_schema, t.table_name)::regclass::oid and d.deptype='e')")
 # (Se excluyen las tablas que pertenecen a extensiones, p. ej. PostGIS: spatial_ref_sys, pagc_*;
 #  el hosting las crea en public y no son nuestras.)
+# La migracion category_500cc siembra la fila 500cc y el volcado la trae con el mismo id:
+# si es lo unico que hay en el destino, se retira para que la carga no choque.
+SEMILLA_500CC="b1491d87-f579-429d-b2c0-46c75169888c"
+if [ "$FILAS" = "1" ] && [ "$("${PSQL[@]}" -Atc "select count(*) from categories where id='$SEMILLA_500CC'")" = "1" ]; then
+  "${PSQL[@]}" -qc "delete from categories where id='$SEMILLA_500CC'"
+  FILAS=0
+fi
 if [ "$FILAS" != "0" ]; then echo "ERROR: el destino ya tiene $FILAS filas; abortado." >&2; exit 1; fi
 
 echo "Cargando $ARCHIVO ..."

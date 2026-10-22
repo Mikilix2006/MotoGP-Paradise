@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Search, ChevronDown, X } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
+import { Menu, X } from "lucide-react";
 
 // Enlaces del menú. `href` "#" = página aún sin crear (nunca se marca activa).
 // Para añadir una página nueva basta con una línea más aquí.
 const NAV_LINKS = [
   { label: "Inicio", href: "/" },
   { label: "Calendario", href: "/calendario" },
-  { label: "Pilotos", href: "#" },
+  { label: "Pilotos", href: "/pilotos" },
   { label: "Equipos", href: "#" },
   { label: "Predicciones", href: "#" },
 ];
@@ -72,36 +73,43 @@ export function Header() {
   }, [open]);
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-20 border-b border-white/10 bg-black/80 backdrop-blur">
+    <header ref={headerRef} className="sticky top-0 z-20 border-b border-white/10 bg-black ">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-10">
           <a
             href="/"
             aria-label="MotoGP Stats, ir al inicio"
-            className={`flex items-center gap-2 rounded-md font-black tracking-tight text-xl ${FOCUS_RING}`}
+            className={`flex items-center gap-2 rounded-md font-display font-black tracking-tight text-xl ${FOCUS_RING}`}
           >
-            <span className="h-6 w-1.5 rounded bg-red-600" />
             MOTO<span className="text-red-600">GP</span><span className="text-zinc-500">STATS</span>
           </a>
-          <nav aria-label="Menú principal" className="hidden gap-7 text-sm text-zinc-400 md:flex">
+          {/* self-stretch + -my-4: el nav ocupa todo el alto del header para que el semicírculo
+              del enlace activo toque justo el borde superior. */}
+          <nav aria-label="Menú principal" className="-my-4 hidden gap-7 self-stretch text-sm text-zinc-400 md:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
                 <a
                   key={link.label}
                   href={link.href}
-                  className={active ? "text-white" : undefined}
+                  className={`relative flex items-center transition-colors hover:text-white motion-reduce:transition-none ${active ? "text-white" : ""}`}
                   aria-current={active ? "page" : undefined}
                 >
                   {link.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute left-0 bottom-0 h-[3px] w-full bg-red-600"
+                    />
+                  )}
                 </a>
               );
             })}
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <button className="hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-zinc-300 md:flex">2026 <ChevronDown size={15}/></button>
-          <Search size={19} className="text-zinc-400" />
+          <button className="hidden items-center gap-2 border-b border-white/10 py-1 text-sm text-zinc-300 md:flex">2026</button>
+          <ThemeToggle />
           {/* Zona táctil de ~45 px (21 + 2×12) sin alterar la maquetación (margen negativo). */}
           <button
             ref={buttonRef}
@@ -110,9 +118,9 @@ export function Header() {
             aria-controls={MENU_ID}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             onClick={() => setOpen((v) => !v)}
-            className={`-m-3 rounded-lg p-3 text-white md:hidden ${FOCUS_RING}`}
+            className={`-m-3 p-3 text-sm font-bold text-white md:hidden ${FOCUS_RING}`}
           >
-            {open ? <X size={21} /> : <Menu size={21} />}
+            {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
           </button>
         </div>
       </div>
@@ -120,7 +128,7 @@ export function Header() {
           los desplegables de las cards: grid-rows 0fr↔1fr + opacidad; plegado = invisible. */}
       <div
         id={MENU_ID}
-        className={`absolute inset-x-0 top-full grid bg-black/[.98] transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out motion-reduce:transition-none md:hidden ${
+        className={`absolute inset-x-0 top-full grid bg-black transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out motion-reduce:transition-none md:hidden ${
           open
             ? "visible opacity-100 grid-rows-[1fr]"
             : "invisible opacity-0 grid-rows-[0fr]"
