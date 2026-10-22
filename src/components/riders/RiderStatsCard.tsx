@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useRef } from "react";
-import { BarChart3, Info, Trophy } from "lucide-react";
 
 import type {
   CarouselCategory,
@@ -84,7 +83,6 @@ function plural(n: number, one: string, many: string): string {
 function Note({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-start gap-2 text-xs text-zinc-500">
-      <Info size={14} className="mt-0.5 shrink-0" />
       <span>{children}</span>
     </p>
   );
@@ -92,7 +90,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-zinc-900/50 px-6 py-10 text-center text-sm text-zinc-500">
+    <div className="rounded-none border border-white/5 bg-zinc-900/50 px-6 py-10 text-center text-sm text-zinc-500">
       {children}
     </div>
   );
@@ -249,7 +247,6 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
   if (total === 0) {
     return (
       <Empty>
-        <Trophy size={20} className="mx-auto mb-3 text-zinc-500" />
         {rider.full_name} todavía no ha ganado ningún Mundial.
         <span className="mt-1 block text-xs">
           La temporada en curso no cuenta hasta que termine.
@@ -272,7 +269,6 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
           <li key={title.category} className="py-4 last:pb-0">
             <div className="flex items-center justify-between gap-3">
               <p className="flex min-w-0 items-center gap-2 font-bold text-white">
-                <Trophy size={16} className="shrink-0 text-red-500" />
                 <span className="truncate">
                   {cleanCategory(title.category)}
                 </span>
@@ -418,12 +414,11 @@ export function RiderStatsCard({
   }
 
   return (
-    <div className="card p-5 sm:p-6">
+    <div className="card pt-5 sm:pt-6">
       <p className="text-xs uppercase tracking-widest text-zinc-500">
         Estadísticas
       </p>
       <h3 className="mt-1 flex items-center gap-2 text-2xl font-black">
-        <BarChart3 size={21} className="text-red-500" />
         Ficha estadística
       </h3>
 
@@ -450,7 +445,7 @@ export function RiderStatsCard({
               onClick={() => onTabChange(key)}
               className={`min-h-10 rounded-lg border px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 motion-reduce:transition-none ${
                 selected
-                  ? "border-red-500/30 bg-red-600 text-white"
+                  ? "border-red-500/30 bg-red-600 text-[#fff]"
                   : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
               }`}
             >

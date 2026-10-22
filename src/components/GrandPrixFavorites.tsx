@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  Trophy,
-  ChevronDown,
-  ChevronUp,
-  Info,
-} from "lucide-react";
 
 import type {
   Favorite,
@@ -76,7 +70,7 @@ function FavoriteDetails({
   const { circuit, form, bike, reliability, trend } = favorite.breakdown;
 
   return (
-    <div className="mt-4 space-y-5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="mt-4 space-y-5 rounded-none border border-white/5 bg-white/[0.02] p-4">
       {/* COMPONENTES */}
       <div className="space-y-3">
         {COMPONENTS.map((component) => {
@@ -338,13 +332,13 @@ export default function GrandPrixFavorites() {
     : favorites.slice(0, INITIAL_VISIBLE);
 
   return (
-    <aside className="card p-6">
+    <aside className="card pt-6">
       <p className="text-xs uppercase tracking-widest text-zinc-500">
         Índice estadístico
       </p>
 
       <h2 className="mt-1 flex items-center gap-2 text-2xl font-black">
-        <Trophy className="text-red-500" /> Favoritos del GP
+        Favoritos del GP
       </h2>
 
       {data && (
@@ -391,14 +385,14 @@ export default function GrandPrixFavorites() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-7 rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
+        <div className="mt-7 rounded-none border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
           {error}
         </div>
       )}
 
       {/* VACÍO */}
       {!loading && !error && favorites.length === 0 && (
-        <div className="mt-7 rounded-xl border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
+        <div className="mt-7 rounded-none border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
           Todavía no hay datos suficientes para este GP.
         </div>
       )}
@@ -447,11 +441,7 @@ export default function GrandPrixFavorites() {
                         </span>
                       </span>
 
-                      {isExpanded ? (
-                        <ChevronUp size={16} className="text-zinc-500" />
-                      ) : (
-                        <ChevronDown size={16} className="text-zinc-500" />
-                      )}
+                      <span aria-hidden className="text-zinc-500">{isExpanded ? "−" : "+"}</span>
                     </span>
                   </div>
 
@@ -485,7 +475,6 @@ export default function GrandPrixFavorites() {
       )}
 
       <p className="mt-8 flex gap-2 border-t border-white/10 pt-5 text-xs leading-relaxed text-zinc-500">
-        <Info size={14} className="mt-0.5 shrink-0" />
         <span>
           El índice combina historial en el circuito (35%), forma de la
           temporada (30%), la moto (20%), fiabilidad (10%) y tendencia (5%).

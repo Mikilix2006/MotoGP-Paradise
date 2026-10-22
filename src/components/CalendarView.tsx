@@ -1,13 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CalendarDays,
-  MapPin,
-  CheckCircle2,
-  Clock,
-  ChevronDown,
-} from "lucide-react";
 import CountryFlag from "./CountryFlag";
 import type { CalendarSession } from "@/types/grandPrix";
 
@@ -54,20 +47,20 @@ function formatDate(date: string) {
 function getStatusBadge(status: string) {
   const config: Record<string, { style: string; icon: React.ReactNode; label: string }> = {
     FINISHED: {
-      style: "border-white/10 bg-zinc-900 text-zinc-400",
-      icon: <CheckCircle2 size={16} />,
+      style: "border-white/10 text-zinc-400",
+      icon: null,
       label: "Finalizado",
     },
     CURRENT: {
-      style: "border-red-500/30 bg-red-950 text-red-400",
-      icon: <Clock size={16} />,
+      style: "border-red-500/30 text-red-400",
+      icon: null,
       label: "En curso",
     },
     "NOT-STARTED": {
       // Pill de contorno en zinc claro: se distingue del "Finalizado" (relleno
       // apagado) y del rojo de "En curso" / "ROUND N", sin salir de la paleta.
       style: "border-white/20 bg-transparent text-zinc-200",
-      icon: <CalendarDays size={16} />,
+      icon: null,
       label: "Próximamente",
     },
   };
@@ -333,7 +326,7 @@ function SessionSchedule({
       <div
         role="group"
         aria-label={`Horarios de las sesiones de Moto3, Moto2 y MotoGP en ${modeText.toLowerCase()}`}
-        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] ${GRID_COLS[Math.min(columns.length, 4)]}`}
+        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-none border border-white/5 bg-white/[0.02] ${GRID_COLS[Math.min(columns.length, 4)]}`}
       >
         {columns.map((column) => (
           <div key={column.key} className="min-w-0">
@@ -384,15 +377,7 @@ function SessionSchedule({
                       </span>
                       {finished && (
                         <>
-                          <CheckCircle2
-                            size={14}
-                            role="img"
-                            aria-label="Terminada"
-                            className="ml-1.5 inline-block align-middle text-zinc-400 sm:hidden"
-                          >
-                            <title>Terminada</title>
-                          </CheckCircle2>
-                          <span className="ml-1.5 hidden rounded-full border border-white/10 bg-white/5 px-1.5 py-px align-middle text-[10px] font-semibold normal-case tracking-normal text-zinc-400 sm:inline-block">
+                          <span className="ml-1.5 rounded-full border border-white/10 px-1.5 py-px align-middle text-[10px] font-semibold normal-case tracking-normal text-zinc-400 inline-block">
                             Terminada
                           </span>
                         </>
@@ -470,7 +455,6 @@ function EventCard({
 
       <span className="mt-4 grid gap-3 sm:grid-cols-2">
         <span className="flex gap-2">
-          <MapPin size={16} className="mt-1 shrink-0 text-red-500" />
           <span className="block text-sm">
             <span className="block font-semibold text-zinc-100">
               {event.circuit.name}
@@ -482,7 +466,6 @@ function EventCard({
         </span>
 
         <span className="flex gap-2">
-          <CalendarDays size={16} className="mt-1 shrink-0 text-red-500" />
           <span className="block text-sm">
             <span className="block font-semibold text-zinc-100">
               {formatDate(event.date_start)}
@@ -497,11 +480,7 @@ function EventCard({
       {expandable && (
         <span className="absolute bottom-5 right-5 flex items-center gap-1 text-xs uppercase tracking-widest text-zinc-500">
           Horarios
-          <ChevronDown
-            size={16}
-            aria-hidden="true"
-            className={`transition-transform duration-300 ease-in-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
-          />
+          <span aria-hidden="true">{open ? "−" : "+"}</span>
         </span>
       )}
     </>
@@ -511,16 +490,10 @@ function EventCard({
     <article
       className={`card relative transition-all ${
         featured
-          ? "overflow-hidden !border-red-500/30 hover:!border-red-500/50 hover:bg-white/5"
-          : "border border-white/10 hover:border-white/20 hover:bg-white/5"
+          ? "!border-red-600"
+          : "hover:bg-white/[0.03]"
       } ${expandable ? "" : "p-5"}`}
     >
-      {featured && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-950/40 via-transparent to-transparent"
-        />
-      )}
       <div className="relative">
       <h3 className="m-0 text-base font-normal">
         {expandable ? (
@@ -620,7 +593,7 @@ export function CalendarView() {
     return (
       <div role="status" aria-label="Cargando calendario" className="animate-pulse">
         <div className="mb-4 h-3.5 w-44 rounded bg-white/10" />
-        <div className="card p-5">
+        <div className="card pt-5">
           <div className="flex items-center gap-3">
             <div className="h-6 w-20 rounded-full bg-white/10" />
             <div className="h-6 w-24 rounded-full bg-white/10" />
@@ -635,7 +608,7 @@ export function CalendarView() {
         <div className="mb-4 h-3.5 w-72 max-w-full rounded bg-white/10" />
         <div className="grid gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="card p-5">
+          <div key={i} className="card pt-5">
             <div className="flex items-center gap-3">
               <div className="h-6 w-20 rounded-full bg-white/10" />
               <div className="h-6 w-24 rounded-full bg-white/10" />

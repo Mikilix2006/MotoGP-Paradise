@@ -64,7 +64,7 @@ return () => clearInterval(interval);
 
 }, [targetDate]);
 
-return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center"> <p className="text-2xl font-black md:text-3xl">
+return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center"> <p className="text-2xl font-black md:text-3xl">
 {formatNumber(timeRemaining.days)} </p>
 
     <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
@@ -72,7 +72,7 @@ return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
+  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
     <p className="text-2xl font-black md:text-3xl">
       {formatNumber(timeRemaining.hours)}
     </p>
@@ -82,7 +82,7 @@ return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
+  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
     <p className="text-2xl font-black md:text-3xl">
       {formatNumber(timeRemaining.minutes)}
     </p>
@@ -93,7 +93,7 @@ return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
+  <div className="rounded-none border border-white/10 bg-black/20 p-3 text-center">
     <p className="text-2xl font-black md:text-3xl">
       {formatNumber(timeRemaining.seconds)}
     </p>

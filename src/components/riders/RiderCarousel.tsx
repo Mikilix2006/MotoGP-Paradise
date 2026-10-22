@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
 
 import type {
   CarouselCategory,
@@ -9,6 +8,7 @@ import type {
 } from "@/types/riderCarousel";
 import { RiderSlide, type ImageIssueHandler } from "./RiderSlide";
 import type { StatsTabKey } from "./RiderStatsCard";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface RiderCarouselProps {
   status: "loading" | "error" | "ready";
@@ -27,7 +27,7 @@ const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50";
 
 // Misma altura de la caja de imagen que usa RiderSlide por debajo de lg; centra las flechas en móvil.
-const ARROW_BASE = `absolute top-[13rem] z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-red-500/30 bg-black/80 text-red-500 backdrop-blur transition duration-300 hover:bg-red-600 hover:text-white disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none sm:top-[16rem] lg:static lg:translate-y-0 lg:self-center ${FOCUS_RING}`;
+const ARROW_BASE = `absolute top-[13rem] z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-white/20 bg-black text-xl text-white transition duration-300 hover:border-red-600 disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none sm:top-[16rem] lg:static lg:translate-y-0 lg:self-center ${FOCUS_RING}`;
 
 function ArrowButton({
   direction,
@@ -38,8 +38,7 @@ function ArrowButton({
   disabled: boolean;
   onClick: () => void;
 }) {
-  const Icon = direction === "prev" ? ChevronLeft : ChevronRight;
-  return (
+    return (
     <button
       type="button"
       aria-label={direction === "prev" ? "Piloto anterior" : "Piloto siguiente"}
@@ -47,7 +46,7 @@ function ArrowButton({
       onClick={onClick}
       className={`${ARROW_BASE} ${direction === "prev" ? "left-2 lg:order-first" : "right-2 lg:order-last"}`}
     >
-      <Icon size={21} />
+      {direction === "prev" ? <ChevronLeft size={22} aria-hidden /> : <ChevronRight size={22} aria-hidden />}
     </button>
   );
 }
@@ -65,7 +64,7 @@ function CarouselSkeleton() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
         {/* IMAGEN */}
         <div className="card relative h-[26rem] sm:h-[32rem] lg:h-auto lg:min-h-[40rem]">
-          <div className="absolute inset-6 mx-auto w-3/5 rounded-2xl bg-white/10" />
+          <div className="absolute inset-6 mx-auto w-3/5 rounded-none bg-white/10" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
@@ -91,7 +90,7 @@ function CarouselSkeleton() {
           </div>
 
           {/* ESTADÍSTICAS */}
-          <div className="card p-5 sm:p-6">
+          <div className="card pt-5 sm:pt-6">
             <div className="h-3 w-24 rounded bg-white/10" />
             <div className="mt-3 h-7 w-52 rounded bg-white/10" />
             <div className="mt-5 flex flex-wrap gap-2">
@@ -102,14 +101,14 @@ function CarouselSkeleton() {
             {/* Misma altura fija que el panel real para que al cargar no salte la ficha */}
             <div className="mt-5 h-[22rem] border-t border-white/10 pt-5 sm:h-[20rem]">
               <div className="grid grid-cols-2 gap-3">
-                <div className="h-24 rounded-xl border border-white/10 bg-black/20" />
-                <div className="h-24 rounded-xl border border-white/10 bg-black/20" />
+                <div className="h-24 rounded-none border border-white/10 bg-black/20" />
+                <div className="h-24 rounded-none border border-white/10 bg-black/20" />
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl border border-white/10 bg-black/20"
+                    className="h-20 rounded-none border border-white/10 bg-black/20"
                   />
                 ))}
               </div>
@@ -133,7 +132,7 @@ function ErrorState({
   return (
     <div
       role="alert"
-      className="card flex min-h-[26rem] flex-col items-center justify-center gap-5 p-8 text-center"
+      className="card flex min-h-[26rem] flex-col items-center justify-center gap-5 pt-8 text-center"
     >
       <div>
         <p className="font-medium text-red-400">
@@ -147,9 +146,8 @@ function ErrorState({
       <button
         type="button"
         onClick={onRetry}
-        className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-500/30 bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-red-500 motion-reduce:transition-none ${FOCUS_RING}`}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-500/30 bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#fff] transition hover:bg-red-500 motion-reduce:transition-none ${FOCUS_RING}`}
       >
-        <RotateCw size={15} />
         Reintentar
       </button>
     </div>
@@ -164,8 +162,8 @@ function EmptyState({
   season: number;
 }) {
   return (
-    <div className="card p-6">
-      <div className="rounded-xl border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
+    <div className="card pt-6">
+      <div className="rounded-none border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
         Todavía no hay pilotos de {category} registrados en la temporada {season}.
       </div>
     </div>
@@ -184,7 +182,7 @@ function CategorySelector({
       <div
         role="group"
         aria-label="Categoría"
-        className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1"
+        className="inline-flex rounded-none border border-white/10 bg-white/5 p-1"
       >
         {CATEGORIES.map((item) => {
           const active = item === category;
@@ -198,7 +196,7 @@ function CategorySelector({
               }}
               className={`min-h-11 rounded-lg px-5 text-xs font-bold uppercase tracking-wider transition motion-reduce:transition-none sm:px-8 ${FOCUS_RING} ${
                 active
-                  ? "bg-red-600 text-white"
+                  ? "bg-red-600 text-[#fff]"
                   : "text-zinc-400 hover:text-white"
               }`}
             >

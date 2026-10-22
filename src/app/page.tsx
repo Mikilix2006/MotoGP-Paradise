@@ -6,7 +6,7 @@ import GrandPrixFavorites from "@/components/GrandPrixFavorites";
 
 export default function Home() {
   return (
-    <main className="home-cards min-h-screen">
+    <main className="min-h-screen">
       <Header />
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
 
@@ -20,7 +20,7 @@ export default function Home() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_.75fr] lg:items-start">
           {/* CLASIFICACIÓN */}
-          <div className="card order-2 overflow-hidden lg:order-1">
+          <div className="order-2 overflow-hidden lg:order-1">
           <RiderStandings />
           </div>
 

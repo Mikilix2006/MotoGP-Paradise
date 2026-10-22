@@ -3,12 +3,6 @@
 import { useEffect, useState } from "react";
 
 
-import {
-  Trophy,
-  Medal,
-  Map,
-  Flag,
-} from "lucide-react";
 
 interface RiderStatistics {
   constructor: string;
@@ -203,10 +197,10 @@ export default function ChampionshipStats() {
       >
         {/* LÍDER y PUNTOS */}
         {[0, 1].map((i) => (
-          <div key={i} className="card p-5">
+          <div key={i} className="card pt-5">
             <div className="flex items-center justify-between">
               <div className="h-3 w-24 rounded bg-white/10" />
-              <div className="h-[18px] w-[18px] rounded bg-white/10" />
+              
             </div>
             <div className="mx-auto mt-4 h-7 w-40 rounded bg-white/10" />
             <div className="mx-auto mt-2 h-4 w-32 rounded bg-white/10" />
@@ -214,10 +208,10 @@ export default function ChampionshipStats() {
         ))}
 
         {/* CIRCUITO */}
-        <div className="card p-5">
+        <div className="card pt-5">
           <div className="flex items-center justify-between">
             <div className="h-3 w-20 rounded bg-white/10" />
-            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+            
           </div>
           <div className="mt-5 grid grid-cols-1 gap-3">
             <div className="mx-auto h-40 w-full max-w-[16rem] rounded bg-white/10" />
@@ -231,10 +225,10 @@ export default function ChampionshipStats() {
         </div>
 
         {/* SPRINT */}
-        <div className="card p-5">
+        <div className="card pt-5">
           <div className="flex items-center justify-between">
             <div className="h-3 w-16 rounded bg-white/10" />
-            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+            
           </div>
           <div className="mt-5">
             <div className="mx-auto h-7 w-44 rounded bg-white/10" />
@@ -264,16 +258,11 @@ export default function ChampionshipStats() {
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
       {/* LÍDER */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Líder
           </span>
-
-          <Trophy
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         <p className="mt-4 text-xl font-black text-white">
@@ -287,16 +276,11 @@ export default function ChampionshipStats() {
       </div>
 
       {/* PUNTOS DEL LÍDER */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Puntos del líder
           </span>
-
-          <Medal
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         <p className="mt-4 text-3xl font-black text-white">
@@ -309,16 +293,11 @@ export default function ChampionshipStats() {
       </div>
 
       {/* DATOS DEL CIRCUITO */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Circuito
           </span>
-
-          <Map
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3">
@@ -374,16 +353,11 @@ export default function ChampionshipStats() {
       </div>
 
       {/* SPRINT */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Sprint
           </span>
-
-          <Flag
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         {/* FECHA */}

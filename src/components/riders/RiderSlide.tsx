@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, ImageOff, LoaderCircle } from "lucide-react";
 
 import CountryFlag from "@/components/CountryFlag";
 import type {
@@ -85,17 +84,9 @@ function RiderImage({
   return (
     <div
       className="card relative h-[26rem] overflow-hidden sm:h-[32rem] lg:h-auto lg:min-h-[40rem]"
-      style={
-        teamColor
-          ? {
-              backgroundImage: `linear-gradient(to bottom right, ${teamColor}45, transparent 60%)`,
-            }
-          : undefined
-      }
     >
       {missing || failed ? (
-        <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-white/5 bg-zinc-900/50 px-6 text-center">
-          <ImageOff size={28} className="text-zinc-500" />
+        <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 rounded-none border border-white/5 bg-zinc-900/50 px-6 text-center">
           <p className="text-sm text-zinc-500">Imagen del piloto no disponible</p>
         </div>
       ) : (
@@ -106,10 +97,7 @@ function RiderImage({
               aria-label="Cargando imagen del piloto"
               className="absolute inset-0 flex items-center justify-center"
             >
-              <LoaderCircle
-                size={28}
-                className="animate-spin text-zinc-500 motion-reduce:animate-none"
-              />
+              <span className="animate-pulse text-sm text-zinc-500 motion-reduce:animate-none">Cargando…</span>
             </div>
           )}
           <Image
@@ -170,10 +158,7 @@ function RiderBio({ rider }: { rider: RiderCarouselItem }) {
               className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-lg text-xs font-bold uppercase tracking-wider text-red-400 transition hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 motion-reduce:transition-none sm:min-h-8"
             >
               {open ? "Leer menos" : "Leer más"}
-              <ChevronDown
-                size={14}
-                className={`transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
-              />
+              <span aria-hidden>{open ? "−" : "+"}</span>
             </button>
           )}
         </>

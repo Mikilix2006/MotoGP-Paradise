@@ -3,10 +3,6 @@
 import { useEffect, useState } from "react";
 import { Countdown } from "./Countdown";
 import CountryFlag from "./CountryFlag";
-import {
-CalendarDays,
-MapPin,
-} from "lucide-react";
 
 interface GrandPrix {
 id: string;
@@ -121,7 +117,7 @@ return (
     role="status"
     aria-busy="true"
     aria-label="Cargando próximo Gran Premio"
-    className="card animate-pulse p-7 md:p-10"
+    className="card animate-pulse pt-7 md:pt-10"
   >
     <div className="flex items-center justify-between">
       <div className="h-6 w-20 rounded-full bg-white/10" />
@@ -152,7 +148,7 @@ return (
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-20 rounded-xl border border-white/10 bg-black/20"
+            className="h-20 rounded-none border border-white/10 bg-black/20"
           />
         ))}
       </div>
@@ -168,7 +164,7 @@ return (
 }
 
 if (error || !grandPrix) {
-return ( <article className="card flex min-h-[380px] items-center justify-center p-8"> <div className="text-center"> <p className="font-medium text-red-400">
+return ( <article className="card flex min-h-[380px] items-center justify-center pt-8"> <div className="text-center"> <p className="font-medium text-red-400">
 {error ||
 "No hay información disponible"} </p>
 
@@ -183,9 +179,9 @@ return ( <article className="card flex min-h-[380px] items-center justify-center
 
 const { round } = grandPrix;
 
-return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-transparent to-transparent" />
+return ( <article className="card pt-7 md:pt-10">
 
-  <div className="relative">
+  <div>
     <div className="flex items-center justify-between">
       <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
         {round ? `ROUND ${round}` : grandPrix.short_name}
@@ -211,11 +207,7 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
     </div>
 
     <div className="mt-8 grid gap-6 md:grid-cols-2">
-      <div className="flex gap-3">
-        <MapPin
-          size={20}
-          className="mt-1 shrink-0 text-red-500"
-        />
+      <div>
 
         <div>
           <p className="font-semibold text-zinc-100">
@@ -229,11 +221,7 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <CalendarDays
-          size={20}
-          className="mt-1 shrink-0 text-red-500"
-        />
+      <div>
 
         <div>
           <p className="font-semibold text-zinc-100">
