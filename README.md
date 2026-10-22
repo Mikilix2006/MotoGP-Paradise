@@ -94,7 +94,7 @@ La aplicación no debe depender de consultar continuamente la API externa para c
 - React
 - TypeScript
 - Tailwind CSS
-- Lucide React
+- Lucide React (solo usos puntuales: sol/luna del tema, chevrones del carrusel, `ArrowUp`, `Menu`/`X`)
 
 ## Backend
 
@@ -1562,11 +1562,12 @@ Qué muestra:
 
 ---
 
-## Fondo y botón «Volver arriba» (`layout.tsx`)
+## Tema y botón «Volver arriba» (`layout.tsx`)
 
 Los monta `src/app/layout.tsx` en todas las páginas.
 
-- `GridBackground.tsx` — rejilla fija de fondo (clase `.gridbg` en `src/app/globals.css`; ajustes con las variables CSS `--cell`, `--line-glow` y `--radius`). Una capa interior (`.gridbg-glow`) repite la rejilla en rojo, enmascarada con un halo que sigue al cursor (el componente escribe `--mx`/`--my` en un `requestAnimationFrame`, sin re-render). La capa roja solo se muestra con `(hover: hover) and (pointer: fine)` y sin `prefers-reduced-motion`; en táctiles solo se ve la rejilla fina.
+- Tema claro/oscuro: claro por defecto. El script en línea de `layout.tsx` lee `localStorage["theme"]` antes de pintar y, si vale `dark`, pone `data-theme="dark"` en `<html>`. `ThemeToggle.tsx` (botón sol/luna en el `Header`) alterna el atributo y guarda la elección. Los colores salen de variables CSS (`--bg-rgb`, `--fg-rgb`, `--muted*-rgb`, `--accent*-rgb`, `--pos-rgb`, `--warn-rgb`) definidas en `:root` y `[data-theme="dark"]` de `src/app/globals.css`; `tailwind.config.ts` reasigna `white`, `black`, `zinc`, `red`, `emerald` y `amber` a esas variables, de modo que las clases existentes (`text-white`, `bg-black`, `text-zinc-400`…) cambian con el tema.
+- Estilo sin adornos: sin tarjetas con caja, rejilla de fondo, cristal/desenfoque, degradados, bento ni emojis. La clase `.card` solo dibuja un filete superior (`border-top`).
 - `ScrollToTop.tsx` — botón flotante que aparece al bajar más de 300 px y sube al inicio (sin animación con `prefers-reduced-motion`).
 - La barra de desplazamiento del navegador está oculta en `globals.css`.
 
@@ -1574,7 +1575,7 @@ Los monta `src/app/layout.tsx` en todas las páginas.
 
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las tres páginas (Inicio, Calendario y Pilotos). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año y el icono de búsqueda son decorativos.
+Cabecera común a las tres páginas (Inicio, Calendario y Pilotos). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Los enlaces Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año es decorativo; incluye el botón de tema (`ThemeToggle`).
 
 ---
 
@@ -1775,7 +1776,7 @@ motogp-stats/
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │   │                          GrandPrixFavorites, CalendarView, Countdown,
-│   │   │                          CountryFlag, Header, StatCard, GridBackground,
+│   │   │                          CountryFlag, Header, StatCard, ThemeToggle,
 │   │   │                          ScrollToTop, RidersPage
 │   │   └── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
 │   │

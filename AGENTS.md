@@ -64,7 +64,7 @@ Decisiones deliberadas de la página `/pilotos` (detalle en el [README](README.m
 
 **Se ocupa de:** la capa visual, en dos modos. *Diseñar* pantallas y componentes nuevos (páginas, estados de carga/error/vacío, responsive) y *auditar* que cualquier cambio visible mantenga la identidad visual del proyecto (paleta, tipografía, tarjetas, iconos, estados).
 
-**Sabe:** el sistema visual completo (oscuro, acento rojo, `.card`, etiquetas en mayúsculas), la composición de la portada y la deuda de diseño conocida.
+**Sabe:** el sistema visual completo (claro por defecto con modo oscuro conmutable, acento rojo, `.card` reducida a un filete superior, etiquetas en mayúsculas), la composición de la portada y la deuda de diseño conocida.
 
 **No se ocupa de:** datos (repositorios, rutas, importadores, esquema). Al auditar es revisor, no constructor: corrige solo cuando se le pide, alineándose con un patrón que ya exista.
 

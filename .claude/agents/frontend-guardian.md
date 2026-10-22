@@ -60,12 +60,12 @@ No uses `getMadridTimestamp` en componentes: afecta a la cuenta atrás y a cualq
 ## Idioma y estados
 
 - **Todo el texto visible va en español.** Incluidos mensajes de error y estados vacíos.
-- Toda vista que cargue datos necesita sus tres estados: cargando, error y vacío. Reutiliza los patrones existentes (skeleton con `animate-pulse` para rejillas de tarjetas, `LoaderCircle` con `animate-spin` para bloques destacados) en lugar de inventar uno nuevo.
+- Toda vista que cargue datos necesita sus tres estados: cargando, error y vacío. Reutiliza los patrones existentes (skeleton con `animate-pulse` para listas, texto «Cargando…» para bloques destacados) en lugar de inventar uno nuevo.
 - Formatea fechas y números con `Intl` y locale `es-ES`, como ya hacen los componentes.
 
 ## Estilo visual
 
-El proyecto tiene una identidad visual definida (fondo negro, acento rojo, clase `.card`, labels en mayúsculas con `tracking`). **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
+El proyecto tiene una identidad visual definida (tema claro por defecto con modo oscuro y botón de cambio, acento rojo, contenido directamente sobre la página sin cards ni glass ni rejillas, `.card` solo como filete, iconos lucide escasos, sin emojis, labels en mayúsculas con `tracking`). Usa los colores tematizados (`text-white` = color de texto, `bg-black` = fondo) para que todo valga en claro y oscuro. **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
 
 ## Decisiones de framework (Next.js 16 / React 19)
 
