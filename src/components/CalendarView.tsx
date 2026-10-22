@@ -5,6 +5,7 @@ import {
   CalendarDays,
   MapPin,
   CheckCircle2,
+  Circle,
   Clock,
   ChevronDown,
 } from "lucide-react";
@@ -195,6 +196,14 @@ function isSessionFinished(session: CalendarSession, now: number) {
   return !Number.isNaN(end) && end < now;
 }
 
+// En vivo: ya empezó y la BD aún no la marca FINISHED. Si el fin ya pasó, es el
+// retraso del watcher y cuenta como terminada (isSessionFinished), no en vivo.
+function isSessionLive(session: CalendarSession, now: number) {
+  if (isSessionFinished(session, now)) return false;
+  const start = session.date_start ? new Date(session.date_start).getTime() : NaN;
+  return !Number.isNaN(start) && start <= now;
+}
+
 function formatSessionTime(date: string | null, zone: string | undefined) {
   if (!date) return "—";
   const parsed = new Date(date);
@@ -348,6 +357,7 @@ function SessionSchedule({
                 const key = session.shortname.trim();
                 const highlight = key === "RAC" || key === "RAC2" || key === "SPR";
                 const finished = isSessionFinished(session, now);
+                const live = isSessionLive(session, now);
                 const motogp = session.category === "MotoGP";
                 return (
                   <li
@@ -382,6 +392,12 @@ function SessionSchedule({
                       >
                         {SESSION_LABELS[key] ?? key}
                       </span>
+                      {live && (
+                        <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-px align-middle text-[10px] font-bold tracking-wider text-[#fff]">
+                          EN VIVO
+                          <Circle size={8} fill="currentColor" aria-hidden="true" className="animate-pulse" />
+                        </span>
+                      )}
                       {finished && (
                         <>
                           <CheckCircle2
