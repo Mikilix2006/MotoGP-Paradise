@@ -1,6 +1,6 @@
 ---
 name: database-guardian
-description: "Usar proactivamente para todo lo que toque el modelo de datos: schema.prisma, migraciones, restricciones e índices, consultas Prisma complejas, integridad y limpieza de datos (duplicados, huérfanos), rendimiento de PostgreSQL (consultas lentas, EXPLAIN, índices, mantenimiento, copias) y preguntas sobre qué endpoint de MotoGP proporciona qué dato y cómo se cruzan las dos APIs. Para ejecutar o escribir importadores y scripts de src/services/importers/ y scripts/ usa import-guardian; para componentes React, estilos o rutas de UI usa frontend-guardian."
+description: "Usar proactivamente para todo lo que toque el modelo de datos: schema.prisma, migraciones, restricciones e índices, consultas Prisma complejas, integridad y limpieza de datos (duplicados, huérfanos), rendimiento de PostgreSQL (consultas lentas, EXPLAIN, índices, mantenimiento, copias) y las claves de unión ya verificadas entre las dos APIs. Para explorar endpoints o campos nuevos de la API de MotoGP (forma real de la respuesta, cobertura) usa motogp-api-scout; para ejecutar o escribir importadores y scripts de src/services/importers/ y scripts/ usa import-guardian; para componentes React, estilos o rutas de UI usa frontend-guardian."
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 ---

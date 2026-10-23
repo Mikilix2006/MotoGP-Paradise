@@ -3,10 +3,6 @@
 import { useEffect, useState } from "react";
 import { Countdown } from "./Countdown";
 import CountryFlag from "./CountryFlag";
-import {
-CalendarDays,
-MapPin,
-} from "lucide-react";
 
 interface GrandPrix {
 id: string;
@@ -121,7 +117,7 @@ return (
     role="status"
     aria-busy="true"
     aria-label="Cargando próximo Gran Premio"
-    className="card animate-pulse p-7 md:p-10"
+    className="section animate-pulse"
   >
     <div className="flex items-center justify-between">
       <div className="h-6 w-20 rounded-full bg-white/10" />
@@ -152,7 +148,7 @@ return (
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-20 rounded-xl border border-white/10 bg-black/20"
+            className="h-16 rounded-xl bg-white/10"
           />
         ))}
       </div>
@@ -168,7 +164,7 @@ return (
 }
 
 if (error || !grandPrix) {
-return ( <article className="card flex min-h-[380px] items-center justify-center p-8"> <div className="text-center"> <p className="font-medium text-red-400">
+return ( <article className="section flex min-h-[380px] items-center justify-center"> <div className="text-center"> <p className="font-medium text-red-400">
 {error ||
 "No hay información disponible"} </p>
 
@@ -183,15 +179,25 @@ return ( <article className="card flex min-h-[380px] items-center justify-center
 
 const { round } = grandPrix;
 
-return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-transparent to-transparent" />
+return ( <article className="section">
 
-  <div className="relative">
-    <div className="flex items-center justify-between">
-      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
-        {round ? `ROUND ${round}` : grandPrix.short_name}
+  <div>
+    <div>
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
+        Próximo Gran Premio
+      </p>
+
+      <h2 className="mt-4 max-w-2xl text-5xl font-display font-black leading-[.95] md:text-7xl">
+        {grandPrix.sponsored_name || grandPrix.name}
+      </h2>
+    </div>
+
+    <div className="mt-6 flex items-center justify-between">
+      <span className="tag">
+        {round ? `RONDA ${round}` : grandPrix.short_name}
       </span>
 
-      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+      <span className="tag">
         {grandPrix.short_name}
       </span>
 
@@ -200,25 +206,11 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
       </span>
     </div>
 
-    <div className="mt-10">
-      <p className="text-xs font-bold uppercase tracking-[.22em] text-red-500">
-        Próximo Gran Premio
-      </p>
-
-      <h2 className="mt-4 max-w-2xl text-3xl font-black leading-tight md:text-5xl">
-        {grandPrix.sponsored_name || grandPrix.name}
-      </h2>
-    </div>
-
-    <div className="mt-8 grid gap-6 md:grid-cols-2">
-      <div className="flex gap-3">
-        <MapPin
-          size={20}
-          className="mt-1 shrink-0 text-red-500"
-        />
+    <div className="mt-8 grid gap-4 md:grid-cols-2 [&>div]:rounded-xl [&>div]:border-l-4 [&>div]:border-red-600 [&>div]:bg-white/[0.04] [&>div]:p-4">
+      <div>
 
         <div>
-          <p className="font-semibold text-zinc-100">
+          <p className="text-lg font-bold text-white">
             {grandPrix.circuit.name}
           </p>
 
@@ -229,14 +221,10 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <CalendarDays
-          size={20}
-          className="mt-1 shrink-0 text-red-500"
-        />
+      <div>
 
         <div>
-          <p className="font-semibold text-zinc-100">
+          <p className="text-lg font-bold text-white">
             {formatDate(grandPrix.date_start)}
           </p>
 
@@ -249,7 +237,7 @@ return ( <article className="card relative overflow-hidden p-7 md:p-10"> <div cl
     </div>
 
     <div className="mt-10">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-red-500">
+        <p className="eyebrow mb-3 text-xs font-bold uppercase tracking-widest text-red-500">
             Cuenta atrás para el Gran Premio
         </p>
 

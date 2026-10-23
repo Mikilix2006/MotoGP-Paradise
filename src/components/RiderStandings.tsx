@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
 
 import CountryFlag from "./CountryFlag";
+
+// Color de los puntos del podio (oro, plata, bronce); resto de posiciones, color de texto.
+const MEDAL_TEXT: Record<number, string> = {
+  1: "text-[color:var(--gold)]",
+  2: "text-[color:var(--silver)]",
+  3: "text-[color:var(--bronze)]"
+};
 
 interface RiderCountry {
   iso: string;
@@ -67,19 +73,15 @@ const BRAND_COLORS: Record<string, string> = {
   suzuki: "#0ea5e9",
 };
 
-// Degradado de la marca (~27 % → transparente al 33 %); marca desconocida, sin degradado.
-function teamGradient(constructorName: string | null | undefined): React.CSSProperties | undefined {
-  const color = BRAND_COLORS[(constructorName ?? "").trim().toLowerCase()];
-  if (!color) return undefined;
-  return {
-    backgroundImage: `linear-gradient(to bottom right, ${color}45, transparent 33%)`,
-  };
+// Sin degradados decorativos: se mantiene la firma para no tocar los usos.
+function teamGradient(_constructorName: string | null | undefined): React.CSSProperties | undefined {
+  return undefined;
 }
 
 function StandingsSkeleton({ label = "Piloto" }: { label?: string }) {
   return (
     <div role="status" aria-busy="true" aria-label="Cargando clasificación">
-      <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
+      <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
         <span>Pos.</span>
         <span>{label}</span>
         <span className="text-center">Victorias</span>
@@ -149,7 +151,7 @@ function ConstructorsTable({
   return (
     <div>
       {/* CABECERA DE COLUMNAS */}
-      <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
+      <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
         <span>Pos.</span>
         <span>Equipo</span>
         <span className="text-center">Victorias</span>
@@ -160,13 +162,13 @@ function ConstructorsTable({
         <div
           key={item.id}
           style={teamGradient(item.name)}
-          className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-white/5 px-5 py-4 transition hover:bg-white/[0.03] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:px-6"
+          className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-l-4 border-b-white/5 border-l-transparent py-4 pl-4 pr-5 transition hover:border-l-red-600 hover:bg-red-500/[0.07] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:pl-5 sm:pr-6"
         >
           <span
-            className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black ${
+            className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
               item.position <= 3
-                ? "bg-red-600 text-white"
-                : "bg-white/5 text-zinc-300"
+                ? "bg-[image:var(--accent-grad)] text-[#fff]"
+                : "bg-white/10 text-zinc-300"
             }`}
           >
             {String(item.position).padStart(2, "0")}
@@ -197,14 +199,14 @@ function ConstructorsTable({
 
           <div className="hidden text-center sm:block">
             <p className="text-sm font-bold text-white">{item.wins}</p>
-            <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+            <p className="text-[11px] uppercase tracking-wider text-zinc-500">
               Victorias
             </p>
           </div>
 
           <div className="text-right">
-            <p className="text-lg font-black text-white">{item.points}</p>
-            <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+            <p className="text-3xl font-display font-black italic tabular-nums text-white">{item.points}</p>
+            <p className="text-[11px] uppercase tracking-wider text-zinc-500">
               pts
             </p>
           </div>
@@ -282,16 +284,15 @@ export default function RiderStandings() {
   }, []);
 
   return (
-    <section>
+    <section className="section">
       {/* CABECERA */}
-      <div className="flex flex-col items-center gap-3 border-b border-white/10 p-6 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
+      <div className="flex flex-col items-center gap-3 border-b border-white/10 px-6 pb-6 pt-0 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
         <div>
-          <p className="text-xs uppercase tracking-widest text-zinc-500">
+          <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
             Campeonato
           </p>
 
-          <h2 className="mt-1 flex items-center justify-center gap-2 text-2xl font-black sm:justify-start">
-            <Trophy className="text-red-500" />
+          <h2 className="mt-1 flex items-center justify-center gap-2 text-3xl font-display font-black md:text-4xl sm:justify-start">
             {view === "riders"
               ? "Clasificación de pilotos"
               : "Clasificación de constructores"}
@@ -324,11 +325,7 @@ export default function RiderStandings() {
             type="button"
             onClick={() => setView(key)}
             aria-pressed={view === key}
-            className={`rounded-lg border px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
-              view === key
-                ? "border-red-500/30 bg-red-600 text-white"
-                : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
-            }`}
+            className={view === key ? "btn-race" : "btn-ghost"}
           >
             {label}
           </button>
@@ -365,7 +362,7 @@ export default function RiderStandings() {
       {view === "riders" && !loading && !error && (
         <div>
           {/* CABECERA DE COLUMNAS */}
-          <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
+          <div className="hidden grid-cols-[52px_minmax(0,1fr)_90px_80px] items-center gap-4 border-b border-white/10 bg-white/[0.02] px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-zinc-500 sm:grid">
             <span>Pos.</span>
 
             <span>Piloto</span>
@@ -385,15 +382,15 @@ export default function RiderStandings() {
               <div
                 key={rider.id}
                 style={teamGradient(rider.statistics.constructor)}
-                className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-white/5 px-5 py-4 transition hover:bg-white/[0.03] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:px-6"
+                className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-l-4 border-b-white/5 border-l-transparent py-4 pl-4 pr-5 transition hover:border-l-red-600 hover:bg-red-500/[0.07] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:pl-5 sm:pr-6"
               >
                 {/* POSICIÓN */}
                 <div>
                   <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black ${
+                    className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
                       rider.statistics.position <= 3
-                        ? "bg-red-600 text-white"
-                        : "bg-white/5 text-zinc-300"
+                        ? "bg-[image:var(--accent-grad)] text-[#fff]"
+                        : "bg-white/10 text-zinc-300"
                     }`}
                   >
                     {String(
@@ -405,7 +402,7 @@ export default function RiderStandings() {
                 {/* PILOTO */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="min-w-7 text-sm font-black text-red-500">
+                    <span className="min-w-7 text-base font-display font-black tabular-nums text-red-500">
                       #{rider.number}
                     </span>
 
@@ -440,18 +437,18 @@ export default function RiderStandings() {
                     {rider.statistics.first_position}
                   </p>
 
-                  <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+                  <p className="text-[11px] uppercase tracking-wider text-zinc-500">
                     Victorias
                   </p>
                 </div>
 
                 {/* PUNTOS */}
                 <div className="text-right">
-                  <p className="text-lg font-black text-white">
+                  <p className={`text-3xl font-display font-black italic tabular-nums ${MEDAL_TEXT[rider.statistics.position] ?? "text-white"}`}>
                     {rider.statistics.points}
                   </p>
 
-                  <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+                  <p className="text-[11px] uppercase tracking-wider text-zinc-500">
                     pts
                   </p>
                 </div>

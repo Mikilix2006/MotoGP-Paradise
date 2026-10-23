@@ -3,12 +3,6 @@
 import { useEffect, useState } from "react";
 
 
-import {
-  Trophy,
-  Medal,
-  Map,
-  Flag,
-} from "lucide-react";
 
 interface RiderStatistics {
   constructor: string;
@@ -99,6 +93,18 @@ function formatSprintTime(
       timeZone: "Europe/Madrid",
     }
   ).format(new Date(date));
+}
+
+function StatsSection({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="section">
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
+        Campeonato
+      </p>
+      <h2 className="mt-1 text-3xl font-display font-black md:text-4xl">Estadísticas</h2>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
 }
 
 export default function ChampionshipStats() {
@@ -195,6 +201,7 @@ export default function ChampionshipStats() {
 
   if (loading) {
     return (
+      <StatsSection>
       <div
         role="status"
         aria-busy="true"
@@ -203,10 +210,10 @@ export default function ChampionshipStats() {
       >
         {/* LÍDER y PUNTOS */}
         {[0, 1].map((i) => (
-          <div key={i} className="card p-5">
+          <div key={i} className="card pt-5">
             <div className="flex items-center justify-between">
               <div className="h-3 w-24 rounded bg-white/10" />
-              <div className="h-[18px] w-[18px] rounded bg-white/10" />
+              
             </div>
             <div className="mx-auto mt-4 h-7 w-40 rounded bg-white/10" />
             <div className="mx-auto mt-2 h-4 w-32 rounded bg-white/10" />
@@ -214,10 +221,10 @@ export default function ChampionshipStats() {
         ))}
 
         {/* CIRCUITO */}
-        <div className="card p-5">
+        <div className="card pt-5">
           <div className="flex items-center justify-between">
             <div className="h-3 w-20 rounded bg-white/10" />
-            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+            
           </div>
           <div className="mt-5 grid grid-cols-1 gap-3">
             <div className="mx-auto h-40 w-full max-w-[16rem] rounded bg-white/10" />
@@ -231,10 +238,10 @@ export default function ChampionshipStats() {
         </div>
 
         {/* SPRINT */}
-        <div className="card p-5">
+        <div className="card pt-5">
           <div className="flex items-center justify-between">
             <div className="h-3 w-16 rounded bg-white/10" />
-            <div className="h-[18px] w-[18px] rounded bg-white/10" />
+            
           </div>
           <div className="mt-5">
             <div className="mx-auto h-7 w-44 rounded bg-white/10" />
@@ -250,33 +257,37 @@ export default function ChampionshipStats() {
           </div>
         </div>
       </div>
+      </StatsSection>
     );
   }
 
   if (!stats) {
-    return null;
+    return (
+      <StatsSection>
+        <div role="alert" className="card pt-5 text-center">
+          <p className="font-medium text-red-400">No se pudieron cargar las estadísticas del campeonato</p>
+          <p className="mt-2 text-sm text-zinc-500">Inténtalo de nuevo más tarde.</p>
+        </div>
+      </StatsSection>
+    );
   }
 
   const track =
     grandPrix?.circuit.track;
 
   return (
+    <StatsSection>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
       {/* LÍDER */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Líder
           </span>
-
-          <Trophy
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
-        <p className="mt-4 text-xl font-black text-white">
+        <p className="mt-3 text-3xl font-display font-black italic tabular-nums text-white">
           {stats.leader.full_name}
         </p>
 
@@ -287,19 +298,14 @@ export default function ChampionshipStats() {
       </div>
 
       {/* PUNTOS DEL LÍDER */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Puntos del líder
           </span>
-
-          <Medal
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
-        <p className="mt-4 text-3xl font-black text-white">
+        <p className="mt-1 text-7xl font-display font-black italic tabular-nums text-red-500">
           {stats.leader.statistics.points}
         </p>
 
@@ -309,16 +315,11 @@ export default function ChampionshipStats() {
       </div>
 
       {/* DATOS DEL CIRCUITO */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Circuito
           </span>
-
-          <Map
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3">
@@ -339,7 +340,7 @@ export default function ChampionshipStats() {
           </div>
           {/* KILÓMETROS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.lengthKm ?? "—"}
             </p>
 
@@ -350,7 +351,7 @@ export default function ChampionshipStats() {
 
           {/* CURVAS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.totalCorners ?? "—"}
             </p>
 
@@ -361,7 +362,7 @@ export default function ChampionshipStats() {
 
           {/* VUELTAS */}
           <div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-display font-black tabular-nums text-white">
               {track?.laps ?? "—"}
             </p>
 
@@ -374,21 +375,16 @@ export default function ChampionshipStats() {
       </div>
 
       {/* SPRINT */}
-      <div className="card p-5 text-center">
+      <div className="card pt-5 text-center">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
             Sprint
           </span>
-
-          <Flag
-            size={18}
-            className="text-red-500"
-          />
         </div>
 
         {/* FECHA */}
         <div className="mt-5">
-          <p className="text-xl font-black capitalize text-white">
+          <p className="text-2xl font-display font-black capitalize text-white">
             {formatSprintDate(
               track?.sprintDate ?? null
             )}
@@ -401,7 +397,7 @@ export default function ChampionshipStats() {
 
         {/* HORA */}
         <div className="mt-4">
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-display font-black tabular-nums text-white">
             {formatSprintTime(
               track?.sprintDate ?? null
             )}
@@ -414,7 +410,7 @@ export default function ChampionshipStats() {
 
         {/* VUELTAS */}
         <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-display font-black tabular-nums text-white">
             {track?.sprintLaps ?? "—"}
           </p>
 
@@ -425,5 +421,6 @@ export default function ChampionshipStats() {
       </div>
 
     </div>
+    </StatsSection>
   );
 }

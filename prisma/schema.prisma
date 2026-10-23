@@ -386,6 +386,7 @@ model Rider {
   championshipStandings ChampionshipStanding[]
   bmwAwardStandings BmwAwardStanding[]
   liveTiming       LiveRiderTiming[]
+  biographies      RiderBiography[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -394,6 +395,23 @@ model Rider {
   @@index([ridersId])
   @@index([countryId])
   @@map("riders")
+}
+
+/// Biografía del piloto por idioma: HTML tal como lo da `biography.text.<idioma>`
+/// de GET /riders/{ridersApiUuid}. La conversión a texto plano es cosa de lectura.
+model RiderBiography {
+  id       String @id @default(uuid())
+  riderId  String @map("rider_id")
+  language String @db.VarChar(10)
+  text     String
+
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([riderId, language])
+  @@map("rider_biographies")
 }
 
 model Team {

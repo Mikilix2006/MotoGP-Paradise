@@ -29,12 +29,25 @@ export interface EventCategoryImportResult {
   eventCategoriesUpdated: number;
 }
 
-export async function importEventCategories(): Promise<EventCategoryImportResult> {
+/* Nombre de la categoría legacy_id 3 desde 2002 (hasta 2001 la API la llama «500cc»). */
+const MOTOGP_CATEGORY_NAME = "MotoGP™";
+
+export interface ImportOptions {
+  seasonYear?: number;
+}
+
+export async function importEventCategories(
+  options: ImportOptions = {}
+): Promise<EventCategoryImportResult> {
   const events = await prisma.event.findMany({
     where: {
       resultsUuid: {
         not: null,
       },
+
+      ...(options.seasonYear !== undefined
+        ? { season: { year: options.seasonYear } }
+        : {}),
     },
 
     orderBy: {
@@ -106,6 +119,22 @@ export async function importEventCategories(): Promise<EventCategoryImportResult
         },
       });
 
+      /*
+       * Hasta 2001 la API de resultados llama «500cc» a la clase
+       * reina con el MISMO uuid y legacy_id 3 que MotoGP. Si se
+       * procesara tal cual, renombraría la fila MotoGP a «500cc» (y
+       * vaciaría acronym/timing_id, que esos eventos no traen),
+       * rompiendo la búsqueda por nombre de riderStatisticsImporter.
+       * La fila «500cc» real (legacy_id -1) es otra y la siembra una
+       * migración; aquí solo se conserva la fila existente. Si la fila
+       * aún no existe (BD vacía cuyo primer evento es anterior a 2002),
+       * se crea con el nombre de MotoGP; los eventos posteriores
+       * completan acronym/timing_id/priority.
+       */
+      const isLegacy500cc =
+        apiCategory.legacy_id === 3 &&
+        categoryName.toLowerCase() === "500cc";
+
       const category = await prisma.category.upsert({
         where: {
           motogpUuid: apiCategory.id,
@@ -114,20 +143,22 @@ export async function importEventCategories(): Promise<EventCategoryImportResult
         create: {
           motogpUuid: apiCategory.id,
           legacyId: apiCategory.legacy_id,
-          name: categoryName,
+          name: isLegacy500cc ? MOTOGP_CATEGORY_NAME : categoryName,
           acronym: apiCategory.acronym || null,
           timingId: apiCategory.timing_id || null,
           priority: apiCategory.priority ?? null,
           active: true,
         },
 
-        update: {
-          legacyId: apiCategory.legacy_id,
-          name: categoryName,
-          acronym: apiCategory.acronym || null,
-          timingId: apiCategory.timing_id || null,
-          priority: apiCategory.priority ?? null,
-        },
+        update: isLegacy500cc
+          ? { legacyId: apiCategory.legacy_id }
+          : {
+              legacyId: apiCategory.legacy_id,
+              name: categoryName,
+              acronym: apiCategory.acronym || null,
+              timingId: apiCategory.timing_id || null,
+              priority: apiCategory.priority ?? null,
+            },
       });
 
       if (existingCategory) {

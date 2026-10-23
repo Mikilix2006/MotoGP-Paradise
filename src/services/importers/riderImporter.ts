@@ -17,8 +17,8 @@ import { upsertRider } from "@/services/importers/riderResolver";
  * temporada actual, no a la consultada. El histórico real está
  * en career[] de la ficha individual.
  *
- * Rellena: Rider, Team, Constructor, RiderSeasonEntry y
- * RiderSeasonImage.
+ * Rellena: Rider, Team, Constructor, RiderSeasonEntry,
+ * RiderSeasonImage y RiderBiography.
  */
 
 interface ApiCountry {
@@ -99,6 +99,11 @@ interface ApiRiderDetail {
 
   country?: ApiCountry | null;
 
+  /* HTML por idioma (de, es, fr, id, it, ja, pt, en); los hay vacíos o null. */
+  biography?: {
+    text?: Record<string, string | null> | null;
+  } | null;
+
   career?: ApiCareerStep[] | null;
 }
 
@@ -111,10 +116,15 @@ export interface RiderImportResult {
   entriesCreated: number;
   entriesUpdated: number;
   entriesSkipped: number;
+  entriesSuperseded: number;
 
   imagesProcessed: number;
+  imagesRejected: number;
   teamsProcessed: number;
   constructorsProcessed: number;
+
+  biographiesCreated: number;
+  biographiesUpdated: number;
 }
 
 function toDate(value: string | null | undefined): Date | null {
@@ -125,6 +135,51 @@ function toDate(value: string | null | undefined): Date | null {
   const date = new Date(value);
 
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/*
+ * La clave única de RiderSeasonEntry es (piloto, temporada, categoría),
+ * pero career[] puede traer varios pasos para esa combinación (cambio de
+ * equipo o de dorsal a mitad de año; hay pasos con dorsal 0 duplicados).
+ * Se guarda uno solo: gana el paso `current`, luego el de dorsal real y
+ * luego el que tiene equipo; a igualdad, el último (comportamiento previo).
+ * Los pasos sin temporada o categoría no se agrupan: los descarta el bucle
+ * principal como «omitidos».
+ */
+function pickCareerSteps(
+  career: ApiCareerStep[],
+  result: RiderImportResult
+): ApiCareerStep[] {
+  const score = (step: ApiCareerStep) =>
+    (step.current ? 4 : 0) + (step.number ? 2 : 0) + (step.team?.id ? 1 : 0);
+
+  const picked = new Map<string, ApiCareerStep>();
+
+  career.forEach((step, index) => {
+    const categoryLegacyId =
+      step.category?.legacy_id ?? step.team?.category?.legacy_id ?? null;
+
+    const key =
+      step.season != null && categoryLegacyId !== null
+        ? `${step.season}|${categoryLegacyId}`
+        : `sin-clave|${index}`;
+
+    const previous = picked.get(key);
+
+    if (previous) {
+      result.entriesSuperseded++;
+    }
+
+    if (!previous || score(step) >= score(previous)) {
+      picked.set(key, step);
+    }
+  });
+
+  return [...picked.values()];
+}
+
+function photosUrl(url: string | null | undefined): string | null {
+  return url?.startsWith("https://photos.motogp.com/") ? url : null;
 }
 
 function toPicturePair(
@@ -163,9 +218,13 @@ export async function importRiders(
     entriesCreated: 0,
     entriesUpdated: 0,
     entriesSkipped: 0,
+    entriesSuperseded: 0,
     imagesProcessed: 0,
+    imagesRejected: 0,
     teamsProcessed: 0,
     constructorsProcessed: 0,
+    biographiesCreated: 0,
+    biographiesUpdated: 0,
   };
 
   const seasons = await prisma.season.findMany({
@@ -348,6 +407,51 @@ export async function importRiders(
 
     result.ridersProcessed++;
 
+    /*
+     * BIOGRAFÍAS
+     *
+     * HTML tal cual, una fila por idioma. Un idioma null o vacío no
+     * crea fila ni borra la existente (text es obligatorio). Solo se
+     * escribe si el texto cambia, para que reimportar no toque nada.
+     */
+    const existingBiographies = new Map(
+      (
+        await prisma.riderBiography.findMany({
+          where: { riderId: rider.id },
+        })
+      ).map((biography) => [biography.language, biography.text])
+    );
+
+    for (const [language, text] of Object.entries(
+      detail.biography?.text ?? {}
+    )) {
+      if (typeof text !== "string" || text.trim() === "") {
+        continue;
+      }
+
+      const previousText = existingBiographies.get(language);
+
+      if (previousText === text) {
+        continue;
+      }
+
+      await prisma.riderBiography.upsert({
+        where: {
+          riderId_language: { riderId: rider.id, language },
+        },
+
+        create: { riderId: rider.id, language, text },
+
+        update: { text },
+      });
+
+      if (previousText === undefined) {
+        result.biographiesCreated++;
+      } else {
+        result.biographiesUpdated++;
+      }
+    }
+
     console.log(
       `🏍️ ${fullName ?? detail.id} (${detail.career?.length ?? 0} temporadas)`
     );
@@ -355,7 +459,7 @@ export async function importRiders(
     /*
      * ENTRADAS POR TEMPORADA
      */
-    for (const step of detail.career ?? []) {
+    for (const step of pickCareerSteps(detail.career ?? [], result)) {
       const season =
         step.season !== null && step.season !== undefined
           ? seasonsByYear.get(step.season)
@@ -477,11 +581,15 @@ export async function importRiders(
       /*
        * ENTRADA
        */
+      /*
+       * La API da dorsal 0 en algunos pasos (no es un dorsal real):
+       * se guarda null. Equipo y constructor no se pisan con null
+       * (mismo patrón que riderStatisticsImporter) para no perder el
+       * ya resuelto.
+       */
       const entryData = {
         motogpUuid: step.id ?? null,
-        teamId,
-        constructorId,
-        number: step.number ?? null,
+        number: step.number || null,
         sponsoredTeam: step.sponsored_team ?? null,
         inGrid: step.in_grid ?? null,
         current: step.current ?? false,
@@ -513,10 +621,16 @@ export async function importRiders(
           riderId: rider.id,
           seasonId: season.id,
           categoryId: category.id,
+          teamId,
+          constructorId,
           ...entryData,
         },
 
-        update: entryData,
+        update: {
+          ...entryData,
+          ...(teamId !== null ? { teamId } : {}),
+          ...(constructorId !== null ? { constructorId } : {}),
+        },
       });
 
       if (existingEntry) {
@@ -540,7 +654,28 @@ export async function importRiders(
         ];
 
         for (const [type, pair] of imageTypes) {
-          if (!pair?.main && !pair?.secondary) {
+          /*
+           * Solo se guardan URL de photos.motogp.com (único host
+           * permitido en next.config.ts). Otro host (p. ej. las
+           * www.motogp.com/en/api/rider/photo/... de 2005-2016, que dan
+           * 404) ni se guarda ni pisa la URL existente.
+           */
+          const main = photosUrl(pair?.main);
+          const secondary = photosUrl(pair?.secondary);
+
+          const rejected = [pair?.main, pair?.secondary].filter(
+            (url) => url && !photosUrl(url)
+          );
+
+          if (rejected.length > 0) {
+            result.imagesRejected += rejected.length;
+
+            console.warn(
+              `⚠️ Imagen ${type} de ${fullName ?? detail.id} ${step.season} ignorada (host no permitido): ${rejected.join(", ")}`
+            );
+          }
+
+          if (!main && !secondary) {
             continue;
           }
 
@@ -555,13 +690,15 @@ export async function importRiders(
             create: {
               riderSeasonEntryId: entry.id,
               type,
-              mainUrl: pair.main ?? null,
-              secondaryUrl: pair.secondary ?? null,
+              mainUrl: main,
+              secondaryUrl: secondary,
             },
 
             update: {
-              mainUrl: pair.main ?? null,
-              secondaryUrl: pair.secondary ?? null,
+              ...(pair?.main && !main ? {} : { mainUrl: main }),
+              ...(pair?.secondary && !secondary
+                ? {}
+                : { secondaryUrl: secondary }),
             },
           });
 

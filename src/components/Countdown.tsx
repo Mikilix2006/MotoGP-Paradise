@@ -64,41 +64,41 @@ return () => clearInterval(interval);
 
 }, [targetDate]);
 
-return ( <div className="mt-10 grid grid-cols-4 gap-3"> <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center"> <p className="text-2xl font-black md:text-3xl">
+return ( <div className="mt-10 grid grid-cols-4 gap-2 sm:gap-4"> <div className="rounded-xl bg-white px-1 py-3 text-center text-black shadow-md"> <p className="text-4xl font-display font-black italic tabular-nums md:text-6xl">
 {formatNumber(timeRemaining.days)} </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-black/70">
       Días
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="rounded-xl bg-white px-1 py-3 text-center text-black shadow-md">
+    <p className="text-4xl font-display font-black italic tabular-nums md:text-6xl">
       {formatNumber(timeRemaining.hours)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-black/70">
       Horas
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="rounded-xl bg-white px-1 py-3 text-center text-black shadow-md">
+    <p className="text-4xl font-display font-black italic tabular-nums md:text-6xl">
       {formatNumber(timeRemaining.minutes)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-black/70">
       <span className="sm:hidden">Min</span>
       <span className="hidden sm:inline">Minutos</span>
     </p>
   </div>
 
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
-    <p className="text-2xl font-black md:text-3xl">
+  <div className="rounded-xl bg-white px-1 py-3 text-center text-black shadow-md">
+    <p className="text-4xl font-display font-black italic tabular-nums md:text-6xl">
       {formatNumber(timeRemaining.seconds)}
     </p>
 
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-black/70">
       <span className="sm:hidden">Seg</span>
       <span className="hidden sm:inline">Segundos</span>
     </p>

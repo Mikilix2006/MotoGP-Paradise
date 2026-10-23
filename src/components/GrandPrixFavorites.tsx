@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  Trophy,
-  ChevronDown,
-  ChevronUp,
-  Info,
-} from "lucide-react";
 
 import type {
   Favorite,
@@ -51,10 +45,10 @@ function ScoreBar({
   accent?: boolean;
 }) {
   return (
-    <div className="h-2 rounded-full bg-zinc-800">
+    <div className="h-2.5 rounded-full bg-zinc-800">
       <div
-        className={`h-2 rounded-full ${
-          accent ? "bg-red-600" : "bg-zinc-400"
+        className={`h-2.5 rounded-full ${
+          accent ? "bg-[image:var(--accent-grad)]" : "bg-zinc-400"
         }`}
         style={{ width: `${Math.round(value * 100)}%` }}
       />
@@ -104,7 +98,7 @@ function FavoriteDetails({
 
       {/* CIRCUITO */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           En este circuito
         </p>
 
@@ -198,7 +192,7 @@ function FavoriteDetails({
       {/* MOTO */}
       {bike.constructor_name && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
             La moto · {bike.constructor_name}
           </p>
 
@@ -266,7 +260,7 @@ function FavoriteDetails({
 
       {/* TEMPORADA */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           Esta temporada
         </p>
 
@@ -338,13 +332,13 @@ export default function GrandPrixFavorites() {
     : favorites.slice(0, INITIAL_VISIBLE);
 
   return (
-    <aside className="card p-6">
-      <p className="text-xs uppercase tracking-widest text-zinc-500">
+    <aside className="section">
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
         Índice estadístico
       </p>
 
-      <h2 className="mt-1 flex items-center gap-2 text-2xl font-black">
-        <Trophy className="text-red-500" /> Favoritos del GP
+      <h2 className="mt-1 flex items-center gap-2 text-3xl font-display font-black md:text-4xl">
+        Favoritos del GP
       </h2>
 
       {data && (
@@ -405,7 +399,7 @@ export default function GrandPrixFavorites() {
 
       {/* LISTA */}
       {!loading && !error && favorites.length > 0 && (
-        <div className="mt-7 space-y-5">
+        <div className="mt-7 space-y-2">
           {visible.map((favorite) => {
             const isExpanded = expanded === favorite.rider.id;
 
@@ -416,12 +410,12 @@ export default function GrandPrixFavorites() {
                   onClick={() =>
                     setExpanded(isExpanded ? null : favorite.rider.id)
                   }
-                  className="w-full text-left transition hover:opacity-90"
+                  className="-mx-3 block w-[calc(100%+1.5rem)] rounded-xl p-3 text-left transition hover:bg-red-500/[0.07]"
                   aria-expanded={isExpanded}
                 >
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center">
-                      <b className="mr-3 text-zinc-600">
+                      <b className={`mr-3 w-9 font-display text-2xl font-black italic tabular-nums ${favorite.rank === 1 ? "text-red-500" : "text-zinc-500"}`}>
                         {String(favorite.rank).padStart(2, "0")}
                       </b>
 
@@ -438,7 +432,7 @@ export default function GrandPrixFavorites() {
 
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="text-right">
-                        <b className="block text-white">
+                        <b className="block font-display text-xl font-black italic text-white">
                           {favorite.score}/100
                         </b>
 
@@ -447,11 +441,7 @@ export default function GrandPrixFavorites() {
                         </span>
                       </span>
 
-                      {isExpanded ? (
-                        <ChevronUp size={16} className="text-zinc-500" />
-                      ) : (
-                        <ChevronDown size={16} className="text-zinc-500" />
-                      )}
+                      <span aria-hidden className="text-zinc-500">{isExpanded ? "−" : "+"}</span>
                     </span>
                   </div>
 
@@ -474,7 +464,7 @@ export default function GrandPrixFavorites() {
             <button
               type="button"
               onClick={() => setShowAll((value) => !value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10"
+              className="btn-ghost !mt-5 w-full"
             >
               {showAll
                 ? "Ver solo los favoritos"
@@ -485,7 +475,6 @@ export default function GrandPrixFavorites() {
       )}
 
       <p className="mt-8 flex gap-2 border-t border-white/10 pt-5 text-xs leading-relaxed text-zinc-500">
-        <Info size={14} className="mt-0.5 shrink-0" />
         <span>
           El índice combina historial en el circuito (35%), forma de la
           temporada (30%), la moto (20%), fiabilidad (10%) y tendencia (5%).

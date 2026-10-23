@@ -118,6 +118,7 @@ API Response
 -   RiderSeasonEntry
 -   RiderSeasonImage
 -   RiderSeasonStatistics
+-   RiderBiography
 
 ### Fase 7 --- Resultados y clasificaciones
 
@@ -179,6 +180,8 @@ active
 created_at
 updated_at
 ```
+
+La clase reina hasta 2001 es una fila de datos, «500cc» (`legacy_id` -1, `motogp_uuid` nulo, `active` false), sembrada por la migración `20261014120100_category_500cc` sin cambio de esquema. `legacy_id` no es único. Reglas de resolución por endpoint en `DATABASE_ENDPOINT_MAPPING.md`.
 
 ### Circuit
 
@@ -422,6 +425,27 @@ start_year
 legend
 created_at
 updated_at
+```
+
+### RiderBiography
+
+Biografía oficial por idioma (HTML de `biography.text.<idioma>` de la
+ficha `/riders/{uuid}`), con el mismo patrón de idioma que
+`CircuitDescription`. `text` es obligatorio: un idioma vacío no genera fila.
+
+``` text
+id
+rider_id
+language
+text
+created_at
+updated_at
+```
+
+Restricción (el borrado del piloto la elimina en cascada):
+
+``` text
+UNIQUE(rider_id, language)
 ```
 
 ### Team
@@ -697,7 +721,7 @@ Orden recomendado:
 4. Sessions                                    (import:sessions)
 5. Event enrichment (circuit data, flags)      (import:event-details)
 6. Results, Riders, Teams and Constructors     (import:session-results)
-7. Rider season entries                        (import:riders)
+7. Rider season entries and biographies        (import:riders)
 8. Statistics                                  (import:rider-statistics)
 9. Standings                                   (import:championship-standings, import:bmw-award)
 ```
@@ -768,6 +792,8 @@ Rider.legacy_id
 
 RiderSeasonEntry(rider_id, season_id, category_id)
 
+RiderBiography(rider_id, language)
+
 SessionResult(session_id, rider_id)
 
 ChampionshipStanding(season_id, category_id, event_id)
@@ -820,6 +846,20 @@ Rider
 RiderSeasonEntry
    ↓
 RiderSeasonStatistics
+```
+
+### Pilotos titulares de una categoría (página `/pilotos`)
+
+``` text
+Season actual
+   ↓
+RiderSeasonEntry (categoría, type = 'Official')
+   ↓
+Rider + Team + imagen PROFILE + RiderBiography (es)
+   ↓
+ChampionshipStanding (posición y puntos de la temporada)
+RiderSeasonStatistics (totales de carrera y títulos)
+SessionResult (sprints ganadas, solo MotoGP)
 ```
 
 ## 18. Variables de entorno
@@ -896,6 +936,7 @@ fix:duplicate-riders
 -   [x] RiderSeasonEntry
 -   [x] RiderSeasonImage
 -   [x] RiderSeasonStatistics
+-   [x] RiderBiography
 
 ### Sprint 7 --- Sincronización
 
@@ -912,7 +953,7 @@ fix:duplicate-riders
 -   [x] `/api/constructors/standings` desde base de datos (cálculo propio con `SessionResult`, sin tabla nueva)
 -   [x] `/api/next-gp/favorites` y `/api/calendar` desde base de datos
 -   [x] página `/calendario` desde base de datos
--   [ ] páginas de pilotos desde base de datos
+-   [x] `/api/riders/carousel` y página `/pilotos` desde base de datos
 -   [ ] páginas de eventos desde base de datos
 
 ## 21. Resultado final esperado
