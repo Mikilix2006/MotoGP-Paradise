@@ -303,7 +303,7 @@ function SessionSchedule({
             onClick={() => onModeChange("tu")}
             className={`${MODE_BUTTON_BASE} cursor-pointer ${
               mode === "tu"
-                ? "bg-white/10 text-white"
+                ? "bg-red-600 text-[#fff]"
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -324,7 +324,7 @@ function SessionSchedule({
               !circuitAvailable
                 ? "cursor-not-allowed text-zinc-500"
                 : mode === "circuito"
-                  ? "cursor-pointer bg-white/10 text-white"
+                  ? "cursor-pointer bg-red-600 text-[#fff]"
                   : "cursor-pointer text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -335,7 +335,7 @@ function SessionSchedule({
       <div
         role="group"
         aria-label={`Horarios de las sesiones de Moto3, Moto2 y MotoGP en ${modeText.toLowerCase()}`}
-        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-none border border-white/5 bg-white/[0.02] ${GRID_COLS[Math.min(columns.length, 4)]}`}
+        className={`mt-3 grid divide-x divide-white/5 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] ${GRID_COLS[Math.min(columns.length, 4)]}`}
       >
         {columns.map((column) => (
           <div key={column.key} className="min-w-0">
@@ -459,13 +459,13 @@ function EventCard({
   const header = (
     <>
       <span className="flex flex-wrap items-center gap-3 pr-14">
-        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+        <span className="tag">
           {round ? `RONDA ${round}` : event.short_name}
         </span>
         {getStatusBadge(event.status)}
       </span>
 
-      <span className="mt-4 block text-xl font-bold text-white md:text-2xl">
+      <span className="mt-4 block font-display text-3xl font-black uppercase italic leading-none text-white md:text-4xl">
         {event.sponsored_name || event.name}
       </span>
 
@@ -504,10 +504,10 @@ function EventCard({
 
   return (
     <article
-      className={`card relative transition-all ${
+      className={`panel relative ${
         featured
-          ? "!border-red-600"
-          : "hover:bg-white/[0.03]"
+          ? "!border-red-600 shadow-[0_0_0_1px_var(--accent)]"
+          : ""
       } ${expandable ? "" : "p-5"}`}
     >
       <div className="relative">

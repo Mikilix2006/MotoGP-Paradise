@@ -65,7 +65,7 @@ No uses `getMadridTimestamp` en componentes: afecta a la cuenta atrás y a cualq
 
 ## Estilo visual
 
-El proyecto tiene una identidad visual definida (tema claro por defecto con modo oscuro y botón de cambio, acento rojo, contenido directamente sobre la página sin cards ni glass ni rejillas, `.card` solo como filete, iconos lucide escasos, sin emojis, labels en mayúsculas con `tracking`). Usa los colores tematizados (`text-white` = color de texto, `bg-black` = fondo) para que todo valga en claro y oscuro. **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
+El proyecto tiene una identidad visual definida (tema claro por defecto con modo oscuro y botón de cambio, acento rojo, estilo racing con paneles redondeados con sombra y degradados rojos —`.section`, `.card`, `.panel`, `.cut`, `.tag`, `.btn-race`, `.btn-ghost`, `.eyebrow`, `.page-title` de `globals.css`—, sin glass ni rejillas de fondo, iconos lucide escasos, sin emojis, labels en mayúsculas con `tracking`). Usa los colores tematizados (`text-white` = color de texto, `bg-black` = fondo) para que todo valga en claro y oscuro. **No la redefinas tú**: sigue los patrones de los componentes existentes y, cuando termines un cambio visible, pide a `ui-designer` que lo revise. Ese agente es la autoridad en coherencia visual; tú eres quien construye.
 
 ## Decisiones de framework (Next.js 16 / React 19)
 

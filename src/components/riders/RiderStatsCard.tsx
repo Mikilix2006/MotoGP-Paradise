@@ -40,7 +40,7 @@ function Stat({
     <div className="min-w-0">
       <p className={EYEBROW}>{label}</p>
       <p
-        className={`mt-1 font-display font-black text-white ${big ? "text-4xl" : "text-3xl"}`}
+        className={`mt-1 font-display font-black text-white ${big ? "text-5xl" : "text-4xl"} italic`}
       >
         {typeof value === "number" ? NUMBER.format(value) : (value ?? "—")}
       </p>
@@ -90,7 +90,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-none border border-white/5 bg-zinc-900/50 px-6 py-10 text-center text-sm text-zinc-500">
+    <div className="rounded-xl border border-white/5 bg-zinc-900/50 px-6 py-10 text-center text-sm text-zinc-500">
       {children}
     </div>
   );
@@ -418,7 +418,7 @@ export function RiderStatsCard({
       <p className="text-xs uppercase tracking-widest text-zinc-500">
         Estadísticas
       </p>
-      <h3 className="mt-1 flex items-center gap-2 text-2xl font-display font-black">
+      <h3 className="mt-1 flex items-center gap-2 text-3xl font-display font-black">
         Ficha estadística
       </h3>
 
@@ -445,7 +445,7 @@ export function RiderStatsCard({
               onClick={() => onTabChange(key)}
               className={`min-h-10 rounded-lg border px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 motion-reduce:transition-none ${
                 selected
-                  ? "border-red-500/30 bg-red-600 text-[#fff]"
+                  ? "border-red-500/30 bg-[image:var(--accent-grad)] text-[#fff]"
                   : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
               }`}
             >

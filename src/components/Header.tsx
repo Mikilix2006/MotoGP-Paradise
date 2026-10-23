@@ -73,19 +73,19 @@ export function Header() {
   }, [open]);
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-20 border-b border-white/10 bg-black ">
+    <header ref={headerRef} className="sticky top-0 z-20 border-b-[3px] border-red-600 bg-[var(--surface)] shadow-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-10">
           <a
             href="/"
             aria-label="MotoGP Stats, ir al inicio"
-            className={`flex items-center gap-2 rounded-md font-display font-black tracking-tight text-xl ${FOCUS_RING}`}
+            className={`flex items-center gap-2 rounded-md font-display text-2xl font-black italic tracking-tight md:text-3xl ${FOCUS_RING}`}
           >
-            MOTO<span className="text-red-600">GP</span><span className="text-zinc-500">STATS</span>
+            MOTO<span className="cut -ml-1 bg-[image:var(--accent-grad)] px-2 pr-3 text-[#fff]">GP</span><span className="text-zinc-500">STATS</span>
           </a>
           {/* self-stretch + -my-4: el nav ocupa todo el alto del header para que el semicírculo
               del enlace activo toque justo el borde superior. */}
-          <nav aria-label="Menú principal" className="-my-4 hidden gap-7 self-stretch text-sm text-zinc-400 md:flex">
+          <nav aria-label="Menú principal" className="-my-4 hidden gap-7 self-stretch font-display text-lg font-bold uppercase tracking-wider text-zinc-400 md:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
@@ -99,7 +99,7 @@ export function Header() {
                   {active && (
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute left-0 bottom-0 h-[3px] w-full bg-red-600"
+                      className="pointer-events-none absolute left-0 bottom-0 h-[4px] w-full -skew-x-[30deg] bg-red-600"
                     />
                   )}
                 </a>
@@ -108,7 +108,7 @@ export function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <button className="hidden items-center gap-2 border-b border-white/10 py-1 text-sm text-zinc-300 md:flex">2026</button>
+          <button className="hidden min-h-9 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 font-display text-base font-bold tracking-wider text-zinc-300 md:flex">2026</button>
           <ThemeToggle />
           {/* Zona táctil de ~45 px (21 + 2×12) sin alterar la maquetación (margen negativo). */}
           <button
@@ -128,14 +128,14 @@ export function Header() {
           los desplegables de las cards: grid-rows 0fr↔1fr + opacidad; plegado = invisible. */}
       <div
         id={MENU_ID}
-        className={`absolute inset-x-0 top-full grid bg-black transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out motion-reduce:transition-none md:hidden ${
+        className={`absolute inset-x-0 top-full grid bg-[var(--surface)] transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out motion-reduce:transition-none md:hidden ${
           open
             ? "visible opacity-100 grid-rows-[1fr]"
             : "invisible opacity-0 grid-rows-[0fr]"
         }`}
       >
         <div className="min-h-0 overflow-hidden">
-          <nav aria-label="Menú principal" className="flex flex-col border-b border-white/10 py-2 text-sm">
+          <nav aria-label="Menú principal" className="flex flex-col border-b-[3px] border-red-600 bg-[var(--surface)] py-2 font-display text-lg font-bold uppercase tracking-wider shadow-lg">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (

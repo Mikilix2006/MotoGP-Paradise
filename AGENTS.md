@@ -62,9 +62,9 @@ Decisiones deliberadas de la página `/pilotos` (detalle en el [README](README.m
 
 ### `ui-designer`
 
-**Se ocupa de:** la capa visual, en dos modos. *Diseñar* pantallas y componentes nuevos (páginas, estados de carga/error/vacío, responsive) y *auditar* que cualquier cambio visible mantenga la identidad visual del proyecto (paleta, tipografía, tarjetas, iconos, estados).
+**Se ocupa de:** la capa visual, en dos modos. *Diseñar* pantallas y componentes nuevos (páginas, estados de carga/error/vacío, responsive) y *auditar* que cualquier cambio visible mantenga la identidad visual del proyecto (paleta, tipografía, paneles y tarjetas, iconos, estados).
 
-**Sabe:** el sistema visual completo (claro por defecto con modo oscuro conmutable, acento rojo, `.card` reducida a un filete superior fino y `.section` (filete grueso con pestaña roja) para las secciones de la portada, etiquetas en mayúsculas, tipografía Barlow Condensed + Barlow), la composición de la portada y la deuda de diseño conocida.
+**Sabe:** el sistema visual completo (claro por defecto con modo oscuro conmutable, acento rojo, identidad «racing» con superficies redondeadas con sombra y degradados rojos: `.section` para las secciones de la portada, `.card`/`.panel` para bloques, `.cut`, `.tag`, `.btn-race`/`.btn-ghost`, `.eyebrow` y `.page-title`; titulares en mayúsculas cursiva, tipografía Barlow Condensed + Barlow), la composición de la portada y la deuda de diseño conocida.
 
 **No se ocupa de:** datos (repositorios, rutas, importadores, esquema). Al auditar es revisor, no constructor: corrige solo cuando se le pide, alineándose con un patrón que ya exista.
 

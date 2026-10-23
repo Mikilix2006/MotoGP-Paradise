@@ -148,7 +148,7 @@ return (
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-16 bg-white/10"
+            className="h-16 rounded-xl bg-white/10"
           />
         ))}
       </div>
@@ -183,21 +183,21 @@ return ( <article className="section">
 
   <div>
     <div>
-      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
         Próximo Gran Premio
       </p>
 
-      <h2 className="mt-4 max-w-2xl text-4xl font-display font-black leading-none md:text-6xl">
+      <h2 className="mt-4 max-w-2xl text-5xl font-display font-black leading-[.95] md:text-7xl">
         {grandPrix.sponsored_name || grandPrix.name}
       </h2>
     </div>
 
     <div className="mt-6 flex items-center justify-between">
-      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+      <span className="tag">
         {round ? `RONDA ${round}` : grandPrix.short_name}
       </span>
 
-      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+      <span className="tag">
         {grandPrix.short_name}
       </span>
 
@@ -206,11 +206,11 @@ return ( <article className="section">
       </span>
     </div>
 
-    <div className="mt-8 grid gap-6 md:grid-cols-2">
+    <div className="mt-8 grid gap-4 md:grid-cols-2 [&>div]:rounded-xl [&>div]:border-l-4 [&>div]:border-red-600 [&>div]:bg-white/[0.04] [&>div]:p-4">
       <div>
 
         <div>
-          <p className="font-semibold text-zinc-100">
+          <p className="text-lg font-bold text-white">
             {grandPrix.circuit.name}
           </p>
 
@@ -224,7 +224,7 @@ return ( <article className="section">
       <div>
 
         <div>
-          <p className="font-semibold text-zinc-100">
+          <p className="text-lg font-bold text-white">
             {formatDate(grandPrix.date_start)}
           </p>
 
@@ -237,7 +237,7 @@ return ( <article className="section">
     </div>
 
     <div className="mt-10">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-500">
+        <p className="eyebrow mb-3 text-xs font-bold uppercase tracking-widest text-red-500">
             Cuenta atrás para el Gran Premio
         </p>
 

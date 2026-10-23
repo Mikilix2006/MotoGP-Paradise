@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 
 import CountryFlag from "./CountryFlag";
 
+// Color de los puntos del podio (oro, plata, bronce); resto de posiciones, color de texto.
+const MEDAL_TEXT: Record<number, string> = {
+  1: "text-[color:var(--gold)]",
+  2: "text-[color:var(--silver)]",
+  3: "text-[color:var(--bronze)]"
+};
+
 interface RiderCountry {
   iso: string;
   name: string;
@@ -122,7 +129,7 @@ function ConstructorsTable({
   if (error) {
     return (
       <div className="p-6">
-        <div className="rounded-none border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
           {error}
         </div>
       </div>
@@ -134,7 +141,7 @@ function ConstructorsTable({
   if (constructors.length === 0) {
     return (
       <div className="p-6">
-        <div className="rounded-none border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
+        <div className="rounded-xl border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
           Todavía no hay puntos de constructores esta temporada.
         </div>
       </div>
@@ -155,13 +162,13 @@ function ConstructorsTable({
         <div
           key={item.id}
           style={teamGradient(item.name)}
-          className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-white/5 px-5 py-4 transition hover:bg-white/[0.03] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:px-6"
+          className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-l-4 border-b-white/5 border-l-transparent py-4 pl-4 pr-5 transition hover:border-l-red-600 hover:bg-red-500/[0.07] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:pl-5 sm:pr-6"
         >
           <span
-            className={`flex h-8 w-8 items-center justify-center rounded-lg text-base font-display font-black tabular-nums ${
+            className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
               item.position <= 3
-                ? "bg-red-600 text-[#fff]"
-                : "bg-white/5 text-zinc-300"
+                ? "bg-[image:var(--accent-grad)] text-[#fff]"
+                : "bg-white/10 text-zinc-300"
             }`}
           >
             {String(item.position).padStart(2, "0")}
@@ -198,7 +205,7 @@ function ConstructorsTable({
           </div>
 
           <div className="text-right">
-            <p className="text-2xl font-display font-black tabular-nums text-white">{item.points}</p>
+            <p className="text-3xl font-display font-black italic tabular-nums text-white">{item.points}</p>
             <p className="text-[11px] uppercase tracking-wider text-zinc-500">
               pts
             </p>
@@ -281,11 +288,11 @@ export default function RiderStandings() {
       {/* CABECERA */}
       <div className="flex flex-col items-center gap-3 border-b border-white/10 px-6 pb-6 pt-0 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+          <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
             Campeonato
           </p>
 
-          <h2 className="mt-1 flex items-center justify-center gap-2 text-2xl font-display font-black sm:justify-start">
+          <h2 className="mt-1 flex items-center justify-center gap-2 text-3xl font-display font-black md:text-4xl sm:justify-start">
             {view === "riders"
               ? "Clasificación de pilotos"
               : "Clasificación de constructores"}
@@ -318,11 +325,7 @@ export default function RiderStandings() {
             type="button"
             onClick={() => setView(key)}
             aria-pressed={view === key}
-            className={`rounded-lg border min-h-11 px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
-              view === key
-                ? "border-red-500/30 bg-red-600 text-[#fff]"
-                : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
-            }`}
+            className={view === key ? "btn-race" : "btn-ghost"}
           >
             {label}
           </button>
@@ -349,7 +352,7 @@ export default function RiderStandings() {
       {/* ERROR */}
       {view === "riders" && error && (
         <div className="p-6">
-          <div className="rounded-none border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
             {error}
           </div>
         </div>
@@ -379,15 +382,15 @@ export default function RiderStandings() {
               <div
                 key={rider.id}
                 style={teamGradient(rider.statistics.constructor)}
-                className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-white/5 px-5 py-4 transition hover:bg-white/[0.03] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:px-6"
+                className="grid grid-cols-[42px_minmax(0,1fr)_70px] items-center gap-3 border-b border-l-4 border-b-white/5 border-l-transparent py-4 pl-4 pr-5 transition hover:border-l-red-600 hover:bg-red-500/[0.07] sm:grid-cols-[52px_minmax(0,1fr)_90px_80px] sm:gap-4 sm:pl-5 sm:pr-6"
               >
                 {/* POSICIÓN */}
                 <div>
                   <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-base font-display font-black tabular-nums ${
+                    className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
                       rider.statistics.position <= 3
-                        ? "bg-red-600 text-[#fff]"
-                        : "bg-white/5 text-zinc-300"
+                        ? "bg-[image:var(--accent-grad)] text-[#fff]"
+                        : "bg-white/10 text-zinc-300"
                     }`}
                   >
                     {String(
@@ -441,7 +444,7 @@ export default function RiderStandings() {
 
                 {/* PUNTOS */}
                 <div className="text-right">
-                  <p className="text-2xl font-display font-black tabular-nums text-white">
+                  <p className={`text-3xl font-display font-black italic tabular-nums ${MEDAL_TEXT[rider.statistics.position] ?? "text-white"}`}>
                     {rider.statistics.points}
                   </p>
 

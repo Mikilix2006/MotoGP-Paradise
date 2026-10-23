@@ -98,10 +98,10 @@ function formatSprintTime(
 function StatsSection({ children }: { children: React.ReactNode }) {
   return (
     <section className="section">
-      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
         Campeonato
       </p>
-      <h2 className="mt-1 text-2xl font-display font-black">Estadísticas</h2>
+      <h2 className="mt-1 text-3xl font-display font-black md:text-4xl">Estadísticas</h2>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -287,7 +287,7 @@ export default function ChampionshipStats() {
           </span>
         </div>
 
-        <p className="mt-4 text-2xl font-display font-black tabular-nums text-white">
+        <p className="mt-3 text-3xl font-display font-black italic tabular-nums text-white">
           {stats.leader.full_name}
         </p>
 
@@ -305,7 +305,7 @@ export default function ChampionshipStats() {
           </span>
         </div>
 
-        <p className="mt-4 text-3xl font-display font-black tabular-nums text-white">
+        <p className="mt-1 text-7xl font-display font-black italic tabular-nums text-red-500">
           {stats.leader.statistics.points}
         </p>
 

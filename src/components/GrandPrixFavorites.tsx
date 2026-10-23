@@ -45,10 +45,10 @@ function ScoreBar({
   accent?: boolean;
 }) {
   return (
-    <div className="h-2 rounded-full bg-zinc-800">
+    <div className="h-2.5 rounded-full bg-zinc-800">
       <div
-        className={`h-2 rounded-full ${
-          accent ? "bg-red-600" : "bg-zinc-400"
+        className={`h-2.5 rounded-full ${
+          accent ? "bg-[image:var(--accent-grad)]" : "bg-zinc-400"
         }`}
         style={{ width: `${Math.round(value * 100)}%` }}
       />
@@ -70,7 +70,7 @@ function FavoriteDetails({
   const { circuit, form, bike, reliability, trend } = favorite.breakdown;
 
   return (
-    <div className="mt-4 space-y-5 rounded-none border border-white/5 bg-white/[0.02] p-4">
+    <div className="mt-4 space-y-5 rounded-xl border border-white/5 bg-white/[0.02] p-4">
       {/* COMPONENTES */}
       <div className="space-y-3">
         {COMPONENTS.map((component) => {
@@ -333,11 +333,11 @@ export default function GrandPrixFavorites() {
 
   return (
     <aside className="section">
-      <p className="text-xs font-bold uppercase tracking-widest text-red-500">
+      <p className="eyebrow text-xs font-bold uppercase tracking-widest text-red-500">
         Índice estadístico
       </p>
 
-      <h2 className="mt-1 flex items-center gap-2 text-2xl font-display font-black">
+      <h2 className="mt-1 flex items-center gap-2 text-3xl font-display font-black md:text-4xl">
         Favoritos del GP
       </h2>
 
@@ -385,21 +385,21 @@ export default function GrandPrixFavorites() {
 
       {/* ERROR */}
       {error && (
-        <div className="mt-7 rounded-none border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
+        <div className="mt-7 rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
           {error}
         </div>
       )}
 
       {/* VACÍO */}
       {!loading && !error && favorites.length === 0 && (
-        <div className="mt-7 rounded-none border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
+        <div className="mt-7 rounded-xl border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
           Todavía no hay datos suficientes para este GP.
         </div>
       )}
 
       {/* LISTA */}
       {!loading && !error && favorites.length > 0 && (
-        <div className="mt-7 space-y-5">
+        <div className="mt-7 space-y-2">
           {visible.map((favorite) => {
             const isExpanded = expanded === favorite.rider.id;
 
@@ -410,12 +410,12 @@ export default function GrandPrixFavorites() {
                   onClick={() =>
                     setExpanded(isExpanded ? null : favorite.rider.id)
                   }
-                  className="w-full text-left transition hover:opacity-90"
+                  className="-mx-3 block w-[calc(100%+1.5rem)] rounded-xl p-3 text-left transition hover:bg-red-500/[0.07]"
                   aria-expanded={isExpanded}
                 >
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center">
-                      <b className="mr-3 text-zinc-500">
+                      <b className={`mr-3 w-9 font-display text-2xl font-black italic tabular-nums ${favorite.rank === 1 ? "text-red-500" : "text-zinc-500"}`}>
                         {String(favorite.rank).padStart(2, "0")}
                       </b>
 
@@ -432,7 +432,7 @@ export default function GrandPrixFavorites() {
 
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="text-right">
-                        <b className="block text-white">
+                        <b className="block font-display text-xl font-black italic text-white">
                           {favorite.score}/100
                         </b>
 
@@ -464,7 +464,7 @@ export default function GrandPrixFavorites() {
             <button
               type="button"
               onClick={() => setShowAll((value) => !value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 min-h-11 py-2 text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10"
+              className="btn-ghost !mt-5 w-full"
             >
               {showAll
                 ? "Ver solo los favoritos"

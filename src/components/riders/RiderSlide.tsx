@@ -86,7 +86,7 @@ function RiderImage({
       className="card relative h-[26rem] overflow-hidden sm:h-[32rem] lg:h-auto lg:min-h-[40rem]"
     >
       {missing || failed ? (
-        <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 rounded-none border border-white/5 bg-zinc-900/50 px-6 text-center">
+        <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-white/5 bg-zinc-900/50 px-6 text-center">
           <p className="text-sm text-zinc-500">Imagen del piloto no disponible</p>
         </div>
       ) : (
@@ -227,7 +227,7 @@ export function RiderSlide({
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {rider.number !== null && (
-              <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold tracking-wider text-red-400">
+              <span className="tag">
                 #{rider.number}
               </span>
             )}

@@ -14,7 +14,7 @@ export default function PilotosPage() {
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
         <div className="mb-8">
           {/* Año fijo como en /calendario (deuda conocida de AGENTS.md). */}
-          <h1 className="text-4xl font-display font-black md:text-6xl">
+          <h1 className="page-title text-5xl font-display font-black md:text-7xl">
             Pilotos <span className="text-red-600">2026</span>
           </h1>
         </div>

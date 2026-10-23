@@ -27,7 +27,7 @@ const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50";
 
 // Misma altura de la caja de imagen que usa RiderSlide por debajo de lg; centra las flechas en móvil.
-const ARROW_BASE = `absolute top-[13rem] z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-white/20 bg-black text-xl text-white transition duration-300 hover:border-red-600 disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none sm:top-[16rem] lg:static lg:translate-y-0 lg:self-center ${FOCUS_RING}`;
+const ARROW_BASE = `absolute top-[13rem] z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-white/20 rounded-full bg-[var(--surface)] text-xl text-white shadow-md transition duration-300 hover:border-red-600 hover:bg-red-600 hover:text-[#fff] disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none sm:top-[16rem] lg:static lg:translate-y-0 lg:self-center ${FOCUS_RING}`;
 
 function ArrowButton({
   direction,
@@ -64,7 +64,7 @@ function CarouselSkeleton() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
         {/* IMAGEN */}
         <div className="card relative h-[26rem] sm:h-[32rem] lg:h-auto lg:min-h-[40rem]">
-          <div className="absolute inset-6 mx-auto w-3/5 rounded-none bg-white/10" />
+          <div className="absolute inset-6 mx-auto w-3/5 rounded-xl bg-white/10" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
@@ -163,7 +163,7 @@ function EmptyState({
 }) {
   return (
     <div className="card pt-6">
-      <div className="rounded-none border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
+      <div className="rounded-xl border border-white/5 bg-zinc-900/50 py-10 text-center text-sm text-zinc-500">
         Todavía no hay pilotos de {category} registrados en la temporada {season}.
       </div>
     </div>
@@ -182,7 +182,7 @@ function CategorySelector({
       <div
         role="group"
         aria-label="Categoría"
-        className="inline-flex rounded-none border border-white/10 bg-white/5 p-1"
+        className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1"
       >
         {CATEGORIES.map((item) => {
           const active = item === category;
@@ -196,7 +196,7 @@ function CategorySelector({
               }}
               className={`min-h-11 rounded-lg px-5 text-xs font-bold uppercase tracking-wider transition motion-reduce:transition-none sm:px-8 ${FOCUS_RING} ${
                 active
-                  ? "bg-red-600 text-[#fff]"
+                  ? "bg-[image:var(--accent-grad)] text-[#fff] shadow-md"
                   : "text-zinc-400 hover:text-white"
               }`}
             >

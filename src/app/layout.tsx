@@ -4,7 +4,7 @@ import "./globals.css";
 import ScrollToTop from "@/components/ScrollToTop";
 
 // Fuentes autoalojadas por Next (sin petición externa en runtime): Barlow Condensed para titulares y cifras, Barlow para el cuerpo.
-const display = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700", "800", "900"], display: "swap", variable: "--font-display" });
+const display = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700", "800", "900"], style: ["normal", "italic"], display: "swap", variable: "--font-display" });
 const body = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap", variable: "--font-body" });
 
 export const metadata: Metadata = {
