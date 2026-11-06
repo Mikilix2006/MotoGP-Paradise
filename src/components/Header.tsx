@@ -10,8 +10,7 @@ import { Menu, X } from "lucide-react";
 const NAV_LINKS = [
   { label: "Inicio", href: "/" },
   { label: "Calendario", href: "/calendario" },
-  { label: "Pilotos", href: "/pilotos" },
-  { label: "Equipos", href: "#" },
+  { label: "Resultados", href: "/resultados" },
   { label: "Predicciones", href: "#" },
 ];
 
