@@ -157,6 +157,7 @@ Cómo anotar en `logs/desarrollo-pilotos.md`: añade al final una entrada con tu
 ```bash
 npx tsc --noEmit -p tsconfig.json   # el proyecto está en strict
 npx prisma validate                 # si se ha tocado el esquema
+npx tsx scripts/check-results.ts    # lógica pura de /resultados (asserts, sin BD)
 ```
 
 ESLint no está instalado ni configurado, así que `npm run lint` no funciona y no es una comprobación válida; tampoco existe `npm test`.
@@ -168,7 +169,7 @@ Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interact
 ## Deudas conocidas (no las "arregles" sin hablarlo)
 
 - **Dos copias de `wallClockToInstant`.** `src/utils/date.ts` y `src/services/importers/liveSessionSync.ts` tienen cada una la suya, con comportamiento distinto sin zona horaria (la de `date.ts` exige zona; la de `liveSessionSync` devuelve la hora tal cual).
-- **El año 2026 está fijo en la interfaz.** El título de `/calendario` y el de `/pilotos` («Pilotos 2026») y el selector de año de `Header.tsx` lo escriben a mano.
+- **El año 2026 está fijo en la interfaz.** El título de `/calendario` y el de `/pilotos` («Pilotos 2026») y el selector de año de `Header.tsx` lo escriben a mano. Ese selector «2026» es decorativo (no cambia nada); `/resultados` tiene su propio selector de año y no depende de él (pendiente).
 - **Equipos duplicados.** La API de resultados los modela por temporada y la general como entidad única, y sus `legacy_id` no coinciden. Unificarlos exige una decisión de modelo del usuario.
 - **Filas históricas con `Session.type = 'SESSION'` sin migrar.** Versiones anteriores de `import:event-details` guardaban `broadcast.type` (siempre `SESSION` en las sesiones de pista) en las sesiones creadas sin pareja; ahora guardan `baseSessionType(broadcast.shortname)` y `areTypesCompatible` trata `SESSION` como tipo desconocido para que esas filas sigan emparejando por UUID. En la base local quedan unas 763 filas con ese valor (la mayoría `RAC` de 1951-2000) pendientes de una migración de datos aparte que **no se ha hecho** (cifra aportada por el usuario, no recontada aquí). `import:event-details` sigue sin ser idempotente si se ejecuta antes de que `/results/sessions` publique las sesiones (filas huérfanas o duplicadas); con fechas idénticas el orden de la pasada 4 no está garantizado (la consulta ordena solo por `dateStart`). Conviene ejecutarlo siempre después de `import:sessions`.
 - **Filas obsoletas en las clasificaciones.** `championshipStandingImporter.ts` y `bmwAwardImporter.ts` solo hacen `upsert` y nunca borran: un piloto que desaparece conserva su fila. `ChampionshipStanding` se puede filtrar por `snapshotAt`; `BmwAwardStanding` solo tiene `fetchedAt` por fila y `getMotoGPRiderStandings` (`riderStandingsRepository.ts`) la lee entera sin filtrar, así que un obsoleto aparecería en `/api/riders/standings`. Además `bmwAwardImporter.ts` (los `eventId` de `create` y `update`) pisa `eventId` con `null` si el evento no se resuelve, y este importador no guarda `ApiSnapshot`. Corrección sugerida: tras importar una temporada, borrar o ignorar las filas con `fetchedAt` anterior al inicio de la ejecución; conservar el `eventId` previo si no se resuelve.

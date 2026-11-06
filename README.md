@@ -266,7 +266,7 @@ npm run sync:sessions     # una pasada: importa lo que haya terminado y sale
 npm run watch:sessions    # proceso continuo que vigila el calendario
 ```
 
-> Nota: el proyecto no cuenta actualmente con una suite de tests automatizados (no existe `npm test`) y ESLint no está instalado ni configurado, así que `npm run lint` no funciona. Las comprobaciones disponibles son `npx tsc --noEmit -p tsconfig.json` (el proyecto está en modo `strict`) y `npx prisma validate` si se ha tocado el esquema.
+> Nota: el proyecto no cuenta actualmente con una suite de tests automatizados (no existe `npm test`) y ESLint no está instalado ni configurado, así que `npm run lint` no funciona. Las comprobaciones disponibles son `npx tsc --noEmit -p tsconfig.json` (el proyecto está en modo `strict`) y `npx prisma validate` si se ha tocado el esquema. Para la lógica pura de `/resultados` hay además un autotest con asserts, sin BD: `npx tsx scripts/check-results.ts`.
 
 ---
 
@@ -1542,6 +1542,17 @@ Qué muestra:
 
 ---
 
+## Resultados (`/resultados`)
+
+Clasificación de una sesión (`src/app/resultados/page.tsx`, que monta `ResultsPage` en un `Suspense` porque usa `useSearchParams`). Un conmutador **Temporada | Tests** y los selectores año > circuito > categoría > sesión; la selección vive en la URL (`?section=tests&year=&event=&category=&session=`) y el servidor aplica la cascada a lo que cambia (conserva lo elegido si existe; si no, cae al último evento con la categoría preferida, MotoGP por defecto, y a su última sesión). API: `/api/results` (contrato en la [sección 25](#apiresults)). Lógica pura en `src/services/results/resultsModel.ts`; lectura en `src/services/db/resultsRepository.ts`; tipos en `src/types/results.ts`.
+
+- **Visibilidad por datos, no por `Session.status`:** una sesión aparece si tiene `shortname` y algún `SessionResult` con `time` o `fastestLap`. En Tests también vale `gap`, porque sus resultados no traen tiempo ni mejor vuelta (con la regla estricta no habría tests).
+- **No clasificado = `position` nula**, no `status`. Esas filas van al final (por vueltas) con el estado en texto (`statusLabel`).
+- Es carrera/sprint si alguna fila tiene `time` (por los datos, no por `type`); carrera muestra tiempo/diferencia y puntos, el resto mejor vuelta y diferencia.
+- **«500cc» es solo una etiqueta** (`categoryLabel`): hasta 2001 las sesiones cuelgan de MotoGP (`legacyId` 3) y solo cambia el texto; no se usa la categoría propia `legacyId` -1.
+- El circuito es la etiqueta del evento; el nombre del evento solo se antepone si hay varios eventos en el mismo circuito ese año.
+- El dorsal sale de `RiderSeasonEntry` (temporada y categoría de la sesión).
+
 ## Pilotos (`/pilotos`)
 
 Página con los pilotos titulares de la temporada actual (`src/app/pilotos/page.tsx`, que monta `RidersPage` bajo el `Header` con el título «Pilotos 2026», año fijo a mano como en `/calendario`).
@@ -1578,7 +1589,7 @@ Los monta `src/app/layout.tsx` en todas las páginas.
 
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las tres páginas (Inicio, Calendario y Pilotos). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «MOTO**GP**STATS» en cursiva con «GP» sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. Los enlaces Equipos y Predicciones apuntan a `#` (aún sin página); el selector de año es decorativo; incluye el botón de tema (`ThemeToggle`).
+Cabecera común a las páginas Inicio, Calendario, Resultados y Pilotos (esta última sin enlace en el menú). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «MOTO**GP**STATS» en cursiva con «GP» sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL con su código intacto. Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
 
 ---
 
@@ -1680,6 +1691,12 @@ Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos.
 
 ---
 
+### `/api/results`
+
+Clasificación de una sesión, para `/resultados` ([24.1](#resultados-resultados)). `GET /api/results?section=season|tests&year=&event=&category=&session=` (todos opcionales; `section` distinto de `tests` es `season`; `category` es el `legacy_id`, `event` el id interno y `session` el `shortname`). Los parámetros inválidos se descartan y caen al valor por defecto, sin 400. La ruta no lleva `revalidate` (lee la URL, es dinámica). Errores: 404 `No hay resultados disponibles` si no hay ninguna sesión visible; 500 si falla la consulta.
+
+`data` (`ResultsPayload`, contrato en `src/types/results.ts`): `section`, `years[]` (descendente), `events[]` (`id`, `label`), `categories[]` (`legacy_id`, `label`), `sessions[]` (`shortname`, `label`), `selected` (`year`, `event`, `category`, `session`, ya resueltos), `is_race` y `rows[]` (`position` nula si no clasificó, `rider_name`, `number`, `team_name`, `status`, `time`, `gap`, `fastest_lap`, `points`, `laps_completed`). Reglas de visibilidad y de «no clasificado» en [Resultados](#resultados-resultados).
+
 ### `/api/riders/carousel`
 
 Pilotos titulares de una categoría en la temporada actual, con todo lo que muestra la página `/pilotos` ([24.1](#pilotos-pilotos)). `GET /api/riders/carousel?category=MotoGP|Moto2|Moto3` (por defecto `MotoGP`). La ruta no lleva `revalidate`: lee la URL, es dinámica y no se cachea (consultas agrupadas para todos los pilotos a la vez, sin N+1).
@@ -1730,7 +1747,7 @@ El flujo es:
 React Component
       │
       ▼
-/api/next-gp, /api/calendar, /api/riders/standings, /api/riders/carousel, /api/constructors/standings, /api/next-gp/favorites
+/api/next-gp, /api/calendar, /api/riders/standings, /api/riders/carousel, /api/constructors/standings, /api/next-gp/favorites, /api/results
       │
       ▼
 src/services/db/*Repository.ts
@@ -1769,8 +1786,10 @@ motogp-stats/
 │   ├── app/
 │   │   ├── page.tsx               Inicio (/)
 │   │   ├── calendario/page.tsx    Calendario (/calendario)
-│   │   ├── pilotos/page.tsx       Pilotos (/pilotos)
+│   │   ├── resultados/page.tsx    Resultados (/resultados)
+│   │   ├── pilotos/page.tsx       Pilotos (/pilotos, fuera del menú)
 │   │   └── api/
+│   │       ├── results/           route.ts
 │   │       ├── next-gp/           route.ts y favorites/route.ts
 │   │       ├── calendar/
 │   │       ├── constructors/standings/
@@ -1780,7 +1799,7 @@ motogp-stats/
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │   │                          GrandPrixFavorites, CalendarView, Countdown,
 │   │   │                          CountryFlag, Header, StatCard, ThemeToggle,
-│   │   │                          ScrollToTop, RidersPage
+│   │   │                          ScrollToTop, RidersPage, ResultsPage
 │   │   └── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
 │   │
 │   ├── lib/
@@ -1790,9 +1809,10 @@ motogp-stats/
 │   │   ├── db/                    Repositorios de lectura que usan las rutas /api
 │   │   ├── importers/             Lógica de importación y sincronización en vivo
 │   │   ├── motogp/                Clientes de las dos APIs externas (solo los usan los importadores)
+│   │   ├── results/               Lógica pura de /resultados (resultsModel.ts)
 │   │   └── stats/                 Modelos estadísticos puros (favoritesModel.ts)
 │   │
-│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites, riderCarousel)
+│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites, riderCarousel, results)
 │   └── utils/
 │       ├── date.ts                getMadridTimestamp y wallClockToInstant
 │       └── text.ts                htmlToPlainText (biografías HTML a texto plano)
