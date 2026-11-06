@@ -200,7 +200,8 @@ export async function findCurrentOrNextEventId(
         some: {
           type: RACE_SESSION_TYPE,
           category: { legacyId: MOTOGP_CATEGORY_LEGACY_ID },
-          status: { not: "FINISHED" },
+          // Una carrera cancelada (p. ej. AUS 2026) tampoco está pendiente.
+          status: { notIn: ["FINISHED", "CANCELLED"] },
         },
       },
     },
