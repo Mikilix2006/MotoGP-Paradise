@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 
 import CountryFlag from "./CountryFlag";
-
-// Color de los puntos del podio (oro, plata, bronce); resto de posiciones, color de texto.
-const MEDAL_TEXT: Record<number, string> = {
-  1: "text-[color:var(--gold)]",
-  2: "text-[color:var(--silver)]",
-  3: "text-[color:var(--bronze)]"
-};
+import {
+  constructorCountry,
+  formatStandingPosition,
+  isPodium,
+  medalText,
+} from "./home/standingsModel";
 
 interface RiderCountry {
   iso: string;
@@ -101,22 +100,6 @@ function StandingsSkeleton({ label = "Piloto" }: { label?: string }) {
   );
 }
 
-// La BD no guarda el país del constructor: mapa fijo por nombre (sin coincidencia, sin bandera).
-const CONSTRUCTOR_COUNTRIES: Record<string, { iso: string; name: string }> = {
-  aprilia: { iso: "IT", name: "Italia" },
-  ducati: { iso: "IT", name: "Italia" },
-  ktm: { iso: "AT", name: "Austria" },
-  honda: { iso: "JP", name: "Japón" },
-  yamaha: { iso: "JP", name: "Japón" },
-  suzuki: { iso: "JP", name: "Japón" },
-};
-
-function constructorCountry(name: string) {
-  const key = name.toLowerCase();
-  const match = Object.keys(CONSTRUCTOR_COUNTRIES).find((k) => key.includes(k));
-  return match ? CONSTRUCTOR_COUNTRIES[match] : null;
-}
-
 function ConstructorsTable({
   constructors,
   error,
@@ -166,12 +149,12 @@ function ConstructorsTable({
         >
           <span
             className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
-              item.position <= 3
+              isPodium(item.position)
                 ? "bg-[image:var(--accent-grad)] text-[#fff]"
                 : "bg-white/10 text-zinc-300"
             }`}
           >
-            {String(item.position).padStart(2, "0")}
+            {formatStandingPosition(item.position)}
           </span>
 
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -385,14 +368,12 @@ export default function RiderStandings() {
                 <div>
                   <span
                     className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
-                      rider.statistics.position <= 3
+                      isPodium(rider.statistics.position)
                         ? "bg-[image:var(--accent-grad)] text-[#fff]"
                         : "bg-white/10 text-zinc-300"
                     }`}
                   >
-                    {String(
-                      rider.statistics.position
-                    ).padStart(2, "0")}
+                    {formatStandingPosition(rider.statistics.position)}
                   </span>
                 </div>
 
@@ -441,7 +422,7 @@ export default function RiderStandings() {
 
                 {/* PUNTOS */}
                 <div className="text-right">
-                  <p className={`text-3xl font-display font-black italic tabular-nums ${MEDAL_TEXT[rider.statistics.position] ?? "text-white"}`}>
+                  <p className={`text-3xl font-display font-black italic tabular-nums ${medalText(rider.statistics.position)}`}>
                     {rider.statistics.points}
                   </p>
 

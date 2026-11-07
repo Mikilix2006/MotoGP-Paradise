@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Countdown } from "./Countdown";
 import CountryFlag from "./CountryFlag";
+import { formatDate, formatStatus } from "./home/nextGrandPrixModel";
 
 interface GrandPrix {
 id: string;
@@ -47,24 +48,6 @@ race: {
 
 interface ApiResponse {
 data: GrandPrix;
-}
-
-function formatDate(date: string) {
-return new Intl.DateTimeFormat("es-ES", {
-day: "numeric",
-month: "long",
-year: "numeric",
-}).format(new Date(`${date}T12:00:00`));
-}
-
-function formatStatus(status: string) {
-  const statuses: Record<string, string> = {
-    CURRENT: "En curso",
-    "NOT-STARTED": "Próximamente",
-    FINISHED: "Finalizado",
-  };
-
-  return statuses[status] ?? status;
 }
 
 export function NextGrandPrix() {
