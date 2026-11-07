@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RiderStandings from "../RiderStandings";
@@ -159,15 +159,15 @@ describe("RiderStandings: constructores", () => {
     expect(await screen.findByText("No se pudo cargar la clasificación de constructores")).toBeInTheDocument();
   });
 
-  // INI-10: confirmada, el efecto sale si hay `constructorsError` y nada lo limpia (RiderStandings.tsx, useEffect de constructores).
-  it.fails("SOSPECHA: tras un error, volver a abrir la pestaña reintenta (INI-10)", async () => {
+  it("INI-10: tras un error, 'Reintentar' vuelve a pedir los constructores", async () => {
     const fetchMock = mockFetch({ [PILOTOS]: ok(pilotosConEmpates), [CONSTRUCTORES]: { status: 500 } });
     const user = await abrirConstructores();
     await screen.findByText("No se pudo cargar la clasificación de constructores");
 
-    await user.click(screen.getByRole("button", { name: "Pilotos" }));
-    await user.click(screen.getByRole("button", { name: "Constructores" }));
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
 
-    expect(fetchMock.mock.calls.filter(([url]) => url === CONSTRUCTORES).length).toBeGreaterThan(1);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => url === CONSTRUCTORES).length).toBe(2)
+    );
   });
 });

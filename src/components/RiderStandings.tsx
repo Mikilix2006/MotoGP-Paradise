@@ -104,16 +104,22 @@ function ConstructorsTable({
   constructors,
   error,
   flagUrls,
+  onRetry,
 }: {
   constructors: ConstructorStanding[] | null;
   error: string | null;
   flagUrls: Record<string, string>; // iso -> url, tomadas de los pilotos
+  onRetry: () => void;
 }) {
   if (error) {
     return (
       <div className="p-6">
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
+        <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400">
           {error}
+          <p className="mt-1 text-xs text-zinc-500">Inténtalo de nuevo en unos segundos.</p>
+          <button type="button" onClick={onRetry} className="btn-ghost mt-4">
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -316,6 +322,8 @@ export default function RiderStandings() {
         <ConstructorsTable
           constructors={constructors}
           error={constructorsError}
+          // Sin error, el efecto de la pestaña vuelve a pedir los constructores.
+          onRetry={() => setConstructorsError(null)}
           flagUrls={Object.fromEntries(
             riders.flatMap((r) =>
               r.country.iso && r.country.flag_url
