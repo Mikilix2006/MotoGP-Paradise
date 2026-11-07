@@ -81,12 +81,14 @@ console.log("2/6 Preparando dist/dinahosting...");
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
+// Solo en el primer nivel de .next: por nombre en cualquier nivel se perdían
+// rutas como .next/server/app/api/dev/ (500 en producción en vez de 404).
 const skip = new Set(["cache", "dev", "lock", "trace", "trace-build"]);
 const nextDir = path.join(root, ".next");
 fs.cpSync(nextDir, path.join(out, ".next"), {
   recursive: true,
   filter: (src) =>
-    !skip.has(path.basename(src)) &&
+    !skip.has(path.relative(nextDir, src)) &&
     /* .next/node_modules: ver más abajo. */
     path.relative(nextDir, src) !== "node_modules",
 });
