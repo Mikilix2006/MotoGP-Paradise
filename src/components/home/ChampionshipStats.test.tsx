@@ -32,7 +32,7 @@ describe("ChampionshipStats", () => {
     expect(screen.getByText("200")).toBeInTheDocument();
   });
 
-  it("INI-05: datos del circuito, imagen y sprint (hora peninsular)", async () => {
+  it("INI-05: datos del circuito, imagen y sprint (tu hora)", async () => {
     mockFetch({ "/api/riders/standings": ok(pilotosConEmpates), "/api/next-gp": ok(nextGpConPista) });
     render(<ChampionshipStats />);
 
@@ -43,6 +43,7 @@ describe("ChampionshipStats", () => {
     expect(screen.getByAltText("Información del circuito")).toHaveAttribute("src", "https://photos.motogp.com/circuito.svg");
     expect(screen.getByText("sábado, 7 de marzo")).toBeInTheDocument();
     expect(screen.getByText("15:00")).toBeInTheDocument();
+    expect(screen.getByText("Tu hora")).toBeInTheDocument();
     expect(screen.getByText("11")).toBeInTheDocument();
   });
 

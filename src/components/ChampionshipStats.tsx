@@ -362,7 +362,7 @@ export default function ChampionshipStats() {
           </p>
 
           <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
-            Hora peninsular
+            Tu hora
           </p>
         </div>
 

@@ -57,7 +57,7 @@ describe("championshipModel", () => {
     expect(formatSprintTime(null)).toBe("—");
   });
 
-  it("la hora peninsular es la de Madrid (CET en invierno)", () => {
+  it("la hora es la del visitante (aquí Madrid, CET en invierno)", () => {
     expect(formatSprintTime("2026-03-07T14:00:00.000Z")).toBe("15:00");
   });
 
@@ -76,12 +76,15 @@ describe("championshipModel", () => {
     expect(selectLeader(lista).n).toBe("a");
   });
 
-  // INI-06: confirmada, el día usa la zona del navegador y la hora la de Madrid.
-  it.fails("SOSPECHA: el día de la sprint concuerda con la hora peninsular cerca de medianoche (INI-06)", () => {
+  // INI-06: día y hora en la misma zona (la del visitante), nunca contradictorios.
+  it("día y hora de la sprint concuerdan cerca de medianoche en cualquier zona (INI-06)", () => {
     const tz = process.env.TZ;
-    process.env.TZ = "America/Los_Angeles";
+    const sprint = "2026-03-28T23:30:00.000Z"; // sábado 16:30 en Los Ángeles, domingo 00:30 en Madrid
     try {
-      const sprint = "2026-03-28T23:30:00.000Z"; // 00:30 del domingo 29 en Madrid
+      process.env.TZ = "America/Los_Angeles";
+      expect(formatSprintTime(sprint)).toBe("16:30");
+      expect(formatSprintDate(sprint)).toContain("28 de marzo");
+      process.env.TZ = "Europe/Madrid";
       expect(formatSprintTime(sprint)).toBe("00:30");
       expect(formatSprintDate(sprint)).toContain("29 de marzo");
     } finally {
@@ -108,8 +111,9 @@ describe("standingsModel", () => {
   });
 
   // INI-09: confirmada, `0 <= 3` hace podio a un piloto sin posición.
-  it.fails("SOSPECHA: la posición 0 (sin posición) no es podio (INI-09)", () => {
+  it("la posición 0 (sin posición) no es podio y se muestra '—' (INI-09)", () => {
     expect(isPodium(0)).toBe(false);
+    expect(formatStandingPosition(0)).toBe("—");
   });
 
   it("formatStandingPosition rellena a dos cifras", () => {
