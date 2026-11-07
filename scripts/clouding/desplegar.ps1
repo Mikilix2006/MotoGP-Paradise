@@ -44,7 +44,7 @@ param(
   [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._/@^~-]*$')][string]$Ref,
   [switch]$SoloEmpaquetar,
   # Web publica contra la que se repiten las comprobaciones de endpoints al terminar.
-  [ValidatePattern('^https?://[A-Za-z0-9.-]+(:\d+)?$')][string]$Url = "http://www.planetamiguel.com"
+  [ValidatePattern('^https?://[A-Za-z0-9.-]+(:\d+)?$')][string]$Url = "http://rebufo.planetamiguel.com"
 )
 
 $ErrorActionPreference = "Stop"

@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      BASE_URL: http://www.planetamiguel.com
+      BASE_URL: http://rebufo.planetamiguel.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
