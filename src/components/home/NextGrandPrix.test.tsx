@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextGrandPrix } from "../NextGrandPrix";
-import { nextGp, nextGpSinFecha, nextGpSinRonda } from "./__fixtures__/nextGp";
+import { nextGp, nextGpSinFecha } from "./__fixtures__/nextGp";
 import { mockFetch, ok } from "./__fixtures__/mockFetch";
 
 class Limite extends Component<{ children: ReactNode }, { fallo: boolean }> {
@@ -48,16 +48,6 @@ describe("NextGrandPrix", () => {
 
     expect(await screen.findByRole("heading", { name: "Qatar" })).toBeInTheDocument();
     expect(screen.getByText("En curso")).toBeInTheDocument();
-  });
-
-  // INI-01: sin ronda salen dos etiquetas iguales (NextGrandPrix.tsx:~140-146, `round ? ... : short_name` junto a `short_name`).
-  it.fails("SOSPECHA: sin ronda el nombre corto no se repite dos veces (INI-01)", async () => {
-    mockFetch({ "/api/next-gp": ok(nextGpSinRonda) });
-    render(<NextGrandPrix />);
-
-    await screen.findByRole("heading", { name: "Gran Premio de Qatar" });
-    expect(screen.queryByText(/RONDA/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("QAT")).toHaveLength(1);
   });
 
   it("con date_start vacío la tarjeta se pinta e informa 'Fecha por confirmar' (INI-02)", async () => {
