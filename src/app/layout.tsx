@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description: "Estadísticas, pilotos y próximo Gran Premio"
 };
 
-// Fija el tema antes de pintar (claro por defecto) para evitar parpadeo.
-const THEME_SCRIPT = `try{if(localStorage.getItem("theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;
+// Fija el tema antes de pintar (oscuro por defecto salvo que el usuario haya elegido claro) para evitar parpadeo.
+const THEME_SCRIPT = `try{if(localStorage.getItem("theme")!=="light")document.documentElement.dataset.theme="dark"}catch(e){document.documentElement.dataset.theme="dark"}`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
