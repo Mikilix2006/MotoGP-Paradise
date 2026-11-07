@@ -54,3 +54,6 @@ scripts/tmp-*.ts
 
 # graphify: rutas locales de esta máquina (el resto de graphify-out sí se versiona)
 graphify-out/.graphify_*
+
+# Notas de tareas locales
+TODO.md
