@@ -1,7 +1,7 @@
 # Plan de tests
 
 Objetivo: no se despliega nada que no pase todos los tests. Cubre toda la web
-(5 páginas, 8 endpoints, cabecera, pie y 404). Se comprueban **comportamiento y
+(6 páginas, 9 endpoints, cabecera, pie y 404). Se comprueban **comportamiento y
 textos**, no capturas de pantalla.
 
 ## Capas
@@ -55,7 +55,7 @@ Vitest (alias `@/`, jsdom) y Playwright, e instalar eslint con
 
 | ID | Comprueba | Capa |
 |---|---|---|
-| GLB-01 | Menú: Inicio, Calendario, Resultados, Predicciones; el enlace activo lleva `aria-current="page"` en cada página; "Predicciones" (`#`) nunca activo | U (`isActive`) + E |
+| GLB-01 | Menú: Inicio, Calendario, Resultados, Gráficas, Predicciones; el enlace activo lleva `aria-current="page"` en cada página; "Predicciones" (`#`) nunca activo; «Gráficas» lleva a `/graficas` | U (`isActive`, enlaces de `Header`) + E |
 | GLB-02 | Menú móvil: abre/cierra con el botón ("Abrir menú"/"Cerrar menú", `aria-expanded`), se cierra con Escape (vuelve el foco al botón), clic fuera, clic en un enlace y al pasar a ≥768 px | E (WebKit iPhone) |
 | GLB-03 | Logo "REBUFO" lleva a `/` | E |
 | GLB-04 | Pie: texto "No afiliado a MotoGP" y enlace "Aviso legal" → `/aviso-legal` en todas las páginas | E |
@@ -150,6 +150,50 @@ Métodos no previstos → 405.
 | API-07 | `GET /api/riders/carousel` | En producción, 404. En local: 400 con categoría inválida; `image_url` null o `https://photos.motogp.com/` |
 | API-08 | `POST /api/dev/image-issue` | En producción, 404. En local solo las respuestas 400 (escribe en `logs/`, no entra en el barrido de solo lectura) |
 | API-09 | Páginas | `/`, `/calendario`, `/resultados`, `/aviso-legal` dan 200; `/pilotos` y una ruta inventada dan 404 en producción |
+
+### Gráfica de puntos `/graficas` (capa de datos)
+
+Lógica en `src/services/stats/pointsProgressModel.ts`, repositorio `pointsProgressRepository.ts` y endpoint `GET /api/riders/points-progress?year=&category=`. Fixtures en `src/services/stats/__fixtures__/pointsProgress.ts`.
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| GRA-U01 | Eventos ordenados por `sequence` y con abreviatura, circuito y país | U (`buildPointsProgress`) |
+| GRA-U02 | Sprint + carrera con desglose y acumulado; el último acumulado cuadra con la clasificación | U |
+| GRA-U03 | Piloto sin fila en un GP: puntos `null` (nunca 0), acumulado plano y `null` antes de su primera participación; un paso por evento | U |
+| GRA-U04 | Carrera reiniciada (RAC sin puntos + RAC2; dos sesiones con suma completa; shortname nulo): cuenta una sola, la más tardía que puntúa | U |
+| GRA-U05 | Se excluyen GP cancelados, de test y sin resultados; carrera cancelada con sprint disputada cuenta por la sprint | U |
+| GRA-U06 | Sesiones antiguas `type='SESSION'`: solo RAC*/SPR* por shortname | U (`classifySession`) |
+| GRA-U07 | El sustituto no aparece aunque puntúe | U (`selectRoster`) |
+| GRA-U08 | `type` nulo: respaldo con los pilotos de `ChampionshipStanding` | U |
+| GRA-U09 | Empates: orden por posición final de la clasificación; sin posición, al final y sin NaN | U |
+| GRA-A01 | Forma: un paso por evento, eventos ordenados, pilotos sin repetir y por posición final; `points` null implica acumulado plano; acumulado = anterior + puntos | A |
+| GRA-A02 | `year`/`category` inválidos dan 400 con `{ error }` | A |
+| GRA-A03 | Temporada cerrada (2024 MotoGP): último acumulado = `ChampionshipStanding.points` | A |
+| GRA-A04 | POST da 405 | A |
+| GRA-U10 | Escalas y ejes: `linearScale`, `niceTicks` (1/2/5 × 10^k), `labelStep`, `nearestIndex`, `eventLabel` | U (`chartModel`) |
+| GRA-U11 | Trazado con huecos: `null` corta la línea y no se dibuja como 0; acumulado vs por carrera | U |
+| GRA-U12 | URL `?temporada=&categoria=&modo=&pilotos=`: defectos, valores inválidos, ida y vuelta, `pilotos=` vacío = ninguno, dorsal repetido usa id | U |
+| GRA-U13 | Colores por marca/equipo: base de marca, satélites con otro tono y luminosidad (distancia RGB mínima entre equipos, contraste mínimo en claro y oscuro, marca con muchos equipos), compañeros mismo color con trazo/marcador distintos, sin colores repetidos entre equipos, contraste en claro y oscuro, estable ante el orden | U (`riderColorsModel`) |
+| GRA-U14 | Respaldo sin marca: `Team.color` ajustado (`visibleTeamColor`) o paleta fija sin repetir; piloto sin equipo | U |
+| GRA-C01 | Carga: pide año y categoría, top 5 marcado, lista única leyenda+selector con 7 casillas; estado «Cargando gráfica» | C |
+| GRA-C02 | La URL manda sobre el top 5 (dorsales) y las fichas desconocidas se ignoran | C |
+| GRA-C03 | Top 5 / Todos / Ninguno y casillas escriben la selección en la URL | C |
+| GRA-C04 | Cambiar categoría o temporada reinicia a top 5 | C |
+| GRA-C05 | Por carrera: el GP sin participación es hueco (línea cortada, sin punto) | C |
+| GRA-C06 | Acumulado: línea continua con punto en cada GP | C |
+| GRA-C07 | Teclado en la gráfica: circuito, desglose sprint/carrera, acumulado y «no participó» | C |
+| GRA-C08 | Sin pilotos seleccionados: mensaje en lugar de gráfica | C |
+| GRA-C09 | Error en español fijo (no el crudo) con «Reintentar» que se recupera | C |
+| GRA-C10 | Vacío: 404 o respuesta sin GP | C |
+| GRA-C11 | Respuesta 200 sin `data`: mensaje de error fijo | C |
+| GRA-E01 | `/graficas` (2024 MotoGP): título, top 5, lista leyenda+selector, sin errores de consola | E |
+| GRA-E02 | Todos / Ninguno / Top 5; la selección sobrevive a recargar | E |
+| GRA-E03 | Cambiar categoría y temporada reinicia a top 5 y actualiza la URL | E |
+| GRA-E04 | Clic/toque sobre la gráfica: tooltip con puntos y acumulado de cada piloto, dentro de la pantalla | E |
+| GRA-E05 | Acumulado / Por carrera cambia URL y título | E |
+| GRA-E06 | Sin desbordamiento horizontal con todos los pilotos | E |
+
+Cruce completo con la base (2014 en adelante, Moto3/Moto2/MotoGP): `npx tsx scripts/check-points-progress.ts [año] [categoría]`.
 
 ## Sospechas y fallos encontrados
 
