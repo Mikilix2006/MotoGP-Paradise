@@ -16,7 +16,7 @@ import type { ResultRow } from "../src/types/results";
 let n = 0;
 const s = (o: Partial<VisibleSession>): VisibleSession => ({
   id: `s${n++}`, shortname: "RAC", dateStart: n, seasonId: "y", eventId: "e1", eventName: "GP UNO", eventDate: 1,
-  circuitId: "c1", circuitName: "Circuito", categoryId: "k3", categoryLegacyId: 3, categoryName: "MotoGP™", ...o,
+  circuitId: "c1", circuitName: "Circuito", circuitPlace: null, countryIso: null, countryName: null, categoryId: "k3", categoryLegacyId: 3, categoryName: "MotoGP™", ...o,
 });
 
 // etiquetas
@@ -31,7 +31,7 @@ assert.equal(categoryLabel(2, "Moto2™", 1990), "Moto2");
 const mis = [s({ eventId: "a", eventName: "GRAN PREMIO DE SAN MARINO", eventDate: 1, circuitName: "Misano" }),
   s({ eventId: "b", eventName: "EMILIA-ROMAGNA", eventDate: 2, circuitName: "Misano" }),
   s({ eventId: "c", eventName: "OTRO", eventDate: 3, circuitId: "c2", circuitName: "Jerez" })];
-assert.deepEqual(eventOptions(mis).map((e) => e.label), ["Gran Premio De San Marino · Misano", "Emilia-Romagna · Misano", "Jerez"]);
+assert.deepEqual(eventOptions(mis).map((e) => e.label), ["San Marino · Misano", "Emilia-Romagna · Misano", "Jerez"]);
 
 // cascada: carrera MotoGP -> carrera Moto2; sin la sesión, cae a la última
 const sess = [

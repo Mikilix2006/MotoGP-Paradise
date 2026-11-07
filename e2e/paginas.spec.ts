@@ -205,6 +205,26 @@ test.describe("Resultados", () => {
     await expect(page).not.toHaveURL(/section=tests/);
   });
 
+  test("RES-11 en móvil Año y Sesión van en una fila y Circuito debajo; en escritorio, tres columnas", async ({ page }) => {
+    await page.goto("/resultados");
+    const [year, event, session] = await Promise.all(
+      ["#res-year", "#res-event", "#res-session"].map(async (id) => {
+        await page.locator(id).waitFor();
+        return (await page.locator(id).boundingBox())!;
+      })
+    );
+    if (isMobile(page)) {
+      expect(Math.abs(year.y - session.y)).toBeLessThan(2);
+      expect(year.x).toBeLessThan(session.x);
+      expect(event.y).toBeGreaterThan(year.y + year.height);
+    } else {
+      expect(Math.abs(year.y - event.y)).toBeLessThan(2);
+      expect(Math.abs(event.y - session.y)).toBeLessThan(2);
+      expect(year.x).toBeLessThan(event.x);
+      expect(event.x).toBeLessThan(session.x);
+    }
+  });
+
   test("RES-04 parámetros inválidos no rompen la página", async ({ page }) => {
     const problems = watchErrors(page);
     await page.goto("/resultados?year=abc&category=zzz&session=XXX");

@@ -53,6 +53,9 @@ async function getVisibleSessions(section: ResultsSection, year: number): Promis
       event_date: Date | null;
       circuit_id: string | null;
       circuit_name: string | null;
+      circuit_place: string | null;
+      country_iso: string | null;
+      country_name: string | null;
       category_id: string;
       legacy_id: number | null;
       category_name: string;
@@ -60,12 +63,15 @@ async function getVisibleSessions(section: ResultsSection, year: number): Promis
   >`
     SELECT s.id, s.shortname, s.date_start, e.season_id, e.id AS event_id, e.name AS event_name,
            e.additional_name, e.date_start AS event_date, e.circuit_id, ci.name AS circuit_name,
+           ci.place AS circuit_place, co.iso AS country_iso, co.name AS country_name,
            c.id AS category_id, c.legacy_id, c.name AS category_name
     FROM sessions s
     JOIN events e ON e.id = s.event_id
     JOIN seasons se ON se.id = e.season_id
     JOIN categories c ON c.id = s.category_id
     LEFT JOIN circuits ci ON ci.id = e.circuit_id
+    -- País del evento; si no lo tiene, el del circuito.
+    LEFT JOIN countries co ON co.id = COALESCE(e.country_id, ci.country_id)
     WHERE se.year = ${year} AND e.is_test = ${section === "tests"} AND c.legacy_id IS NOT NULL AND ${visible(section)}`;
 
   return rows.map((r) => ({
@@ -79,6 +85,9 @@ async function getVisibleSessions(section: ResultsSection, year: number): Promis
     eventDate: r.event_date?.getTime() ?? 0,
     circuitId: r.circuit_id,
     circuitName: r.circuit_name,
+    circuitPlace: r.circuit_place,
+    countryIso: r.country_iso,
+    countryName: r.country_name,
     categoryId: r.category_id,
     categoryLegacyId: r.legacy_id as number,
     categoryName: r.category_name,

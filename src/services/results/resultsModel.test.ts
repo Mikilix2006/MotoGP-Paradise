@@ -56,14 +56,85 @@ describe("categoryLabel (RES-07)", () => {
 });
 
 describe("eventOptions (RES-07)", () => {
-  it("nombres en mayúsculas pasan a título; el evento va delante solo si el circuito tiene varios", () => {
+  it("la etiqueta es el país en español", () => {
+    const opts = eventOptions([
+      sesion({ eventId: "q", eventDate: 1, countryIso: "QA", countryName: "Qatar", circuitName: "Lusail" }),
+      sesion({ eventId: "j", eventDate: 2, countryIso: "JP", countryName: "Japan", circuitName: "Motegi" }),
+      sesion({ eventId: "g", eventDate: 3, countryIso: "DE", countryName: "Germany", circuitName: "Sachsenring" }),
+    ]);
+    expect(opts.map((o) => o.label)).toEqual(["Catar", "Japón", "Alemania"]);
+  });
+
+  it("en España, la comunidad autónoma según la localidad del circuito", () => {
+    const es = (eventId: string, eventDate: number, circuitPlace: string) =>
+      sesion({ eventId, eventDate, circuitId: eventId, countryIso: "ES", countryName: "Spain", circuitPlace });
+    const opts = eventOptions([
+      es("jer", 1, "Jerez de la Frontera"),
+      es("cat", 2, "Barcelona"),
+      es("ara", 3, "Alcañiz"),
+      es("val", 4, "Cheste"),
+      es("jar", 5, "Madrid"),
+    ]);
+    expect(opts.map((o) => o.label)).toEqual([
+      "Andalucía",
+      "Cataluña",
+      "Aragón",
+      "Comunidad Valenciana",
+      "Comunidad de Madrid",
+    ]);
+  });
+
+  it("circuito español desconocido: España", () => {
+    const [e] = eventOptions([sesion({ countryIso: "ES", countryName: "Spain", circuitPlace: "Albacete" })]);
+    expect(e.label).toBe("España");
+  });
+
+  it("el GP de Europa (EU) es 'Europa', no 'Unión Europea'", () => {
+    const [e] = eventOptions([sesion({ countryIso: "EU", countryName: "Europe" })]);
+    expect(e.label).toBe("Europa");
+  });
+
+  it("si la etiqueta se repite en el año, va el evento delante (2020: Aragón y Teruel)", () => {
+    const opts = eventOptions([
+      sesion({ eventId: "a", eventName: "ARAGON", eventDate: 1, countryIso: "ES", circuitPlace: "Alcañiz" }),
+      sesion({ eventId: "t", eventName: "TERUEL", eventDate: 2, countryIso: "ES", circuitPlace: "Alcañiz" }),
+      sesion({ eventId: "v", eventName: "VALENCIA", eventDate: 3, countryIso: "ES", circuitPlace: "Cheste" }),
+    ]);
+    expect(opts.map((o) => o.label)).toEqual(["Aragón", "Teruel · Aragón", "Comunidad Valenciana"]);
+  });
+
+  it("al repetirse, el evento va sin el arranque genérico (2020: España y Andalucía en Jerez)", () => {
+    const opts = eventOptions([
+      sesion({ eventId: "e", eventName: "GRAN PREMIO DE ESPAÑA", eventDate: 1, countryIso: "ES", circuitPlace: "Jerez de la Frontera" }),
+      sesion({ eventId: "a", eventName: "GRAN PREMIO DE ANDALUCÍA", eventDate: 2, countryIso: "ES", circuitPlace: "Jerez de la Frontera" }),
+      sesion({ eventId: "s", eventName: "Grand Prix of Styria", eventDate: 3, countryIso: "AT" }),
+      sesion({ eventId: "o", eventName: "Motorrad Grand Prix von Österreich", eventDate: 4, countryIso: "AT" }),
+      sesion({ eventId: "i", eventName: "Gran Premio d'Italia", eventDate: 5, countryIso: "IT" }),
+      sesion({ eventId: "m", eventName: "Emilia-Romagna", eventDate: 6, countryIso: "IT" }),
+    ]);
+    expect(opts.map((o) => o.label)).toEqual([
+      "España · Andalucía",
+      "Andalucía",
+      "Styria · Austria",
+      "Österreich · Austria",
+      "Italia",
+      "Emilia-Romagna · Italia",
+    ]);
+  });
+
+  it("código que Intl no conoce: nombre de la BD", () => {
+    const [e] = eventOptions([sesion({ countryIso: "RSM", countryName: "San Marino" })]);
+    expect(e.label).toBe("San Marino");
+  });
+
+  it("sin país: circuito; nombres en mayúsculas pasan a título y el evento va delante si se repite", () => {
     const sesiones = [
       sesion({ eventId: "a", eventName: "GRAN PREMIO DE SAN MARINO", eventDate: 1, circuitName: "Misano" }),
       sesion({ eventId: "b", eventName: "EMILIA-ROMAGNA", eventDate: 2, circuitName: "Misano" }),
       sesion({ eventId: "c", eventName: "OTRO", eventDate: 3, circuitId: "c2", circuitName: "Jerez" }),
     ];
     expect(eventOptions(sesiones).map((e) => e.label)).toEqual([
-      "Gran Premio De San Marino · Misano",
+      "San Marino · Misano",
       "Emilia-Romagna · Misano",
       "Jerez",
     ]);

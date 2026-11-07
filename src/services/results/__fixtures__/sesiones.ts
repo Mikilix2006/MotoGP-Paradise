@@ -5,7 +5,7 @@ import type { ResultRow } from "@/types/results";
 let n = 0;
 export const sesion = (o: Partial<VisibleSession> = {}): VisibleSession => ({
   id: `s${n++}`, shortname: "RAC", dateStart: n, seasonId: "y", eventId: "e1", eventName: "GP UNO", eventDate: 1,
-  circuitId: "c1", circuitName: "Circuito", categoryId: "k3", categoryLegacyId: 3, categoryName: "MotoGP™", ...o,
+  circuitId: "c1", circuitName: "Circuito", circuitPlace: null, countryIso: null, countryName: null, categoryId: "k3", categoryLegacyId: 3, categoryName: "MotoGP™", ...o,
 });
 
 const moto2 = { categoryLegacyId: 2, categoryName: "Moto2™", categoryId: "k2" };
