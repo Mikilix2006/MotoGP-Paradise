@@ -108,8 +108,9 @@ describe("standingsModel", () => {
   });
 
   // INI-09: confirmada, `0 <= 3` hace podio a un piloto sin posición.
-  it.fails("SOSPECHA: la posición 0 (sin posición) no es podio (INI-09)", () => {
+  it("la posición 0 (sin posición) no es podio y se muestra '—' (INI-09)", () => {
     expect(isPodium(0)).toBe(false);
+    expect(formatStandingPosition(0)).toBe("—");
   });
 
   it("formatStandingPosition rellena a dos cifras", () => {

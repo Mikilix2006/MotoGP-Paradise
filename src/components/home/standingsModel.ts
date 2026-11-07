@@ -9,12 +9,13 @@ export function medalText(position: number): string {
   return MEDAL_TEXT[position] ?? "text-white";
 }
 
+// 0 = sin posición (la API la deja vacía y el repositorio pone 0): ni podio ni "00".
 export function isPodium(position: number): boolean {
-  return position <= 3;
+  return position >= 1 && position <= 3;
 }
 
 export function formatStandingPosition(position: number): string {
-  return String(position).padStart(2, "0");
+  return position >= 1 ? String(position).padStart(2, "0") : "—";
 }
 
 // La BD no guarda el país del constructor: mapa fijo por nombre (sin coincidencia, sin bandera).

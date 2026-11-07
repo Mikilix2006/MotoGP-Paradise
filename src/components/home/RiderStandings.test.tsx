@@ -79,15 +79,16 @@ describe("RiderStandings: pilotos", () => {
   });
 
   // INI-09: confirmada, `position <= 3` es cierto para 0 y String(0).padStart(2, "0") da "00".
-  it.fails("SOSPECHA: un piloto sin posición no se muestra como '00' (INI-09)", async () => {
+  it("un piloto sin posición se muestra '—', no '00' (INI-09)", async () => {
     mockFetch({ [PILOTOS]: ok(pilotosPosicionNula) });
     render(<RiderStandings />);
     await screen.findByText("Piloto Sin Posición");
 
     expect(within(fila("Piloto Sin Posición")).queryByText("00")).not.toBeInTheDocument();
+    expect(within(fila("Piloto Sin Posición")).getByText("—")).toBeInTheDocument();
   });
 
-  it.fails("SOSPECHA: un piloto sin posición no lleva el estilo de podio (INI-09)", async () => {
+  it("un piloto sin posición no lleva el estilo de podio (INI-09)", async () => {
     mockFetch({ [PILOTOS]: ok(pilotosPosicionNula) });
     render(<RiderStandings />);
     await screen.findByText("Piloto Sin Posición");
