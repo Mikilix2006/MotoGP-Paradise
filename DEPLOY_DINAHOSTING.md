@@ -57,7 +57,7 @@ Por qué un servidor propio y no `output: "standalone"`: el `server.js` estánda
 | Elemento | Para qué |
 |---|---|
 | `app.js` | Entrada de Passenger |
-| `.next/` | Build de producción (sin caché ni `dev`; los alias de Turbopack se sustituyen por paquetes mínimos sin enlaces de Windows) |
+| `.next/` | Build de producción (sin `.next/cache`, `dev`, `lock`, `trace` ni `trace-build` de primer nivel; los alias de Turbopack se sustituyen por paquetes mínimos sin enlaces de Windows) |
 | `prisma/` | Esquema y migraciones |
 | `package.json`, `package-lock.json` | Propios del paquete: sin `devDependencies` y con `prisma` en `dependencies`, para que `npm ci --omit=dev` ejecute `prisma generate` (postinstall) y cree el motor Linux. El `package.json` del repo no se toca |
 | `next.config.mjs` | `next.config.ts` transpilado (el servidor no tiene TypeScript) |

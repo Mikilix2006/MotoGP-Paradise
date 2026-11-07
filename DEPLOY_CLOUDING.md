@@ -154,12 +154,17 @@ powershell -ExecutionPolicy Bypass -File .\scripts\clouding\desplegar.ps1 -Servi
 | `-Usuario` | Usuario SSH (por defecto `root`; si no es `root` debe poder usar `sudo` sin contraseña) |
 | `-Puerto` | Puerto SSH (por defecto 22) |
 | `-Ref` | Rama, etiqueta, hash u `origin/main`: despliega **exactamente ese commit** |
+| `-Url` | Web pública contra la que se ejecuta `npm run test:api` tras desplegar (por defecto `http://www.planetamiguel.com`) |
 | `-SoloEmpaquetar` | Construye el paquete en `dist\paquete-<hash7>` pero **no** sube ni ejecuta nada (`-Servidor` sigue siendo obligatorio; vale `127.0.0.1`) |
 
 **Qué versión se despliega:**
 
 - **Sin `-Ref`**: se empaqueta tu **carpeta de trabajo** tal como está. Si hay cambios sin commitear, avisa y anota `limpio=no`.
 - **Con `-Ref`** (p. ej. `-Ref main`): se despliega exactamente ese commit. Se construye en un *worktree* temporal limpio bajo `%TEMP%` (`mgp-<hash7>`), sin tocar tu carpeta de trabajo. El build de Next necesita `DATABASE_URL`, así que se **copia tu `.env` local al worktree solo para el build** (no se lee ni se muestra) y el worktree entero, con esa copia, se **borra al terminar**. El commit debe contener ya las herramientas de despliegue.
+
+**Tests:** antes de empaquetar ejecuta `npm run test:all` (lint, tipos, Vitest y Playwright sobre la base `motogp_test`; ver [TESTS.md](TESTS.md)) y aborta si algo falla. Tras desplegar ejecuta `npm run test:api` contra `-Url`; si falla, avisa de que la versión ya está desplegada.
+
+**`-Ref main` usa la rama `main` local:** tras fusionar un PR en GitHub haz `git pull`, o usa `-Ref origin/main` después de `git fetch`.
 
 **Qué hace, en 4 pasos:** (1) empaqueta con `npm run package:dinahosting`; (2) crea un directorio temporal en el servidor; (3) sube el paquete y `instalar-release.sh` con `scp`; (4) ejecuta `instalar-release.sh` por `ssh`. Este último, a su vez:
 

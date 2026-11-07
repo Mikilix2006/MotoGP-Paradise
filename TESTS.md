@@ -11,9 +11,9 @@ textos**, no capturas de pantalla.
 | **U**: lógica pura | Vitest | Fixtures pequeños escritos a mano (`src/**/__fixtures__/`) | Local, `desplegar.ps1`, CI en cada PR |
 | **C**: componentes | Vitest + Testing Library (jsdom), `fetch` simulado | Los mismos fixtures | Local, `desplegar.ps1`, CI |
 | **E**: recorrido real | Playwright, Chromium escritorio + WebKit iPhone | Base `motogp_test` cargada desde `motogp-datos.sql.gz`, reloj fijado con `page.clock` | Local y `desplegar.ps1` (no en CI: el volcado no se sube) |
-| **A**: endpoints | Vitest (`tests/api/`), solo lectura, por reglas | La base contra la que esté la URL (`BASE_URL`) | Local antes de desplegar, producción tras desplegar y cada hora (GitHub Actions) |
+| **A**: endpoints | Playwright, proyecto `api` (`tests/api/endpoints.spec.ts`), solo lectura, por reglas | La base contra la que esté la URL (`BASE_URL`) | Local antes de desplegar, producción tras desplegar y cada hora (GitHub Actions) |
 
-Scripts npm previstos: `test` (U+C), `test:e2e` (E), `test:api` (A, con
+Scripts npm: `test` (U+C), `test:e2e` (E), `test:api` (A, con
 `BASE_URL`), `test:all` (lint + `tsc` + todo lo anterior en local).
 
 - **`desplegar.ps1`**: ejecuta `npm run test:all` antes de empaquetar y aborta
@@ -168,6 +168,6 @@ Estado tras ejecutar el plan (noviembre de 2026). Cada arreglo va en su rama `fi
 | — | INI-01: sin ronda, el nombre corto sale en las dos etiquetas | Aceptado por el usuario: se deja como está |
 | — | Errores de ESLint en Header, ThemeToggle y ResultsPage | Arreglados |
 | — | El paquete de despliegue perdía `.next/server/app/api/dev` (500 en producción en vez de 404) | Arreglado (API-08) |
-| — | Datos de producción desfasados: fin de sesión de Qatar y carrera de Moto3 de Malasia fuera del fin de semana (API-01) | Pendiente: la sincronización solo refresca sesiones de eventos activos |
+| — | Datos de producción desfasados: fin de sesión de Qatar y carrera de Moto3 de Malasia fuera del fin de semana (API-01) | Corregido en `liveSessionSync`: refresca también eventos terminados hace menos de 14 días y ejecuta `importEventDetails` como mucho una vez por hora; los datos de producción se arreglan al desplegarlo |
 
 Fuera del plan: "Calendario 2026", "Pilotos 2026" y el botón "2026" están fijos en el código a propósito; se sustituirán por funciones en el futuro.

@@ -155,12 +155,17 @@ Cómo anotar en `logs/desarrollo-pilotos.md`: añade al final una entrada con tu
 ## Comprobaciones
 
 ```bash
-npx tsc --noEmit -p tsconfig.json   # el proyecto está en strict
+npm run lint                        # ESLint (eslint-config-next)
+npm run typecheck                   # tsc --noEmit; el proyecto está en strict
+npm test                            # Vitest (lógica pura y componentes)
+npm run test:api                    # endpoints (Playwright, proyecto api; BASE_URL)
+npm run test:e2e                    # páginas (Chromium escritorio y WebKit iPhone; base motogp_test)
+npm run test:all                    # todo lo anterior; lo ejecuta desplegar.ps1 antes de empaquetar
 npx prisma validate                 # si se ha tocado el esquema
 npx tsx scripts/check-results.ts    # lógica pura de /resultados (asserts, sin BD)
 ```
 
-ESLint no está instalado ni configurado, así que `npm run lint` no funciona y no es una comprobación válida; tampoco existe `npm test`.
+El plan de tests y cómo preparar la base `motogp_test` (`scripts/test/preparar-bd-test.sh`, `npx playwright install chromium webkit` una vez) están en [TESTS.md](TESTS.md). GitHub Actions: `pr.yml` (lint, tipos y Vitest en cada PR y push a main) y `salud.yml` (`test:api` contra producción cada hora).
 
 Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interactivos. Usa `prisma migrate diff` para generar el SQL y `prisma migrate deploy` para aplicarlo (procedimiento detallado en `database-guardian`).
 
@@ -184,7 +189,6 @@ Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interact
 - **`rider_season_statistics.points` es `Int` y trunca los medios puntos.** La API da, por ejemplo, 509,5 en Moto2 y se guarda 509 (en 2026 también Ortola 191,5 → 191). `ChampionshipStanding.points` es `Decimal`: `/api/riders/carousel` usa ese y solo cae al entero si falta la clasificación. Pasar el campo a `Decimal` es un cambio de esquema no aditivo, pendiente de aprobación.
 - **`Country.name` y `regionIso` pueden degradarse al reimportar.** El `update` del `upsert` de país en `riderImporter.ts` y en `sessionResultImporter.ts` usa el ISO como nombre de respaldo, y el segundo pisa `regionIso` con `null` si falta. Ya hay países con `name = iso` (YU, EU). No afecta a `flagUrl`, que nunca se pisa con `null`. Corrección sugerida: en el `update`, incluir `name`/`regionIso` solo cuando la API los trae.
 - **Código duplicado sin consolidar.** `import-event-details.ts`, `import-riders.ts` e `import-championship-standings.ts` llevan su propia copia de `getSeasonYear()` en lugar de usar `getSeasonYearArgument()` de `src/services/importers/cli.ts`; y las interfaces de respuesta (`MotoGPRider`, `RiderStatistics`, `ConstructorStanding`, `GrandPrix`...) se redeclaran en varios componentes en vez de importarse de `src/types/`.
-- **Sin tests automatizados ni ESLint.** No hay `npm test` y `npm run lint` no funciona.
 - **Despliegue en el VPS de Clouding sin importadores `import:*` empaquetados.** El paquete (`npm run package:dinahosting`) solo lleva la web y la pasada de `sync:sessions` (bundle `sync-sessions.cjs`, lanzado por el temporizador `motogp-sync`). Con un VPS se podrían ejecutar los `import:*` desde un checkout del repositorio en el servidor, pero **eso no está documentado ni probado**; hoy temporadas nuevas, categorías, detalles de evento, pilotos (incluidas las biografías de `rider_biographies`), estadísticas de 500cc o histórico exigen importarlos en local y repetir volcado/carga (ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)).
 - **Carga por volcado y semilla 500cc: ajuste sin probar en el servidor.** `20261014120100_category_500cc` inserta una fila en `categories` al ejecutar `prisma migrate deploy` y el volcado de la base local trae esa misma fila (mismo `id`, fijado en la migración). `scripts/deploy/cargar-datos.sh` lo contempla: si el destino tiene exactamente 1 fila y es esa semilla (`b1491d87-f579-429d-b2c0-46c75169888c`), la borra antes de comprobar que todo está vacío y sigue; con más filas aborta como antes. El ajuste solo se ha comprobado con `bash -n`, no cargando un volcado en un servidor real (ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#7-fase-5--cargar-los-datos)).
 - **SSH del VPS endurecido a medias.** Ya solo entra con clave (`PermitRootLogin prohibit-password`; ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#121-endurecer-ssh-solo-con-clave)), pero `desplegar.ps1` sigue entrando como `root`, no hay usuario no root con `sudo` y `fail2ban` no está instalado.
