@@ -13,7 +13,7 @@ export default function AvisoLegalPage() {
   const correo = CONTACT_EMAIL ? (
     <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-white underline decoration-red-500 underline-offset-4 hover:text-red-500">{CONTACT_EMAIL}</a>
   ) : (
-    "miguel.gonzalezdelgado06@gmail.com"
+    "[correo pendiente]"
   );
 
   return (
