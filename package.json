@@ -25,9 +25,9 @@
     "package:dinahosting": "node scripts/package-dinahosting.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test",
-    "test:api": "vitest run --config vitest.api.config.mts",
-    "test:all": "npm run lint && npm run typecheck && npm test && npm run test:api && npm run test:e2e"
+    "test:e2e": "playwright test --project=chromium-escritorio --project=webkit-iphone",
+    "test:api": "playwright test --project=api",
+    "test:all": "npm run lint && npm run typecheck && npm test && playwright test"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
