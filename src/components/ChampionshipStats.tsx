@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  formatSprintDate,
+  formatSprintTime,
+  selectLeader,
+} from "./home/championshipModel";
 
 
 
@@ -58,41 +63,6 @@ interface GrandPrixApiResponse {
 
 interface ChampionshipStatsData {
   leader: MotoGPRider;
-}
-
-function formatSprintDate(
-  date: string | null
-): string {
-  if (!date) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat(
-    "es-ES",
-    {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }
-  ).format(new Date(date));
-}
-
-function formatSprintTime(
-  date: string | null
-): string {
-  if (!date) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat(
-    "es-ES",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Europe/Madrid",
-    }
-  ).format(new Date(date));
 }
 
 function StatsSection({ children }: { children: React.ReactNode }) {
@@ -171,16 +141,8 @@ export default function ChampionshipStats() {
          * pero nos aseguramos de que el líder sea
          * el piloto con más puntos.
          */
-        const riders = [
-          ...ridersResult.data,
-        ].sort(
-          (a, b) =>
-            b.statistics.points -
-            a.statistics.points
-        );
-
         setStats({
-          leader: riders[0],
+          leader: selectLeader(ridersResult.data),
         });
 
         setGrandPrix(
@@ -400,7 +362,7 @@ export default function ChampionshipStats() {
           </p>
 
           <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
-            Hora peninsular
+            Tu hora
           </p>
         </div>
 

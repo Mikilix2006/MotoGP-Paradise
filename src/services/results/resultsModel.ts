@@ -6,6 +6,7 @@ import type {
   ResultsSelected,
   ResultsSessionOption,
 } from "../../types/results";
+import { countryNameEs } from "../../utils/country";
 
 export const MOTOGP_LEGACY_ID = 3;
 
@@ -20,6 +21,10 @@ export interface VisibleSession {
   eventDate: number;
   circuitId: string | null;
   circuitName: string | null;
+  circuitPlace: string | null;
+  countryIso: string | null;
+  /** Nombre del país en la BD (inglés): respaldo si Intl no conoce el código. */
+  countryName: string | null;
   categoryId: string;
   categoryLegacyId: number;
   categoryName: string;
@@ -48,6 +53,8 @@ const SESSION_LABELS: Record<string, string> = {
   SPR: "Sprint",
   WUP: "Warm-up",
   RAC: "Carrera",
+  // Carrera reiniciada: se llama igual que en el calendario (decisión del usuario).
+  RAC2: "Carrera",
 };
 
 // Sin entrada ni patrón conocido se muestra el shortname tal cual.
@@ -85,18 +92,53 @@ function uniqueEvents(sessions: VisibleSession[]): VisibleSession[] {
   return [...seen.values()].sort((a, b) => a.eventDate - b.eventDate || a.eventName.localeCompare(b.eventName));
 }
 
-// Etiqueta = circuito; el evento solo se añade si ese circuito tiene varios eventos visibles.
+// En España hay varios GP por año: se distinguen por comunidad autónoma, según la
+// localidad del circuito (Montmeló figura como "Barcelona", igual que Montjuïc).
+const SPANISH_REGIONS: Record<string, string> = {
+  "jerez de la frontera": "Andalucía",
+  barcelona: "Cataluña",
+  montmeló: "Cataluña",
+  cheste: "Comunidad Valenciana",
+  valencia: "Comunidad Valenciana",
+  madrid: "Comunidad de Madrid",
+  alcañiz: "Aragón",
+};
+
+// "EU" es el GP de Europa; Intl lo traduciría como "Unión Europea".
+const PLACE_NAMES: Record<string, string> = { EU: "Europa" };
+
+// País (o comunidad autónoma en España); sin país, el circuito; sin circuito, el evento.
+function placeLabel(e: VisibleSession): string {
+  const iso = e.countryIso?.trim().toUpperCase();
+  if (iso === "ES") {
+    const region = SPANISH_REGIONS[e.circuitPlace?.trim().toLowerCase() ?? ""];
+    if (region) return region;
+  }
+  if (iso && PLACE_NAMES[iso]) return PLACE_NAMES[iso];
+  if (iso) return countryNameEs(iso, e.countryName ?? iso);
+  return e.circuitName ?? titleIfUpper(e.eventName);
+}
+
+// "Gran Premio de España" -> "España": el arranque genérico no distingue nada y alarga la etiqueta.
+const GENERIC_PREFIX = /^(gran premio|grand prix|grande pr[eé]mio|motorrad grand prix)\s+(?:(?:of|de|del|do|da|di|von)\s+|d['’])?(?=\p{L})/iu;
+
+// Para comparar nombres sin tildes ni mayúsculas ("ARAGON" frente a "Aragón").
+const plain = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+// Etiqueta = país (comunidad autónoma en España); si se repite en el año, se
+// antepone el evento ("Teruel · Aragón", "Styria · Austria").
 export function eventOptions(sessions: VisibleSession[]): ResultsEventOption[] {
   const events = uniqueEvents(sessions);
-  const perCircuit = new Map<string, number>();
-  for (const e of events) if (e.circuitId) perCircuit.set(e.circuitId, (perCircuit.get(e.circuitId) ?? 0) + 1);
-  return events.map((e) => {
-    const eventName = titleIfUpper(e.eventName);
-    const many = e.circuitId && (perCircuit.get(e.circuitId) ?? 0) > 1;
+  const labels = events.map(placeLabel);
+  const count = new Map<string, number>();
+  for (const label of labels) count.set(label, (count.get(label) ?? 0) + 1);
+  return events.map((e, i) => {
+    const eventName = titleIfUpper(e.eventName).replace(GENERIC_PREFIX, "");
+    const label = labels[i];
     return {
       id: e.eventId,
       // El evento va delante: en un <select> cerrado se corta el final de la etiqueta.
-      label: e.circuitName ? (many ? `${eventName} · ${e.circuitName}` : e.circuitName) : eventName,
+      label: (count.get(label) ?? 0) > 1 && plain(eventName) !== plain(label) ? `${eventName} · ${label}` : label,
     };
   });
 }

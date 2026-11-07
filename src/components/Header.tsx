@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { Menu, X } from "lucide-react";
@@ -16,7 +17,7 @@ const NAV_LINKS = [
 ];
 
 // "/" solo es activo en la portada exacta; el resto, también en sus subrutas.
-function isActive(href: string, pathname: string) {
+export function isActive(href: string, pathname: string) {
   if (href === "#") return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -76,20 +77,20 @@ export function Header() {
     <header ref={headerRef} className="sticky top-0 z-20 border-b-[3px] border-red-600 bg-[var(--surface)] shadow-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-10">
-          <a
+          <Link
             href="/"
             aria-label={`${SITE_NAME}, ir al inicio`}
             className={`flex items-center gap-2 rounded-md font-display text-2xl font-black italic tracking-tight md:text-3xl ${FOCUS_RING}`}
           >
             <span className="cut bg-[image:var(--accent-grad)] pl-2 pr-4 text-[#fff]">REBUFO</span>
-          </a>
+          </Link>
           {/* self-stretch + -my-4: el nav ocupa todo el alto del header para que el semicírculo
               del enlace activo toque justo el borde superior. */}
           <nav aria-label="Menú principal" className="-my-4 hidden gap-7 self-stretch font-display text-lg font-bold uppercase tracking-wider text-zinc-400 md:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   className={`relative flex items-center transition-colors hover:text-white motion-reduce:transition-none ${active ? "text-white" : ""}`}
@@ -102,7 +103,7 @@ export function Header() {
                       className="pointer-events-none absolute left-0 bottom-0 h-[4px] w-full -skew-x-[30deg] bg-red-600"
                     />
                   )}
-                </a>
+                </Link>
               );
             })}
           </nav>
@@ -139,7 +140,7 @@ export function Header() {
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   onClick={() => setOpen(false)}
@@ -151,7 +152,7 @@ export function Header() {
                   }`}
                 >
                   {link.label}
-                </a>
+                </Link>
               );
             })}
           </nav>

@@ -42,7 +42,9 @@ param(
   [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._:@-]*$')][string]$Usuario = "root",
   [int]$Puerto = 22,
   [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._/@^~-]*$')][string]$Ref,
-  [switch]$SoloEmpaquetar
+  [switch]$SoloEmpaquetar,
+  # Web publica contra la que se repiten las comprobaciones de endpoints al terminar.
+  [ValidatePattern('^https?://[A-Za-z0-9.-]+(:\d+)?$')][string]$Url = "http://www.planetamiguel.com"
 )
 
 $ErrorActionPreference = "Stop"
@@ -121,6 +123,12 @@ try {
   $instalador = Join-Path $base "scripts\clouding\instalar-release.sh"
   if (-not (Test-Path $instalador)) { Fallar "falta $instalador" }
 
+  # --- Tests: si algo falla no se empaqueta ni se sube nada (TESTS.md) -------
+  # Lint, tipos, Vitest y Playwright (endpoints y paginas) contra la base motogp_test.
+  Write-Host "==> Tests (npm run test:all)" -ForegroundColor Cyan
+  Push-Location $base
+  try { Ejecutar "los tests fallan; no se despliega. Arreglelos (una rama fix/ por fallo) y vuelva a intentarlo" { npm run test:all } } finally { Pop-Location }
+
   # --- 1. Empaquetar -------------------------------------------------------
   Write-Host "==> 1/4 Empaquetando la aplicacion (npm run package:dinahosting)" -ForegroundColor Cyan
   Push-Location $base
@@ -174,6 +182,18 @@ try {
     Write-Host ""
     Write-Host "Despliegue terminado correctamente: $corto  ref=$refTexto  limpio=$limpio" -ForegroundColor Green
     Write-Host "Logs de la app:  ssh $destino journalctl -u motogp-stats -n 50 --no-pager"
+
+    # --- Comprobacion final contra la web publica ----------------------------
+    Write-Host "==> Comprobando los endpoints de $Url (npm run test:api)" -ForegroundColor Cyan
+    Push-Location $base
+    try {
+      $env:BASE_URL = $Url
+      npm run test:api
+      $codigoApi = $LASTEXITCODE
+    } finally { Remove-Item Env:BASE_URL -ErrorAction SilentlyContinue; Pop-Location }
+    if ($codigoApi -ne 0) {
+      Fallar "la version $corto YA esta desplegada, pero las comprobaciones de $Url fallan. Revise los mensajes de arriba (puede ser el codigo o los datos de produccion)."
+    }
   }
 } finally {
   if ($worktree) {

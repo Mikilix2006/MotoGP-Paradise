@@ -57,3 +57,8 @@ graphify-out/.graphify_*
 
 # Notas de tareas locales
 TODO.md
+
+# Tests
+/playwright-report/
+/test-results/
+/.claude/worktrees/

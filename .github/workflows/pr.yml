@@ -1,0 +1,27 @@
+# Cada PR y cada push a main: lint, tipos y tests de Vitest (capas U y C de
+# TESTS.md). Playwright y los endpoints locales necesitan la base motogp_test
+# (el volcado no se sube al repositorio) y corren en desplegar.ps1.
+name: PR
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  comprobaciones:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test

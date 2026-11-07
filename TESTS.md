@@ -151,18 +151,23 @@ Métodos no previstos → 405.
 | API-08 | `POST /api/dev/image-issue` | En producción, 404. En local solo las respuestas 400 (escribe en `logs/`, no entra en el barrido de solo lectura) |
 | API-09 | Páginas | `/`, `/calendario`, `/resultados`, `/aviso-legal` dan 200; `/pilotos` y una ruta inventada dan 404 en producción |
 
-## Sospechas que los tests confirmarán o descartarán
+## Sospechas y fallos encontrados
 
-Salen de leer el código; no se han reproducido. Si se confirman, cada una va
-en su rama `fix/`.
+Estado tras ejecutar el plan (noviembre de 2026). Cada arreglo va en su rama `fix/`.
 
-1. `formatDate("")` en el próximo GP lanza RangeError si el evento no tiene fecha (INI-02).
-2. "Día de la Sprint" usa la zona del navegador y "Hora peninsular" Madrid: pueden no cuadrar cerca de medianoche (INI-06).
-3. Piloto sin posición se pinta "00" con estilo de podio (INI-09).
-4. La pestaña Constructores no reintenta tras un error (INI-10).
-5. La trayectoria junta temporadas no consecutivas (PIL-06).
-6. RAC2 es "Carrera" en el calendario y "Carrera 2" en resultados. **Decidido:** vale "Carrera", como en el calendario (CAL-08); RES-07 debe esperar "Carrera" y resultados se corrige.
-7. `/api/riders/standings` usa los puntos truncados (sin medios puntos) y no filtra filas antiguas del premio BMW (API-04).
-8. Hay dos copias de `wallClockToInstant` que se comportan distinto sin zona (CAL-13).
+| # | Hallazgo | Estado |
+|---|---|---|
+| 1 | INI-02: próximo GP sin fecha lanzaba RangeError y rompía la tarjeta | Arreglado: "Fecha por confirmar" |
+| 2 | INI-06: "Día de la Sprint" (zona del navegador) y "Hora peninsular" (Madrid) se contradecían cerca de medianoche | Arreglado (opción B): los dos en la zona del visitante, etiqueta "Tu hora" |
+| 3 | INI-09: piloto sin posición se pintaba "00" con estilo de podio | Arreglado: "—" y sin podio |
+| 4 | INI-10: Constructores no se recuperaba tras un error | Arreglado: botón "Reintentar" |
+| 5 | PIL-06: la trayectoria junta temporadas no consecutivas | Aceptado: fuera de alcance mientras no se use la trayectoria; queda un `it.fails` |
+| 6 | RAC2 era "Carrera 2" en resultados y "Carrera" en el calendario | Arreglado: "Carrera" en los dos |
+| 7 | `/api/riders/standings` usa los puntos truncados y no filtra filas antiguas del premio BMW | API-04 no lo ha detectado con los datos actuales; sin cambios |
+| 8 | Dos copias de `wallClockToInstant` que se comportan distinto sin zona | Sin cambios; CAL-13 cubre la de `src/utils/date.ts` |
+| — | INI-01: sin ronda, el nombre corto sale en las dos etiquetas | Aceptado por el usuario: se deja como está |
+| — | Errores de ESLint en Header, ThemeToggle y ResultsPage | Arreglados |
+| — | El paquete de despliegue perdía `.next/server/app/api/dev` (500 en producción en vez de 404) | Arreglado (API-08) |
+| — | Datos de producción desfasados: fin de sesión de Qatar y carrera de Moto3 de Malasia fuera del fin de semana (API-01) | Pendiente: la sincronización solo refresca sesiones de eventos activos |
 
 Fuera del plan: "Calendario 2026", "Pilotos 2026" y el botón "2026" están fijos en el código a propósito; se sustituirán por funciones en el futuro.

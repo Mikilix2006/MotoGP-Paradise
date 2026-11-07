@@ -1306,7 +1306,8 @@ Es la vía normal durante la temporada: mantiene la base de datos al día durant
 2. localiza los eventos activos (su fin de semana cubre ahora, con un día de margen antes del primer día y un día después del final del último: `Event.dateEnd` es una fecha a medianoche UTC, así que el margen real es de dos días en el código);
 3. refresca sus sesiones desde la API de resultados, que es quien las marca como `FINISHED`;
 4. importa la clasificación de las sesiones terminadas que aún no la tienen (y reimporta las terminadas hace poco por si hay sanciones);
-5. si ha entrado el resultado de una carrera o sprint, encadena las estadísticas de piloto, la clasificación del campeonato y el BMW Award de la temporada.
+5. si ha entrado el resultado de una carrera o sprint, encadena las estadísticas de piloto, la clasificación del campeonato y el BMW Award de la temporada;
+6. autocorrección, como mucho una vez por hora (se consulta el último `SyncRun` `/live-sync/event-details`) y solo si hay eventos activos o terminados en los últimos 14 días: relee las sesiones de los eventos recientes no activos y ejecuta `importEventDetails` de la temporada (la API corrige fechas provisionales cuando el evento ya no está activo y `dateEnd` solo viene de la API general). No reimporta clasificaciones de esos eventos.
 
 Es idempotente. Entre sesiones duerme hasta el fin previsto de la siguiente (calculado con la zona horaria del evento); mientras la API no publica una clasificación pregunta cada dos minutos, mientras el evento activo no esté `FINISHED` no duerme más de 30 minutos y nunca duerme más de una hora seguida (si un ciclo falla, reintenta a los 5 minutos). Solo registra en `SyncRun` (`/live-sync/sessions` o `/live-sync/post-race`) cuando importa algo.
 

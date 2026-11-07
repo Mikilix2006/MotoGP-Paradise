@@ -7,3 +7,5 @@ scripts/package-dinahosting.mjs text eol=lf
 # VPS de Clouding (Debian): scripts y unidades systemd, siempre LF.
 scripts/clouding/* text eol=lf
 scripts/clouding/systemd/* text eol=lf
+# Scripts de tests (bash): siempre LF.
+scripts/test/* text eol=lf

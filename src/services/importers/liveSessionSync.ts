@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { importSessions } from "./sessionImporter";
 import { importSessionResults } from "./sessionResultImporter";
 import { importEvents } from "./eventImporter";
+import { importEventDetails } from "./eventDetailsImporter";
 import { importRiderStatistics } from "./riderStatisticsImporter";
 import { importChampionshipStandings } from "./championshipStandingImporter";
 import { importBmwAwardStandings } from "./bmwAwardImporter";
@@ -35,6 +36,16 @@ import { trackSyncRun } from "./syncTracking";
  *      encadena lo que depende de ella: estado del evento,
  *      estadísticas de piloto, clasificación del campeonato y
  *      BMW Award, todo acotado a la temporada.
+ *
+ * Autocorrección: la API de resultados corrige fechas provisionales
+ * (p. ej. Qatar, calendario provisional; Malaysia, Moto3) cuando el
+ * evento ya no está "activo", y dateEnd/gpDay solo vienen de la API
+ * general. Por eso, como mucho una vez por hora (ver
+ * shouldRefreshEventDetails), mientras haya eventos activos o
+ * terminados hace poco se vuelven a leer las sesiones de los
+ * recientes y se ejecuta importEventDetails de la temporada. La
+ * clasificación y la cadena posterior a carrera siguen limitadas a
+ * los eventos activos.
  *
  * Es idempotente: ejecutarla cuando no ha pasado nada no toca
  * la base de datos (solo refresca el estado de las sesiones).
@@ -87,6 +98,19 @@ const GIVE_UP_AFTER_MS = 4 * 60 * 60 * 1000;
  */
 const EVENT_STATUS_POLL_MS = 30 * 60 * 1000;
 
+/*
+ * Un evento terminado hace menos de esto sigue refrescándose. 14 días
+ * cubre dos fines de semana de calendario (el hueco habitual entre
+ * GP) y sobra para las correcciones tardías de la API, que se han
+ * visto a los pocos días de la carrera.
+ */
+const RECENT_EVENT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+/* Cadencia mínima del refresco pesado (eventos recientes + importEventDetails). */
+const EVENT_DETAILS_MIN_INTERVAL_MS = 60 * 60 * 1000;
+
+const EVENT_DETAILS_ENDPOINT = "/live-sync/event-details";
+
 const RACE_TYPES = new Set(["RAC", "SPR"]);
 
 export interface LiveSyncResult {
@@ -97,6 +121,12 @@ export interface LiveSyncResult {
   eventStatusChanges: string[];
 
   sessionsRefreshed: number;
+
+  /** Eventos terminados hace poco cuyas sesiones se han vuelto a leer. */
+  recentEventsRefreshed: string[];
+
+  /** Se ha ejecutado importEventDetails (API general) en este ciclo. */
+  eventDetailsRefreshed: boolean;
 
   /** Sesiones cuya clasificación se ha importado en este ciclo. */
   sessionsImported: string[];
@@ -153,6 +183,37 @@ export function wallClockToInstant(
   instant = new Date(wallClock.getTime() - offsetAt(instant) * 60_000);
 
   return instant;
+}
+
+/**
+ * ¿Terminó el evento hace poco (y ya no se considera activo)?
+ * dateEnd es el inicio del último día, así que se compara contra él.
+ */
+export function isRecentlyFinished(
+  event: { dateEnd: Date | null },
+  now: Date
+): boolean {
+  if (!event.dateEnd) {
+    return false;
+  }
+
+  const age = now.getTime() - event.dateEnd.getTime();
+
+  return age >= 0 && age <= RECENT_EVENT_WINDOW_MS;
+}
+
+/**
+ * Decisión de throttle: refrescar si nunca se hizo o si la última
+ * ejecución correcta tiene al menos una hora.
+ */
+export function shouldRefreshEventDetails(
+  lastSuccessAt: Date | null,
+  now: Date
+): boolean {
+  return (
+    lastSuccessAt === null ||
+    now.getTime() - lastSuccessAt.getTime() >= EVENT_DETAILS_MIN_INTERVAL_MS
+  );
 }
 
 interface SessionWindow {
@@ -262,6 +323,15 @@ async function findActiveEvents(seasonId: string, now: Date) {
   });
 }
 
+async function findRecentEvents(seasonId: string, now: Date) {
+  const events = await prisma.event.findMany({
+    where: { seasonId, isTest: false, dateEnd: { not: null } },
+    select: { id: true, shortName: true, dateEnd: true },
+  });
+
+  return events.filter((event) => isRecentlyFinished(event, now));
+}
+
 /**
  * Cuándo despertar cuando no hay ningún evento activo: al abrirse
  * la ventana del siguiente evento (para captar su paso a CURRENT)
@@ -344,6 +414,76 @@ async function refreshEventStatuses(
     );
 }
 
+/**
+ * Refresco autocorrector (ver cabecera). Devuelve qué se hizo.
+ * Orden: sesiones (API resultados) antes que importEventDetails,
+ * que empareja las sesiones por hora y no debe crear ninguna.
+ */
+async function refreshRecentData(
+  seasonYear: number,
+  activeIds: string[],
+  recent: { id: string; shortName: string | null }[],
+  now: Date
+): Promise<{
+  recentEventsRefreshed: string[];
+  eventDetailsRefreshed: boolean;
+  sessionsRefreshed: number;
+}> {
+  const none = {
+    recentEventsRefreshed: [],
+    eventDetailsRefreshed: false,
+    sessionsRefreshed: 0,
+  };
+
+  if (activeIds.length === 0 && recent.length === 0) {
+    return none;
+  }
+
+  const last = await prisma.syncRun.findFirst({
+    where: {
+      source: "BROADCAST",
+      endpoint: EVENT_DETAILS_ENDPOINT,
+      status: "SUCCESS",
+    },
+    orderBy: { startedAt: "desc" },
+    select: { startedAt: true },
+  });
+
+  if (!shouldRefreshEventDetails(last?.startedAt ?? null, now)) {
+    return none;
+  }
+
+  const recentOnly = recent.filter((event) => !activeIds.includes(event.id));
+
+  let sessionsRefreshed = 0;
+
+  if (recentOnly.length > 0) {
+    const result = await importSessions({
+      eventIds: recentOnly.map((event) => event.id),
+    });
+
+    sessionsRefreshed = result.sessionsProcessed;
+  }
+
+  await trackSyncRun(
+    {
+      source: "BROADCAST",
+      endpoint: EVENT_DETAILS_ENDPOINT,
+      getStats: (value) => ({
+        processed: value.eventsMatched,
+        updated: value.circuitsUpdated + value.sessionsUpdated,
+      }),
+    },
+    () => importEventDetails({ seasonYear })
+  );
+
+  return {
+    recentEventsRefreshed: recentOnly.map((event) => event.shortName ?? event.id),
+    eventDetailsRefreshed: true,
+    sessionsRefreshed,
+  };
+}
+
 export async function syncLiveSessions(
   now: Date = new Date()
 ): Promise<LiveSyncResult> {
@@ -357,6 +497,8 @@ export async function syncLiveSessions(
       activeEvents: [],
       eventStatusChanges: [],
       sessionsRefreshed: 0,
+      recentEventsRefreshed: [],
+      eventDetailsRefreshed: false,
       sessionsImported: [],
       sessionsAwaitingResults: [],
       postRaceChainExecuted: false,
@@ -375,14 +517,39 @@ export async function syncLiveSessions(
 
   const activeEvents = await findActiveEvents(season.id, now);
 
+  const recentEvents = await findRecentEvents(season.id, now);
+
+  /*
+   * Un fallo del refresco (p. ej. la API general caída) no debe cortar la
+   * importación de resultados del GP en curso, que va detrás: se avisa y se
+   * sigue. trackSyncRun ya lo registró como FAILED, así que se reintenta en
+   * el siguiente ciclo.
+   */
+  const refreshAfterSessions = async () => {
+    try {
+      return await refreshRecentData(
+        season.year,
+        activeEvents.map((event) => event.id),
+        recentEvents,
+        now
+      );
+    } catch (error) {
+      console.warn("⚠️ Falló el refresco de eventos recientes; se reintentará:", error);
+      return { recentEventsRefreshed: [], eventDetailsRefreshed: false, sessionsRefreshed: 0 };
+    }
+  };
+
   if (activeEvents.length === 0) {
+    const refresh = await refreshAfterSessions();
     const next = await findNextSessionStart(season.id, now);
 
     return {
       seasonYear: season.year,
       activeEvents: [],
       eventStatusChanges,
-      sessionsRefreshed: 0,
+      sessionsRefreshed: refresh.sessionsRefreshed,
+      recentEventsRefreshed: refresh.recentEventsRefreshed,
+      eventDetailsRefreshed: refresh.eventDetailsRefreshed,
       sessionsImported: [],
       sessionsAwaitingResults: [],
       postRaceChainExecuted: false,
@@ -399,6 +566,9 @@ export async function syncLiveSessions(
    * 1. Estado de las sesiones según la API (FINISHED / NOT-STARTED).
    */
   const sessionsResult = await importSessions({ eventIds });
+
+  /* Tras las sesiones activas: importEventDetails debe ir después. */
+  const refresh = await refreshAfterSessions();
 
   const windows = await loadSessionWindows(eventIds);
 
@@ -527,7 +697,9 @@ export async function syncLiveSessions(
     seasonYear: season.year,
     activeEvents: activeEvents.map((event) => event.shortName ?? event.id),
     eventStatusChanges,
-    sessionsRefreshed: sessionsResult.sessionsProcessed,
+    sessionsRefreshed: sessionsResult.sessionsProcessed + refresh.sessionsRefreshed,
+    recentEventsRefreshed: refresh.recentEventsRefreshed,
+    eventDetailsRefreshed: refresh.eventDetailsRefreshed,
     sessionsImported,
     sessionsAwaitingResults,
     postRaceChainExecuted,

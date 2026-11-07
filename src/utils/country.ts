@@ -19,3 +19,11 @@ export function countryNameEs(iso: string | null | undefined, fallback: string):
     return fallback;
   }
 }
+
+// Archivo local de la bandera: el nombre sale de `url`; "smr" (San Marino) -> sm;
+// dos mayúsculas se respetan (hay eventos con SM o IN distintos del país); si no, `iso`.
+export function flagSrc(url: string | null, iso: string): string {
+  const file = url?.split("/").pop()?.replace(/\.svg$/, "") ?? "";
+  const code = file === "smr" ? "sm" : /^[A-Z]{2}$/.test(file) ? file.toLowerCase() : iso.toLowerCase();
+  return `/flags/${code}.svg`;
+}

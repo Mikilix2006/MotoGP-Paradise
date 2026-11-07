@@ -40,33 +40,33 @@ export default function ResultsPage() {
   const query = search.toString();
 
   const [data, setData] = useState<ResultsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Cargando = la última respuesta es de otra petición (consulta o reintento); así
+  // no hace falta poner estado síncrono al empezar cada petición.
+  const requestKey = `${query}#${attempt}`;
+  const [settled, setSettled] = useState<{ key: string; error: string | null } | null>(null);
+  const loading = settled?.key !== requestKey;
+  const error = loading ? null : settled.error;
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
 
     fetch(`/api/results?${query}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error ?? "No se pudieron cargar los resultados");
         setData((body as { data: ResultsPayload }).data);
+        setSettled({ key: requestKey, error: null });
       })
       .catch((err: Error) => {
         if (err.name === "AbortError") return;
         console.error("Error cargando resultados:", err);
         setData(null);
-        setError(err.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        setSettled({ key: requestKey, error: err.message });
       });
 
     return () => controller.abort();
-  }, [query, attempt]);
+  }, [query, requestKey]);
 
   // La URL lleva toda la selección resuelta; el servidor aplica la cascada a lo que cambia.
   function navigate(change: Record<string, string>, section: ResultsSection | undefined = data?.section) {
@@ -112,9 +112,10 @@ export default function ResultsPage() {
         ))}
       </div>
 
-      {/* SELECTORES */}
+      {/* SELECTORES. Móvil: Año y Sesión en una fila (izquierda y derecha) y Circuito
+          debajo a todo el ancho; desde sm, las tres en columnas en el orden del DOM. */}
       {data && (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 border-b border-white/10 px-4 py-4 sm:grid-cols-[repeat(3,minmax(0,1fr))] sm:px-6">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-4 border-b border-white/10 px-4 py-4 sm:grid-cols-[repeat(3,minmax(0,1fr))] sm:px-6">
           <div className="min-w-0">
             <label htmlFor="res-year" className={LABEL_CLASS}>Año</label>
             <select id="res-year" className={SELECT_CLASS} value={data.selected.year} onChange={(e) => navigate({ year: e.target.value })}>
@@ -123,7 +124,7 @@ export default function ResultsPage() {
               ))}
             </select>
           </div>
-          <div className="min-w-0">
+          <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:row-start-auto">
             <label htmlFor="res-event" className={LABEL_CLASS}>Circuito</label>
             <select id="res-event" className={SELECT_CLASS} value={data.selected.event} onChange={(e) => navigate({ event: e.target.value })}>
               {data.events.map((ev) => (
@@ -131,7 +132,7 @@ export default function ResultsPage() {
               ))}
             </select>
           </div>
-          <div className="min-w-0">
+          <div className="col-start-2 row-start-1 min-w-0 sm:col-start-auto sm:row-start-auto">
             <label htmlFor="res-session" className={LABEL_CLASS}>Sesión</label>
             <select id="res-session" className={SELECT_CLASS} value={data.selected.session} onChange={(e) => navigate({ session: e.target.value })}>
               {data.sessions.map((s) => (
@@ -139,7 +140,7 @@ export default function ResultsPage() {
               ))}
             </select>
           </div>
-          <div className="sm:col-span-3">
+          <div className="col-span-2 sm:col-span-3">
             <span id="res-category" className={LABEL_CLASS}>Categoría</span>
             <div role="group" aria-labelledby="res-category" className="flex flex-wrap gap-2">
               {data.categories.map((c) => {
