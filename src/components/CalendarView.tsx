@@ -186,6 +186,10 @@ const GRID_COLS: Record<number, string> = {
 function isSessionFinished(session: CalendarSession, now: number) {
   if (session.status === "FINISHED") return true;
   const end = session.date_end ? new Date(session.date_end).getTime() : NaN;
+  const start = session.date_start ? new Date(session.date_start).getTime() : NaN;
+  // Sprint y carreras llegan con fin == inicio (sin duración real): la hora no
+  // dice cuándo acaban, así que solo manda el estado FINISHED de la BD.
+  if (!Number.isNaN(start) && end <= start) return false;
   return !Number.isNaN(end) && end < now;
 }
 
