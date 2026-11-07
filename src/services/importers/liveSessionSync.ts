@@ -519,13 +519,25 @@ export async function syncLiveSessions(
 
   const recentEvents = await findRecentEvents(season.id, now);
 
-  const refreshAfterSessions = () =>
-    refreshRecentData(
-      season.year,
-      activeEvents.map((event) => event.id),
-      recentEvents,
-      now
-    );
+  /*
+   * Un fallo del refresco (p. ej. la API general caída) no debe cortar la
+   * importación de resultados del GP en curso, que va detrás: se avisa y se
+   * sigue. trackSyncRun ya lo registró como FAILED, así que se reintenta en
+   * el siguiente ciclo.
+   */
+  const refreshAfterSessions = async () => {
+    try {
+      return await refreshRecentData(
+        season.year,
+        activeEvents.map((event) => event.id),
+        recentEvents,
+        now
+      );
+    } catch (error) {
+      console.warn("⚠️ Falló el refresco de eventos recientes; se reintentará:", error);
+      return { recentEventsRefreshed: [], eventDetailsRefreshed: false, sessionsRefreshed: 0 };
+    }
+  };
 
   if (activeEvents.length === 0) {
     const refresh = await refreshAfterSessions();
