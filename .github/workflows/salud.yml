@@ -1,0 +1,28 @@
+# Cada hora: comprobaciones de solo lectura de los endpoints de producción
+# (capa A de TESTS.md). Si fallan, GitHub avisa por correo al dueño del repo.
+# Detecta datos que se estropean sin despliegue (p. ej. fechas de sesiones).
+name: Salud de producción
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  endpoints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_URL: http://www.planetamiguel.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # El proyecto "api" no abre navegador: no hace falta instalar ninguno.
+      - run: npm run test:api
