@@ -1551,7 +1551,7 @@ Clasificación de una sesión (`src/app/resultados/page.tsx`, que monta `Results
 
 - **Visibilidad por datos, no por `Session.status`:** una sesión aparece si tiene `shortname` y algún `SessionResult` con `time` o `fastestLap`. En Tests también vale `gap`, porque sus resultados no traen tiempo ni mejor vuelta (con la regla estricta no habría tests).
 - **No clasificado = `position` nula**, no `status`. Esas filas van al final (por vueltas) con el estado en texto (`statusLabel`).
-- Es carrera/sprint si alguna fila tiene `time` (por los datos, no por `type`); carrera muestra tiempo/diferencia y puntos, el resto mejor vuelta y diferencia.
+- Es carrera/sprint si alguna fila tiene `time` (por los datos, no por `type`); carrera muestra tiempo/diferencia y puntos, el resto mejor vuelta y diferencia. Si ninguna fila trae mejor vuelta, como en Tests, esa columna no se muestra.
 - **«500cc» es solo una etiqueta** (`categoryLabel`): hasta 2001 las sesiones cuelgan de MotoGP (`legacyId` 3) y solo cambia el texto; no se usa la categoría propia `legacyId` -1.
 - El circuito es la etiqueta del evento; el nombre del evento solo se antepone si hay varios eventos en el mismo circuito ese año.
 - El dorsal sale de `SessionResult.number` (el de ese piloto en esa sesión) y, si falta, de `RiderSeasonEntry.number` (temporada y categoría de la sesión). Cobertura de `SessionResult.number`: 2021-2026 al 100 %; 2005-2020 con huecos (sobre todo FP de Moto2/Moto3 y MotoGP 2015); 2004 y anteriores sin dorsal (la API devuelve `null`). Para rellenarlo: `npm run import:session-results -- <año>`.

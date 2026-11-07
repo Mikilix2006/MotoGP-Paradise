@@ -13,8 +13,10 @@ const SELECT_CLASS = `min-h-11 w-full rounded-lg border border-white/15 bg-[var(
 const LABEL_CLASS = "mb-1 block text-[11px] font-bold uppercase tracking-widest text-zinc-500";
 
 // Equipo y dorsal se ocultan en móvil (sin scroll horizontal).
-const GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_76px_46px] items-center gap-1.5 px-1 sm:grid-cols-[52px_52px_minmax(0,1fr)_minmax(0,1fr)_130px_72px] sm:gap-4 sm:px-6";
+const GRID_BASE = "grid items-center gap-1.5 px-1 sm:gap-4 sm:px-6";
+const GRID = `${GRID_BASE} grid-cols-[40px_minmax(0,1fr)_76px_46px] sm:grid-cols-[52px_52px_minmax(0,1fr)_minmax(0,1fr)_130px_72px]`;
+// Los tests no traen mejor vuelta: sin esa columna solo queda la diferencia.
+const GRID_NO_LAP = `${GRID_BASE} grid-cols-[40px_minmax(0,1fr)_76px] sm:grid-cols-[52px_52px_minmax(0,1fr)_minmax(0,1fr)_72px]`;
 
 function Skeleton() {
   return (
@@ -85,6 +87,8 @@ export default function ResultsPage() {
 
   const section = data?.section ?? (search.get("section") === "tests" ? "tests" : "season");
   const formatted = data ? data.rows.map((row) => formatRow(row, data.is_race)) : [];
+  const showMain = !data || data.is_race || data.rows.some((row) => row.fastest_lap);
+  const grid = showMain ? GRID : GRID_NO_LAP;
 
   return (
     <section className="section">
@@ -186,18 +190,18 @@ export default function ResultsPage() {
             <table className="block w-full">
               <caption className="sr-only">Clasificación de la sesión</caption>
               <thead className="block">
-                <tr className={`${GRID} border-b border-white/10 bg-white/[0.02] py-3 text-[11px] font-bold uppercase tracking-widest text-zinc-500`}>
+                <tr className={`${grid} border-b border-white/10 bg-white/[0.02] py-3 text-[11px] font-bold uppercase tracking-widest text-zinc-500`}>
                   <th scope="col" className="text-left">Pos.</th>
                   <th scope="col" className="hidden text-left sm:block">Nº</th>
                   <th scope="col" className="text-left">Piloto</th>
                   <th scope="col" className="hidden text-left sm:block">Equipo</th>
-                  <th scope="col" className="text-right">{data.is_race ? "Tiempo" : "Mejor vuelta"}</th>
+                  {showMain && <th scope="col" className="text-right">{data.is_race ? "Tiempo" : "Mejor vuelta"}</th>}
                   <th scope="col" className="text-right">{data.is_race ? "Pts." : "Dif."}</th>
                 </tr>
               </thead>
               <tbody className="block">
                 {formatted.map((row, i) => (
-                  <tr key={i} className={`${GRID} border-b border-white/5 py-3 transition hover:bg-red-500/[0.07]`}>
+                  <tr key={i} className={`${grid} border-b border-white/5 py-3 transition hover:bg-red-500/[0.07]`}>
                     <td>
                       <span
                         className={`cut flex h-9 w-10 items-center justify-center rounded-md pr-1 text-lg font-display font-black italic tabular-nums ${
@@ -212,7 +216,7 @@ export default function ResultsPage() {
                     <td className="hidden font-display text-base font-black tabular-nums text-red-500 sm:block">{row.number}</td>
                     <td className="min-w-0 break-words text-sm font-semibold leading-tight text-white sm:truncate">{row.rider}</td>
                     <td className="hidden min-w-0 truncate text-sm text-zinc-400 sm:block">{row.team}</td>
-                    <td className={`text-right text-sm tabular-nums ${row.noPosition ? "text-zinc-500" : "text-white"}`}>{row.main}</td>
+                    {showMain && <td className={`text-right text-sm tabular-nums ${row.noPosition ? "text-zinc-500" : "text-white"}`}>{row.main}</td>}
                     <td className="text-right text-sm tabular-nums text-zinc-400">{row.extra}</td>
                   </tr>
                 ))}
