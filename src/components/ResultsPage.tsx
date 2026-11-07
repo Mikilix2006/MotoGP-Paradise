@@ -40,33 +40,33 @@ export default function ResultsPage() {
   const query = search.toString();
 
   const [data, setData] = useState<ResultsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Cargando = la última respuesta es de otra petición (consulta o reintento); así
+  // no hace falta poner estado síncrono al empezar cada petición.
+  const requestKey = `${query}#${attempt}`;
+  const [settled, setSettled] = useState<{ key: string; error: string | null } | null>(null);
+  const loading = settled?.key !== requestKey;
+  const error = loading ? null : settled.error;
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
 
     fetch(`/api/results?${query}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error ?? "No se pudieron cargar los resultados");
         setData((body as { data: ResultsPayload }).data);
+        setSettled({ key: requestKey, error: null });
       })
       .catch((err: Error) => {
         if (err.name === "AbortError") return;
         console.error("Error cargando resultados:", err);
         setData(null);
-        setError(err.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        setSettled({ key: requestKey, error: err.message });
       });
 
     return () => controller.abort();
-  }, [query, attempt]);
+  }, [query, requestKey]);
 
   // La URL lleva toda la selección resuelta; el servidor aplica la cascada a lo que cambia.
   function navigate(change: Record<string, string>, section: ResultsSection | undefined = data?.section) {
