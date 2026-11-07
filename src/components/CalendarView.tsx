@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Circle } from "lucide-react";
 import CountryFlag from "./CountryFlag";
 import type { CalendarSession } from "@/types/grandPrix";
+import { getLiveSessionId, getSessionState } from "./calendar/sessionState";
 
 interface CalendarEventData {
   id: string;
@@ -181,25 +182,6 @@ const GRID_COLS: Record<number, string> = {
   4: "grid-cols-4",
 };
 
-// Terminada: estado FINISHED de la BD o, si va por detrás (el watcher tarda),
-// fin de sesión (instante absoluto ya convertido desde la hora del circuito) pasado.
-function isSessionFinished(session: CalendarSession, now: number) {
-  if (session.status === "FINISHED") return true;
-  const end = session.date_end ? new Date(session.date_end).getTime() : NaN;
-  const start = session.date_start ? new Date(session.date_start).getTime() : NaN;
-  // Sprint y carreras llegan con fin == inicio (sin duración real): la hora no
-  // dice cuándo acaban, así que solo manda el estado FINISHED de la BD.
-  if (!Number.isNaN(start) && end <= start) return false;
-  return !Number.isNaN(end) && end < now;
-}
-
-// En vivo: ya empezó y la BD aún no la marca FINISHED. Si el fin ya pasó, es el
-// retraso del watcher y cuenta como terminada (isSessionFinished), no en vivo.
-function isSessionLive(session: CalendarSession, now: number) {
-  if (isSessionFinished(session, now)) return false;
-  const start = session.date_start ? new Date(session.date_start).getTime() : NaN;
-  return !Number.isNaN(start) && start <= now;
-}
 
 function formatSessionTime(date: string | null, zone: string | undefined) {
   if (!date) return "—";
@@ -289,6 +271,7 @@ function SessionSchedule({
   onModeChange: (mode: TimeMode) => void;
 }) {
   const modeText = mode === "tu" ? "Tu hora" : "Hora local del circuito";
+  const liveId = getLiveSessionId(columns.flatMap((column) => column.sessions), now);
 
   return (
     <div className="border-t border-white/10 pt-4">
@@ -353,8 +336,7 @@ function SessionSchedule({
               {column.sessions.map((session) => {
                 const key = session.shortname.trim();
                 const highlight = key === "RAC" || key === "RAC2" || key === "SPR";
-                const finished = isSessionFinished(session, now);
-                const live = isSessionLive(session, now);
+                const { live, finished } = getSessionState(session, liveId, now);
                 const motogp = session.category === "MotoGP";
                 return (
                   <li
