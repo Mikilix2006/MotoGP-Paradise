@@ -336,7 +336,9 @@ function buildTrackDetails(
 
     laps,
 
-    infoImageUrl: infoAsset?.path ?? null,
+    // Imagen oficial de photos.motogp.com, sin permiso: fuera de producción (ver aviso legal).
+    infoImageUrl:
+      process.env.NODE_ENV === "production" ? null : infoAsset?.path ?? null,
 
     sprintDate: sprintSession?.dateStart
       ? toInstantIso(sprintSession.dateStart, event.timeZone)

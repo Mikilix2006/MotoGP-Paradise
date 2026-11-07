@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { Menu, X } from "lucide-react";
+import { SITE_NAME } from "@/lib/site";
 
 // Enlaces del menú. `href` "#" = página aún sin crear (nunca se marca activa).
 // Para añadir una página nueva basta con una línea más aquí.
@@ -77,10 +78,10 @@ export function Header() {
         <div className="flex items-center gap-10">
           <a
             href="/"
-            aria-label="MotoGP Stats, ir al inicio"
+            aria-label={`${SITE_NAME}, ir al inicio`}
             className={`flex items-center gap-2 rounded-md font-display text-2xl font-black italic tracking-tight md:text-3xl ${FOCUS_RING}`}
           >
-            MOTO<span className="cut -ml-1 bg-[image:var(--accent-grad)] px-2 pr-3 text-[#fff]">GP</span><span className="text-zinc-500">STATS</span>
+            <span className="cut bg-[image:var(--accent-grad)] pl-2 pr-4 text-[#fff]">REBUFO</span>
           </a>
           {/* self-stretch + -my-4: el nav ocupa todo el alto del header para que el semicírculo
               del enlace activo toque justo el borde superior. */}

@@ -1,16 +1,17 @@
+import { SITE_NAME } from "@/lib/site";
 import { Suspense } from "react";
 
 import { Header } from "@/components/Header";
 import ResultsPage from "@/components/ResultsPage";
 
 export const metadata = {
-  title: "Resultados | MotoGPStats",
+  title: `Resultados | ${SITE_NAME}`,
   description: "Clasificación de cualquier sesión de MotoGP, Moto2, Moto3 y categorías históricas desde 1949",
 };
 
 export default function ResultadosPage() {
   return (
-    <main className="min-h-screen">
+    <main className="flex-1">
       <Header />
       <section className="mx-auto max-w-7xl px-5 py-10 md:py-16">
         <div className="mb-8">
