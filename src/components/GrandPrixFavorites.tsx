@@ -7,6 +7,11 @@ import type {
   Favorite,
   FavoritesResponse,
 } from "@/types/favorites";
+import {
+  formatPercent,
+  formatPosition,
+  formatSigned,
+} from "./home/favoritesViewModel";
 
 interface ApiResponse {
   data: FavoritesResponse;
@@ -25,18 +30,6 @@ const COMPONENTS = [
   { key: "trend", label: "Tendencia" },
 ] as const;
 
-function formatPosition(position: number | null): string {
-  if (position === null) {
-    return "—";
-  }
-
-  return `${position}º`;
-}
-
-function formatPercent(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
-
 function ScoreBar({
   value,
   accent = false,
@@ -54,10 +47,6 @@ function ScoreBar({
       />
     </div>
   );
-}
-
-function formatSigned(value: number): string {
-  return `${value > 0 ? "+" : ""}${value}`;
 }
 
 function FavoriteDetails({

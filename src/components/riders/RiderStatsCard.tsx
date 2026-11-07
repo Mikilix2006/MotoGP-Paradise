@@ -5,8 +5,8 @@ import { useId, useRef } from "react";
 import type {
   CarouselCategory,
   RiderCarouselItem,
-  RiderTrajectoryStep,
 } from "@/types/riderCarousel";
+import { categoryRank, cleanCategory, groupTrajectory, plural } from "./riderModel";
 
 export type StatsTabKey = "season" | "wins" | "races" | "titles" | "trajectory";
 
@@ -20,12 +20,7 @@ const TABS: { key: StatsTabKey; label: string }[] = [
 
 const NUMBER = new Intl.NumberFormat("es-ES");
 
-const EYEBROW = "text-[11px] font-bold uppercase tracking-widest text-zinc-500";
-
-// Los nombres de categoría llegan tal cual de la BD ("MotoGP™", "Moto2™"): sin la marca registrada.
-function cleanCategory(category: string): string {
-  return category.replace(/™/g, "");
-}
+const EYEBROW ="text-[11px] font-bold uppercase tracking-widest text-zinc-500";
 
 function Stat({
   label,
@@ -74,10 +69,6 @@ function Section({
       <div className={`mt-3 grid gap-x-4 gap-y-4 ${gridClass}`}>{children}</div>
     </section>
   );
-}
-
-function plural(n: number, one: string, many: string): string {
-  return `${NUMBER.format(n)} ${n === 1 ? one : many}`;
 }
 
 function Note({ children }: { children: React.ReactNode }) {
@@ -229,15 +220,6 @@ function RacesPanel({ rider }: { rider: RiderCarouselItem }) {
   );
 }
 
-// Clase reina primero (MotoGP, 500cc), luego Moto2/250cc y por último Moto3/125cc.
-function categoryRank(category: string): number {
-  const name = cleanCategory(category).toLowerCase();
-  if (name.includes("motogp") || name.includes("500")) return 0;
-  if (name.includes("moto2") || name.includes("250")) return 1;
-  if (name.includes("moto3") || name.includes("125")) return 2;
-  return 3;
-}
-
 function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
   const titles = rider.career.titles
     .filter((t) => t.years.length > 0)
@@ -299,33 +281,6 @@ function TitlesPanel({ rider }: { rider: RiderCarouselItem }) {
     </div>
   );
 }
-
-interface TrajectoryGroup {
-  from: number;
-  to: number;
-  step: RiderTrajectoryStep;
-}
-
-// Une temporadas consecutivas idénticas (misma categoría, equipo, marca y dorsal) en un solo tramo.
-function groupTrajectory(steps: RiderTrajectoryStep[]): TrajectoryGroup[] {
-  const groups: TrajectoryGroup[] = [];
-  for (const step of [...steps].sort((a, b) => a.year - b.year)) {
-    const last = groups[groups.length - 1];
-    if (
-      last &&
-      last.step.category === step.category &&
-      last.step.team_name === step.team_name &&
-      last.step.constructor_name === step.constructor_name &&
-      last.step.number === step.number
-    ) {
-      last.to = step.year;
-    } else {
-      groups.push({ from: step.year, to: step.year, step });
-    }
-  }
-  return groups;
-}
-
 function TrajectoryPanel({ rider }: { rider: RiderCarouselItem }) {
   // Más reciente arriba: es lo que interesa y la lista larga (hasta 26 temporadas) se desplaza hacia el pasado.
   const groups = groupTrajectory(rider.trajectory).reverse();

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { flagSrc } from "@/utils/country";
+
 // "md": bandera de las cards del calendario (h-7, 4:3). "sm": bandera compacta
 // para filas de tabla (h-4, 4:3).
 const SIZES = {
@@ -14,14 +16,6 @@ const SIZES = {
     pill: "flex h-4 w-6 items-center justify-center rounded-sm text-[9px] font-bold leading-none",
   },
 } as const;
-
-// Archivo local de la bandera: el nombre sale de `url`; "smr" (San Marino) -> sm;
-// dos mayúsculas se respetan (hay eventos con SM o IN distintos del país); si no, `iso`.
-function flagSrc(url: string | null, iso: string) {
-  const file = url?.split("/").pop()?.replace(/\.svg$/, "") ?? "";
-  const code = file === "smr" ? "sm" : /^[A-Z]{2}$/.test(file) ? file.toLowerCase() : iso.toLowerCase();
-  return `/flags/${code}.svg`;
-}
 
 // Bandera del país (SVG local, object-cover). Si la imagen falla, el código ISO en una pill.
 export default function CountryFlag({
