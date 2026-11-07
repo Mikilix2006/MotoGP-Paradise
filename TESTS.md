@@ -1,0 +1,168 @@
+# Plan de tests
+
+Objetivo: no se despliega nada que no pase todos los tests. Cubre toda la web
+(5 páginas, 8 endpoints, cabecera, pie y 404). Se comprueban **comportamiento y
+textos**, no capturas de pantalla.
+
+## Capas
+
+| Capa | Herramienta | Datos | Dónde corre |
+|---|---|---|---|
+| **U**: lógica pura | Vitest | Fixtures pequeños escritos a mano (`src/**/__fixtures__/`) | Local, `desplegar.ps1`, CI en cada PR |
+| **C**: componentes | Vitest + Testing Library (jsdom), `fetch` simulado | Los mismos fixtures | Local, `desplegar.ps1`, CI |
+| **E**: recorrido real | Playwright, Chromium escritorio + WebKit iPhone | Base `motogp_test` cargada desde `motogp-datos.sql.gz`, reloj fijado con `page.clock` | Local y `desplegar.ps1` (no en CI: el volcado no se sube) |
+| **A**: endpoints | Vitest (`tests/api/`), solo lectura, por reglas | La base contra la que esté la URL (`BASE_URL`) | Local antes de desplegar, producción tras desplegar y cada hora (GitHub Actions) |
+
+Scripts npm previstos: `test` (U+C), `test:e2e` (E), `test:api` (A, con
+`BASE_URL`), `test:all` (lint + `tsc` + todo lo anterior en local).
+
+- **`desplegar.ps1`**: ejecuta `npm run test:all` antes de empaquetar y aborta
+  si falla. Al terminar, `test:api` contra `http://www.planetamiguel.com`.
+- **GitHub Actions `pr.yml`**: lint, `tsc` y `npm test` en cada PR.
+- **GitHub Actions `salud.yml`**: `test:api` contra producción cada hora. Si
+  falla, GitHub avisa por correo. Si CI no llega al dominio, se cambia por un
+  timer de systemd en el VPS.
+- **Fallos que salgan**: una rama `fix/` y un commit por fallo, con su test. Se
+  despliega cuando todo está en verde.
+
+Antes de escribir tests: mover la lógica pura de los componentes y
+repositorios a módulos `*Model.ts` (sin cambiar el comportamiento), configurar
+Vitest (alias `@/`, jsdom) y Playwright, e instalar eslint con
+`eslint-config-next`.
+
+## Fixtures (uno por trampa conocida)
+
+| Fixture | Reproduce |
+|---|---|
+| `qatar-provisional` | Calendario provisional: sesiones fuera de las fechas del evento y fin anterior al inicio |
+| `duracion-cero` | Sprint y carreras con fin == inicio |
+| `watcher-atrasado` | Varias sesiones empezadas sin `FINISHED` |
+| `carrera-reiniciada` | Duplicado fantasma de RAC junto a RAC2 |
+| `sin-fecha` | Sesiones sin `date_start` (con y sin `weekday`) |
+| `gpday-jpn-aus` | `gpDay` que no encaja con el horario (no debe corregirse) |
+| `cambio-horario` | Fin de semana con cambio de hora; sesión del viernes que en "tu hora" cae en jueves |
+| `zona-invalida` | Evento sin `time_zone` válida |
+| `empates` | Pilotos y constructores empatados a puntos |
+| `posicion-nula` | Piloto sin `championshipPosition` |
+| `cancelado-o-atascado` | GP cancelado (AUS 2026) y evento que se queda `CURRENT` tras la carrera |
+| `500cc` | Categoría 500cc en resultados y totales de clase reina |
+| `tests-pretemporada` | Sesiones de test sin tiempo ni mejor vuelta |
+| `textos-raros` | Biografía con UTF-8 doble codificado, entidades HTML y etiquetas |
+
+## Casos
+
+### Global: cabecera, pie, tema, 404
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| GLB-01 | Menú: Inicio, Calendario, Resultados, Predicciones; el enlace activo lleva `aria-current="page"` en cada página; "Predicciones" (`#`) nunca activo | U (`isActive`) + E |
+| GLB-02 | Menú móvil: abre/cierra con el botón ("Abrir menú"/"Cerrar menú", `aria-expanded`), se cierra con Escape (vuelve el foco al botón), clic fuera, clic en un enlace y al pasar a ≥768 px | E (WebKit iPhone) |
+| GLB-03 | Logo "REBUFO" lleva a `/` | E |
+| GLB-04 | Pie: texto "No afiliado a MotoGP" y enlace "Aviso legal" → `/aviso-legal` en todas las páginas | E |
+| GLB-05 | Tema: claro por defecto; el botón cambia a oscuro, la etiqueta cambia y se recuerda al recargar; sin `localStorage` no rompe | C + E |
+| GLB-06 | "Volver arriba" aparece tras bajar 300 px y sube | E |
+| GLB-07 | Ruta inexistente: 404 con "Te has salido de la trazada" y "Volver al inicio" → `/` | E |
+| GLB-08 | Ninguna página tiene errores en consola ni peticiones fallidas (salvo los 404 esperados) | E |
+
+### Inicio `/`
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| INI-01 | Próximo GP: nombre, "RONDA n" (o `short_name` sin ronda, sin repetirlo dos veces), estado ("En curso"/"Próximamente"/"Finalizado"), circuito, lugar y país, fechas, bandera | C + E |
+| INI-02 | Próximo GP con `date_start` vacío no rompe la página (hoy `formatDate("")` lanza RangeError: sospecha) | U + C |
+| INI-03 | Próximo GP: carga ("Cargando próximo Gran Premio") y error con 404 o 500 ("No se ha podido cargar la información del próximo GP") | C |
+| INI-04 | Cuenta atrás: dígitos a dos cifras, baja cada segundo, se queda en 00 al llegar (sin negativos), etiquetas cortas en móvil | U (`calculateTimeRemaining`) + C + E |
+| INI-05 | Estadísticas: líder = más puntos (con empate, el orden de la API), "#n · equipo", puntos; datos del circuito con "—" si faltan; sin imagen del circuito en producción | C + E |
+| INI-06 | Sprint: "Día de la Sprint" y "Hora peninsular" no contradicen el día cerca de medianoche (hoy usan zonas distintas: sospecha) | U |
+| INI-07 | Estadísticas: si falla cualquiera de los dos endpoints o no hay pilotos, sale el error "No se pudieron cargar las estadísticas del campeonato" | C |
+| INI-08 | Clasificación pilotos: orden por puntos, posición a dos cifras, podio en los 3 primeros, colores oro/plata/bronce, "{n} pilotos", bandera solo con ISO | C + E |
+| INI-09 | Piloto sin posición no se muestra como "00" con estilo de podio (sospecha) | C |
+| INI-10 | Pestaña Constructores: se carga solo al abrirla y una vez; empate resuelto por victorias y poles; "{n} equipos"; vacío "Todavía no hay puntos de constructores esta temporada."; tras un error, ¿se puede reintentar? (hoy no: sospecha) | C + E |
+| INI-11 | Favoritos: 5 filas, botón "Ver toda la parrilla (n)" / "Ver solo los favoritos" solo con más de 5; solo una fila abierta a la vez | C + E |
+| INI-12 | Favoritos, detalle: barras de los 5 factores; texto "Sin carreras de MotoGP aquí…" si no hay historial; pills de historial ("S" en sprint, "DNF"); bloque de moto solo con constructor; "va a más"/"va a menos" | C |
+| INI-13 | Favoritos: 404 → error; 200 con `[]` → "Todavía no hay datos suficientes para este GP." | C |
+| INI-14 | En móvil, Favoritos sale antes que la Clasificación | E (WebKit iPhone) |
+
+### Calendario `/calendario`
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| CAL-01 | Carga, error ("No se ha podido cargar el calendario") y vacío ("No hay Grandes Premios disponibles") | C |
+| CAL-02 | Bloque "Próximo Gran Premio" con el evento `is_next_gp`, repetido en la lista; sin `is_next_gp` no sale el bloque | C + E |
+| CAL-03 | Tarjeta: ronda, estado ("Finalizado"/"En curso"/"Próximamente"; desconocido → "Próximamente"), nombre, circuito, fechas, bandera | U (`getStatusBadge`) + C |
+| CAL-04 | Acordeón: solo con sesiones; abre y cierra con `aria-expanded`; cada tarjeta independiente; la copia destacada y la de la lista no comparten ids | C + E |
+| CAL-05 | "TU HORA" / "HORA LOCAL": compartido entre tarjetas; "HORA LOCAL" deshabilitado con zona inválida y con su `title`; etiqueta "(UTC±h[:mm])" correcta (incluye +5:30 y cambio de hora) | U (`getOffsetLabel`, `validZone`) + C + E |
+| CAL-06 | Columnas por día en la zona mostrada, ordenadas por fecha; sesión del viernes que en tu hora cae el jueves; sin fecha → "—" en su día local; sin fecha ni día → no sale; máximo 4 columnas | U (`getScheduleColumns`) |
+| CAL-07 | Horas `HH:mm` en 24 h y "—" si no hay fecha | U (`formatSessionTime`) |
+| CAL-08 | Nombres: FP1, FP2, Práctica, Q1, Q2, Sprint, Warm Up, Carrera; Sprint y Carrera en rojo | U + C |
+| CAL-09 | Pills: como mucho una "EN VIVO" en todo momento; las anteriores "Terminada"; `FINISHED` manda; fin anterior al inicio no termina; sprint y carrera con fin == inicio no terminan al empezar; sin fecha ni pill | U (`sessionState`, hecho) |
+| CAL-10 | Pills en la página real con el reloj fijado en Qatar 2026 (viernes, sábado mañana, durante el sprint, domingo noche) en Chromium y WebKit | E |
+| CAL-11 | Las pills cambian solas al pasar el minuto, sin recargar | C (temporizadores falsos) |
+| CAL-12 | Calendario provisional corregido: sesiones dentro del fin de semana, día del horario real, misma hora; JPN/AUS sin corregir; duplicado fantasma descartado; orden por instante con desempate Moto3, Moto2, MotoGP | U (`findProvisionalCorrector`, `toCalendarSessions`, `isGhostDuplicate`) |
+| CAL-13 | Hora de pared del circuito a instante absoluto en días de cambio de hora | U (`wallClockToInstant`, `toAbsoluteIso`) |
+
+### Resultados `/resultados`
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| RES-01 | Pestañas "Temporada"/"Tests": la URL cambia (`section=tests` solo en tests); pulsar la activa no hace nada | C + E |
+| RES-02 | Selectores Año, Circuito, Sesión y Categoría: cada cambio actualiza la URL y la tabla; los selectores reflejan lo que hay en la URL; atrás/adelante del navegador funcionan | E |
+| RES-03 | Cascada de selección: evento → categoría → sesión, con sus valores por defecto (MotoGP, última sesión) | U (`resolveSelection`) |
+| RES-04 | Parámetros inválidos en la URL (año raro, categoría rara) caen al valor por defecto sin error | U + E |
+| RES-05 | Tabla de carrera: "Tiempo" y "Pts."; P1 con tiempo, el resto "+gap" o estado; puntos con decimales; no clasificados al final por vueltas | U (`formatRow`, `sortRows`) + C |
+| RES-06 | Tabla no de carrera: "Mejor vuelta" y "Dif."; en tests sin mejor vuelta la columna se oculta | U + C |
+| RES-07 | Etiquetas de sesión (RAC2 → "Carrera", igual que en el calendario; Qn/FPn) y categoría (500cc hasta 2001, sin ™); nombres de evento en mayúsculas pasan a título; nombre del evento delante solo si el circuito tiene varios | U |
+| RES-08 | Sin filas: "Esta sesión no tiene resultados publicados todavía." | C + E |
+| RES-09 | Error: mensaje de la API, "Reintentar" vuelve a pedir y se recupera | C |
+| RES-10 | Cambiar rápido de selección no deja ver resultados de una selección anterior | C |
+
+### Pilotos `/pilotos`
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| PIL-01 | En producción da 404 | A + E (build de producción) |
+| PIL-02 | En desarrollo: categoría por defecto MotoGP, cambio a Moto2/Moto3 vuelve al primer piloto | C |
+| PIL-03 | Carrusel: flechas, teclas ←/→ (no con modificadores), circular, contador "N / total", flechas deshabilitadas con un solo piloto | C |
+| PIL-04 | Tarjeta: imagen o "Imagen del piloto no disponible", "Sin equipo", color de equipo casi negro ignorado, edad en el día del cumpleaños, biografía larga con "Leer más"/"Leer menos" | U (`visibleTeamColor`, `ageFrom`) + C |
+| PIL-05 | Ficha: pestañas con flechas/Inicio/Fin; vacíos de temporada, títulos y trayectoria; "En MotoGP" y "Clase reina" solo cuando procede; plural "título/títulos" | U (`groupTrajectory`, `plural`, `categoryRank`) + C |
+| PIL-06 | Trayectoria: no junta temporadas no consecutivas con los mismos datos (hoy sí: sospecha) | U |
+| PIL-07 | Biografías: doble codificación, entidades y etiquetas a texto plano | U (`htmlToPlainText`) |
+
+### Aviso legal `/aviso-legal`
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| LEG-01 | Título "Aviso legal \| Rebufo", fecha de actualización, las 7 secciones con sus anclas, enlace `mailto:` con el correo | E |
+
+### Endpoints (capa A, reglas para cada respuesta)
+
+Comunes: `200` con `{ data }`, errores con `{ error }` en español, nunca un 500.
+Métodos no previstos → 405.
+
+| ID | Endpoint | Reglas |
+|---|---|---|
+| API-01 | `GET /api/calendar` | Forma completa de evento y sesión; fechas válidas; `date_end` null o mayor que `date_start`; estados conocidos (`FINISHED`, `CURRENT`, `NOT-STARTED` y los de sesión); como mucho un evento `CURRENT` y un `is_next_gp`; sesiones dentro del fin de semana del evento; ordenadas por instante; solo categorías 1/2/3; sin eventos de test; rondas crecientes |
+| API-02 | `GET /api/next-gp` | 200 o 404; forma; `nextMotoGPRace` en el futuro o dentro del fin de semana; coincide con el `is_next_gp` del calendario (id y ronda) |
+| API-03 | `GET /api/next-gp/favorites` | 200 o 404; puntuaciones 0–100; probabilidades suman ≈100; rangos 1..n sin huecos; historial ≤8; mismo evento que `next-gp` |
+| API-04 | `GET /api/riders/standings` | Forma; ordenada por puntos; sin pilotos repetidos; puntos ≥0 |
+| API-05 | `GET /api/constructors/standings` | Forma; ordenada; posiciones 1..n únicas |
+| API-06 | `GET /api/results` (varias combinaciones) | 200 o 404; selección resuelta coherente con las opciones; filas ordenadas; parámetros inválidos no dan 400 ni 500 |
+| API-07 | `GET /api/riders/carousel` | En producción, 404. En local: 400 con categoría inválida; `image_url` null o `https://photos.motogp.com/` |
+| API-08 | `POST /api/dev/image-issue` | En producción, 404. En local solo las respuestas 400 (escribe en `logs/`, no entra en el barrido de solo lectura) |
+| API-09 | Páginas | `/`, `/calendario`, `/resultados`, `/aviso-legal` dan 200; `/pilotos` y una ruta inventada dan 404 en producción |
+
+## Sospechas que los tests confirmarán o descartarán
+
+Salen de leer el código; no se han reproducido. Si se confirman, cada una va
+en su rama `fix/`.
+
+1. `formatDate("")` en el próximo GP lanza RangeError si el evento no tiene fecha (INI-02).
+2. "Día de la Sprint" usa la zona del navegador y "Hora peninsular" Madrid: pueden no cuadrar cerca de medianoche (INI-06).
+3. Piloto sin posición se pinta "00" con estilo de podio (INI-09).
+4. La pestaña Constructores no reintenta tras un error (INI-10).
+5. La trayectoria junta temporadas no consecutivas (PIL-06).
+6. RAC2 es "Carrera" en el calendario y "Carrera 2" en resultados. **Decidido:** vale "Carrera", como en el calendario (CAL-08); RES-07 debe esperar "Carrera" y resultados se corrige.
+7. `/api/riders/standings` usa los puntos truncados (sin medios puntos) y no filtra filas antiguas del premio BMW (API-04).
+8. Hay dos copias de `wallClockToInstant` que se comportan distinto sin zona (CAL-13).
+
+Fuera del plan: "Calendario 2026", "Pilotos 2026" y el botón "2026" están fijos en el código a propósito; se sustituirán por funciones en el futuro.
