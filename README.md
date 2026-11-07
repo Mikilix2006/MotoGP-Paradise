@@ -338,6 +338,7 @@ El esquema contiene **28 modelos** y el historial de `prisma/migrations/` es:
 | `20261007120000_country_flag_url` | `Country.flagUrl` (columna `flag_url`, opcional) |
 | `20261014120000_rider_biography` | Tabla `rider_biographies` (`RiderBiography`), única `(rider_id, language)` y borrado en cascada con el piloto |
 | `20261014120100_category_500cc` | Solo datos, sin cambio de esquema: inserta la categoría «500cc» (`legacy_id` -1) si no existe ninguna con ese `legacy_id` (idempotente). Ver [Category](#category) |
+| `20261107120000_session_result_number` | `SessionResult.number` (columna `number`, opcional): dorsal del piloto en esa sesión |
 
 Las migraciones se aplican solas al desplegar (`start:web`, `instalar-release.sh`). Ninguna carga datos de pilotos: las biografías llegan con `npm run import:riders` y las estadísticas de 500cc con `npm run import:rider-statistics` (sin año), no con la migración.
 
@@ -788,6 +789,8 @@ gap.prev
 
 status
 ```
+
+`SessionResult.number` (`Int?`) guarda el dorsal del piloto en esa sesión, tomado de `rider.number` de `/results/session/{uuid}/classification`. Lo escribe `import:session-results`; en el `update` nunca se pisa con `null`. Es `null` en 2004 y anteriores (la API no lo da) y en huecos de 2005-2020.
 
 La importación debe resolver las relaciones con:
 
@@ -1551,7 +1554,7 @@ Clasificación de una sesión (`src/app/resultados/page.tsx`, que monta `Results
 - Es carrera/sprint si alguna fila tiene `time` (por los datos, no por `type`); carrera muestra tiempo/diferencia y puntos, el resto mejor vuelta y diferencia.
 - **«500cc» es solo una etiqueta** (`categoryLabel`): hasta 2001 las sesiones cuelgan de MotoGP (`legacyId` 3) y solo cambia el texto; no se usa la categoría propia `legacyId` -1.
 - El circuito es la etiqueta del evento; el nombre del evento solo se antepone si hay varios eventos en el mismo circuito ese año.
-- El dorsal sale de `RiderSeasonEntry` (temporada y categoría de la sesión).
+- El dorsal sale de `SessionResult.number` (el de ese piloto en esa sesión) y, si falta, de `RiderSeasonEntry.number` (temporada y categoría de la sesión). Cobertura de `SessionResult.number`: 2021-2026 al 100 %; 2005-2020 con huecos (sobre todo FP de Moto2/Moto3 y MotoGP 2015); 2004 y anteriores sin dorsal (la API devuelve `null`). Para rellenarlo: `npm run import:session-results -- <año>`.
 
 ## Pilotos (`/pilotos`)
 

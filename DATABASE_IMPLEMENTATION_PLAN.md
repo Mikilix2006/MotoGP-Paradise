@@ -546,6 +546,7 @@ team_id
 constructor_id
 position
 position_text
+number
 points
 laps_completed
 time
