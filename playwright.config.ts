@@ -24,6 +24,8 @@ function testDatabaseUrl(): string {
 export default defineConfig({
   testDir: ".",
   fullyParallel: true,
+  // Un único servidor local: con muchos workers los endpoints pesados tardan más de 5 s.
+  workers: process.env.CI ? 1 : 4,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
