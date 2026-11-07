@@ -608,7 +608,9 @@ function toCalendarSessions(
       date_start: toAbsoluteIso(wallClock, event.timeZone),
       // Misma duración sobre el inicio ya corregido (reloj de pared, misma trampa horaria).
       date_end:
-        wallClock && session.dateStart && session.dateEnd
+        // Fin <= inicio es dato inválido (calendario provisional: el fin no se desplazó con el inicio).
+        wallClock && session.dateStart && session.dateEnd &&
+        session.dateEnd.getTime() > session.dateStart.getTime()
           ? toAbsoluteIso(
               new Date(
                 wallClock.getTime() +
