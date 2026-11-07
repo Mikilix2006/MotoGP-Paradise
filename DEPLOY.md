@@ -34,7 +34,7 @@ En el servicio que Railway creó del repo:
 
 `start:web` ejecuta `prisma migrate deploy` antes de `next start`, así que las migraciones se aplican solas en cada despliegue — no hace falta correrlas a mano.
 
-La página `/pilotos` usa `next/image`: `next.config.ts` solo admite imágenes de `photos.motogp.com` y `next start` las redimensiona en `/_next/image` con `sharp` (dependencia opcional de Next, presente en `package-lock.json`). No hace falta ninguna variable nueva; no se ha medido la memoria ni la CPU del optimizador en Railway.
+En producción (`NODE_ENV=production`) `/pilotos` da 404, `/api/riders/carousel` responde 404 y `images.remotePatterns` de `next.config.ts` está vacío, así que `/_next/image` no sirve imágenes remotas (ver [README](README.md#pilotos-pilotos)). El build de producción falla si `CONTACT_EMAIL` de `src/lib/site.ts` está vacío. No hace falta ninguna variable nueva.
 
 ## 4. Añadir el servicio **worker**
 

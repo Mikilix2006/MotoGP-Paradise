@@ -1,6 +1,6 @@
 # Desplegar en un VPS de Clouding (Debian)
 
-Guía práctica, paso a paso, para publicar MotoGP Stats en un servidor virtual (VPS) de Clouding con Debian. Está escrita para una persona **sin experiencia en consola**: cada paso dice qué escribir, dónde y qué debería verse. Es el despliegue **vigente**. El despliegue en Railway está en [DEPLOY.md](DEPLOY.md); el intento en el hosting compartido de Dinahosting (abandonado) está en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+Guía práctica, paso a paso, para publicar Rebufo en un servidor virtual (VPS) de Clouding con Debian. Está escrita para una persona **sin experiencia en consola**: cada paso dice qué escribir, dónde y qué debería verse. Es el despliegue **vigente**. El despliegue en Railway está en [DEPLOY.md](DEPLOY.md); el intento en el hosting compartido de Dinahosting (abandonado) está en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 **Servidor de referencia:** VPS Debian 13, 2 vCPU, 3,8 GiB de RAM, disco de 9,8 GB, IP pública fija y acceso `root` por SSH. En esta guía la IP es `IP_DEL_SERVIDOR`: sustitúyela por la tuya.
 
@@ -376,7 +376,7 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 - La primera ejecución automática de madrugada de `motogp-backup` (solo se ha probado la copia manual).
 - `systemd-analyze verify` sobre las unidades.
 - Los `import:*` en el servidor.
-- La página `/pilotos` en el servidor: usa `next/image` (`/_next/image` redimensiona fotos de `photos.motogp.com` de 3-4 MB con `sharp`, dependencia opcional de Next que figura en `package-lock.json`), y no se ha comprobado que `sharp` se instale ni cuánta memoria y CPU consume el optimizador en el VPS.
+- `/pilotos` y `/api/riders/carousel` dan 404 en producción y `images.remotePatterns` está vacío (ver [README](README.md#pilotos-pilotos)); no se ha comprobado en el servidor real.
 - El truco de `sslip.io`.
 - Las instantáneas del panel de Clouding.
 

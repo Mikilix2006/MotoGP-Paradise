@@ -1,6 +1,6 @@
-# MotoGP Stats
+# Rebufo
 
-Aplicación de estadísticas de MotoGP construida con **Next.js, TypeScript, PostgreSQL y Prisma**.
+Aplicación de estadísticas de MotoGP (marca visible: **Rebufo**; `SITE_NAME` en `src/lib/site.ts`, `name` de `package.json` = `rebufo`) construida con **Next.js, TypeScript, PostgreSQL y Prisma**.
 
 El objetivo del proyecto es construir una aplicación que pueda consultar estadísticas de MotoGP de forma rápida e independiente de las APIs externas durante la navegación normal. Para conseguirlo, los datos procedentes de la API de MotoGP se importan, normalizan y almacenan en una base de datos PostgreSQL.
 
@@ -8,7 +8,7 @@ El objetivo del proyecto es construir una aplicación que pueda consultar estad�
 
 # 1. Objetivo del proyecto
 
-MotoGP Stats reúne información histórica y actual sobre:
+Rebufo reúne información histórica y actual sobre:
 
 - temporadas;
 - Grandes Premios y eventos;
@@ -366,7 +366,7 @@ flagUrl
 
 `iso` es único.
 
-`flagUrl` es opcional: la URL de la bandera del país tal como la publica la API general (SVG alojado en `photos.motogp.com`). Solo la rellena `import:riders`, a partir de `country.flag` de la ficha del piloto en la API general, así que los países que no son nacionalidad de ningún piloto importado la tienen vacía. Es independiente de `Event.flagUrl`. `flagUrl` nunca se sobrescribe con `null` al reimportar. En cambio `name` sí puede degradarse: `import:riders` e `import:session-results` usan el ISO como nombre de respaldo también en el `update`, y `import:session-results` pisa `regionIso` con `null` si la API no lo envía (ver deudas en `AGENTS.md`).
+`flagUrl` es opcional: la URL de la bandera del país tal como la publica la API general (SVG alojado en `photos.motogp.com`). Solo la rellena `import:riders`, a partir de `country.flag` de la ficha del piloto en la API general, así que los países que no son nacionalidad de ningún piloto importado la tienen vacía. Es independiente de `Event.flagUrl`. `flagUrl` nunca se sobrescribe con `null` al reimportar. La interfaz ya no descarga esa URL: las banderas son archivos locales de `public/flags` (ver `CountryFlag.tsx`). En cambio `name` sí puede degradarse: `import:riders` e `import:session-results` usan el ISO como nombre de respaldo también en el `update`, y `import:session-results` pisa `regionIso` con `null` si la API no lo envía (ver deudas en `AGENTS.md`).
 
 ---
 
@@ -1516,8 +1516,8 @@ La aplicación cuenta con las siguientes páginas principales. Todas leen de Pos
 
 Página principal (`src/app/page.tsx`) con el estado de la temporada actual.
 
-- `NextGrandPrix.tsx` — próximo GP o GP en curso: eyebrow «Próximo Gran Premio» y nombre del GP como titular, badge `RONDA N` (o el `short_name` si no hay round), circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`flag_url`, con `CountryFlag`) junto al `additional_name`. Mientras carga muestra un esqueleto `animate-pulse` con la forma de la sección. API: `/api/next-gp`
-- `ChampionshipStats.tsx` — sección con eyebrow «Campeonato» y titular «Estadísticas» (envoltorio `StatsSection`, que también envuelve los estados de carga y error) con las cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT); si la carga falla, un mensaje de error (`role="alert"`) en lugar del bloque. API: `/api/riders/standings` y `/api/next-gp`
+- `NextGrandPrix.tsx` — próximo GP o GP en curso: eyebrow «Próximo Gran Premio» y nombre del GP como titular, badge `RONDA N` (o el `short_name` si no hay round), circuito y lugar, datos del circuito, cuenta atrás y, al pie, la bandera del GP (`CountryFlag`; la interfaz ya no carga `flag_url`, ver `CountryFlag.tsx` abajo) junto al `additional_name`. Mientras carga muestra un esqueleto `animate-pulse` con la forma de la sección. API: `/api/next-gp`
+- `ChampionshipStats.tsx` — sección con eyebrow «Campeonato» y titular «Estadísticas» (envoltorio `StatsSection`, que también envuelve los estados de carga y error) con las cifras del campeonato y tarjeta de la Sprint del próximo GP. Mientras carga muestra esqueletos `animate-pulse` con la misma rejilla que el contenido (LÍDER, PUNTOS, CIRCUITO y SPRINT); si la carga falla, un mensaje de error (`role="alert"`) en lugar del bloque. En producción `infoImageUrl` es `null` y el bloque del mapa del circuito se oculta. API: `/api/riders/standings` y `/api/next-gp`
 - `RiderStandings.tsx` — clasificación de MotoGP con selector **Pilotos / Constructores** (la vista de constructores se pide a la API la primera vez que se abre). Ambas vistas tienen cabecera de columnas (Pos., nombre, Victorias, Puntos; en móvil se ocultan la cabecera y la columna de victorias) y un contador (`N pilotos` / `N equipos`). Pilotos: bandera del país (`country.flag_url`). Constructores: la BD no guarda el país del constructor, así que la bandera sale de un mapa fijo en el código (`CONSTRUCTOR_COUNTRIES`, por nombre: Aprilia, Ducati, KTM, Honda, Yamaha, Suzuki; sin coincidencia no hay bandera), reutilizando la URL de bandera de los pilotos del mismo país o, si no hay, la de `photos.motogp.com`. Cada fila lleva un degradado con el color de marca del constructor tomado de otro mapa fijo en el código (`BRAND_COLORS`), no del color de librea del equipo; una marca fuera del mapa no lleva degradado. Mientras carga muestra un esqueleto `animate-pulse` (cabecera de columnas y 12 filas; la cabecera dice «Piloto» o «Equipo» según la vista). API: `/api/riders/standings` y `/api/constructors/standings`
 - `GrandPrixFavorites.tsx` — favoritos del próximo GP (índice calculado en `src/services/stats/favoritesModel.ts`). API: `/api/next-gp/favorites`. Mientras carga muestra esqueletos `animate-pulse` con la forma de cada fila. En móvil la sección de favoritos se muestra antes que la clasificación; desde `lg` la clasificación va a la izquierda y los favoritos a la derecha
 - `Countdown.tsx` — cuenta atrás usada por `NextGrandPrix`: cuatro casillas redondeadas (`rounded-xl shadow-md`, con `bg-white text-black`, que por la reasignación de colores equivale a color de texto sobre color de fondo) con la cifra grande en cursiva (`tabular-nums`) y su etiqueta (en móvil las etiquetas de minutos y segundos se abrevian a «Min» y «Seg»). Tanto ella como la tarjeta Sprint reciben un instante absoluto ISO y lo leen con `new Date(...)` (ver [Hora de las sesiones](#hora-de-las-sesiones))
@@ -1535,13 +1535,13 @@ Página con el calendario completo de la temporada actual (`src/app/calendario/p
 Qué muestra:
 
 - una card destacada con el próximo GP (el evento con `is_next_gp`), seguida de la lista de todos los GP de la temporada en orden cronológico;
-- en cada card: badge `RONDA N`, bandera del GP (`flag_url`), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
+- en cada card: badge `RONDA N`, bandera del GP (`CountryFlag`, archivo local), nombre, circuito y lugar, fechas y una pill de estado (Finalizado, En curso, Próximamente);
 - cada card se despliega (con animación) y muestra la tabla de horarios de MotoGP, Moto2 y Moto3, con una columna por día;
 - un conmutador **TU HORA** / **HORA LOCAL** (estado compartido por todas las cards de la página, no persistido): «tu hora» convierte los instantes a la zona del navegador y «hora local» a la `time_zone` del circuito;
 - las sesiones terminadas (también en la card destacada del próximo GP) salen atenuadas y con una pastilla «Terminada». Una sesión cuenta como terminada si su `status` es `FINISHED` o si su `date_end` ya pasó (el watcher puede ir por detrás del estado real); `CalendarView` refresca su reloj cada 60 s para actualizarlo sin recargar;
 - mientras carga muestra esqueletos `animate-pulse` (4 cards).
 
-`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`): las SVG de `photos.motogp.com` usan todas un lienzo de 162×116 con franjas transparentes, así que mide la zona realmente pintada con un `canvas` y recorta tipo *cover*; si no hay URL o la imagen falla, muestra el código ISO. Lo usan `CalendarView`, `NextGrandPrix`, `RiderStandings` y `RiderSlide`.
+`CountryFlag.tsx` es el componente compartido de bandera (tamaños `md` y `sm`). Las banderas se sirven desde `public/flags/` (54 SVG de [flag-icons](https://github.com/lipis/flag-icons) 7.6.0, licencia MIT, con su `LICENSE`); `flagSrc(url, iso)` calcula el archivo: toma el nombre de `url` (`smr` → `sm`; dos mayúsculas se respetan en minúsculas, porque hay eventos con `SM` o `IN` distintos del país) y, si no sirve, usa `iso` en minúsculas. Ya no hay medición por `canvas` ni se descarga nada de `photos.motogp.com`; se pinta con `object-cover`. `YU` no tiene bandera en `public/flags` y, como cuando la imagen falla, muestra el código ISO en una pill. Lo usan `CalendarView`, `NextGrandPrix`, `RiderStandings` y `RiderSlide`.
 
 ---
 
@@ -1573,7 +1573,18 @@ Qué muestra:
 - estados: esqueleto `animate-pulse` mientras carga, mensaje con botón «Reintentar» si la ruta falla, y mensaje de vacío si la categoría no tiene titulares;
 - si un piloto no tiene imagen (`image_url` nulo) o esta no carga, se muestra «Imagen del piloto no disponible». **Solo en desarrollo** el carrusel avisa de ello (una vez por piloto y motivo) a `POST /api/dev/image-issue`, que lo anota en `logs/imagenes-pilotos.log`; en producción no se llama.
 
-`next/image` solo admite imágenes de `photos.motogp.com` (`images.remotePatterns` en `next.config.ts`): una URL de otro host lanza un error en desarrollo que tumba la página. Por eso el importador solo guarda URL de ese host y el repositorio devuelve `image_url` nulo para cualquier otra. El resto de la aplicación sigue usando `<img>` (`CountryFlag`, el circuito de `ChampionshipStats`).
+`next/image` solo admite imágenes de `photos.motogp.com` (`images.remotePatterns` en `next.config.ts`, **solo en desarrollo**: con `NODE_ENV=production` la lista queda vacía): una URL de otro host lanza un error en desarrollo que tumba la página. Por eso el importador solo guarda URL de ese host y el repositorio devuelve `image_url` nulo para cualquier otra. El resto de la aplicación sigue usando `<img>` (`CountryFlag`, el circuito de `ChampionshipStats`).
+
+**Solo en producción** (`NODE_ENV=production`), `/pilotos` responde 404 (`notFound()` en `src/app/pilotos/page.tsx`) y `/api/riders/carousel` responde 404 `{ "error": "No encontrado" }`: son fotos y biografías oficiales sin permiso de uso. En desarrollo todo funciona como se describe aquí.
+
+---
+
+## Aviso legal, pie de página y 404
+
+- `src/lib/site.ts` exporta `SITE_NAME` («Rebufo», marca visible: título de `layout.tsx`, logo del `Header`, `Footer`, metadatos) y `CONTACT_EMAIL` (correo de contacto, **vacío hasta que el usuario lo rellene**).
+- `/aviso-legal` (`src/app/aviso-legal/page.tsx`): aviso legal; publica `CONTACT_EMAIL` como contacto. **El build de producción falla a propósito** (lanza un error si `CONTACT_EMAIL` está vacío y `NODE_ENV=production`): hay que rellenarlo en `src/lib/site.ts` antes de compilar.
+- `Footer.tsx` se monta en `layout.tsx` en todas las páginas (`<body>` es una columna `flex min-h-screen`; cada página usa `flex-1` en su `<main>`): «Rebufo · Proyecto personal sin ánimo de lucro · No afiliado a MotoGP · Aviso legal» (enlace a `/aviso-legal`).
+- `src/app/not-found.tsx`: página 404 global con `Header`, mensaje «Te has salido de la trazada» y enlace a `/`.
 
 ---
 
@@ -1592,7 +1603,7 @@ Los monta `src/app/layout.tsx` en todas las páginas.
 
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las páginas Inicio, Calendario, Resultados y Pilotos (esta última sin enlace en el menú). Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «MOTO**GP**STATS» en cursiva con «GP» sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL con su código intacto. Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
+Cabecera común a las páginas Inicio, Calendario, Resultados, Pilotos (esta última sin enlace en el menú y con 404 en producción), Aviso legal y la página 404. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «REBUFO» (`SITE_NAME`) en cursiva sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL en desarrollo (404 en producción). Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
 
 ---
 
@@ -1643,7 +1654,8 @@ Gran Premio actual o próximo (selección descrita en la [sección 23](#23-consu
 ```
 
 - `round`: posición cronológica del evento entre los eventos no test de la temporada (`null` si es un test o no tiene fecha). Ya no se deriva de `legacy_id`.
-- `flag_url`: `Event.flagUrl`; `null` si no se ha importado.
+- `flag_url`: `Event.flagUrl`; `null` si no se ha importado. La interfaz ya no lo carga (las banderas salen de `public/flags`), pero la ruta lo sigue devolviendo; lo mismo ocurre con `/api/calendar` y con `country.flag_url` de `/api/riders/standings`.
+- `track.infoImageUrl` (mapa del circuito, `CircuitAsset` de `photos.motogp.com`): **solo en producción es siempre `null`** (`nextGrandPrixRepository.ts`); `ChampionshipStats` oculta entonces el bloque. En desarrollo se devuelve la URL.
 - `nextMotoGPRace` y `track.sprintDate` son **instantes absolutos** ISO (UTC), convertidos con `wallClockToInstant` y `Event.timeZone` (ver [Hora de las sesiones](#hora-de-las-sesiones)). Si el evento no tiene zona válida, se usa `getMadridTimestamp` como respaldo.
 
 ---
@@ -1702,7 +1714,7 @@ Clasificación de una sesión, para `/resultados` ([24.1](#resultados-resultados
 
 ### `/api/riders/carousel`
 
-Pilotos titulares de una categoría en la temporada actual, con todo lo que muestra la página `/pilotos` ([24.1](#pilotos-pilotos)). `GET /api/riders/carousel?category=MotoGP|Moto2|Moto3` (por defecto `MotoGP`). La ruta no lleva `revalidate`: lee la URL, es dinámica y no se cachea (consultas agrupadas para todos los pilotos a la vez, sin N+1).
+Pilotos titulares de una categoría en la temporada actual, con todo lo que muestra la página `/pilotos` ([24.1](#pilotos-pilotos)). `GET /api/riders/carousel?category=MotoGP|Moto2|Moto3` (por defecto `MotoGP`). **Con `NODE_ENV=production` responde 404 `{ "error": "No encontrado" }`** (contenido oficial sin permiso); lo siguiente solo aplica en desarrollo. La ruta no lleva `revalidate`: lee la URL, es dinámica y no se cachea (consultas agrupadas para todos los pilotos a la vez, sin N+1).
 
 El **contrato completo** (campos, tipos y qué puede ser `null`) está en `src/types/riderCarousel.ts` (`RiderCarouselResponse`, `RiderCarouselItem`); aquí solo las reglas:
 
@@ -1790,7 +1802,9 @@ motogp-stats/
 │   │   ├── page.tsx               Inicio (/)
 │   │   ├── calendario/page.tsx    Calendario (/calendario)
 │   │   ├── resultados/page.tsx    Resultados (/resultados)
-│   │   ├── pilotos/page.tsx       Pilotos (/pilotos, fuera del menú)
+│   │   ├── pilotos/page.tsx       Pilotos (/pilotos, fuera del menú; 404 en producción)
+│   │   ├── aviso-legal/page.tsx   Aviso legal (/aviso-legal)
+│   │   ├── not-found.tsx          Página 404 global
 │   │   └── api/
 │   │       ├── results/           route.ts
 │   │       ├── next-gp/           route.ts y favorites/route.ts
@@ -1801,12 +1815,13 @@ motogp-stats/
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │   │                          GrandPrixFavorites, CalendarView, Countdown,
-│   │   │                          CountryFlag, Header, StatCard, ThemeToggle,
+│   │   │                          CountryFlag, Footer, Header, StatCard, ThemeToggle,
 │   │   │                          ScrollToTop, RidersPage, ResultsPage
 │   │   └── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
 │   │
 │   ├── lib/
-│   │   └── prisma.ts
+│   │   ├── prisma.ts
+│   │   └── site.ts                SITE_NAME y CONTACT_EMAIL
 │   │
 │   ├── services/
 │   │   ├── db/                    Repositorios de lectura que usan las rutas /api
@@ -1822,7 +1837,7 @@ motogp-stats/
 │
 ├── logs/                          No se versiona. Logs de desarrollo de los agentes e informes (ver AGENTS.md)
 ├── .claude/agents/                Agentes (ver AGENTS.md)
-├── next.config.ts                 images.remotePatterns: solo https://photos.motogp.com
+├── next.config.ts                 images.remotePatterns: https://photos.motogp.com solo en desarrollo (vacío en producción)
 ├── .env.example
 ├── .env.production.example        Plantilla de variables de producción (sin secretos; orientada a Dinahosting, el paquete la copia como .env.example; en Clouding `instalar-servidor.sh` crea `/etc/motogp-stats.env`)
 ├── .gitattributes                 Fuerza finales de línea LF en scripts/deploy, scripts/dinahosting, scripts/clouding y package-dinahosting.mjs

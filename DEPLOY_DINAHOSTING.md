@@ -2,7 +2,7 @@
 
 > **DOCUMENTO HISTÓRICO — despliegue abandonado.** El hosting compartido de Dinahosting **no permite ejecutar la aplicación**: su servidor no ofrecía "Otras aplicaciones" ni Node con Passenger (y la herramienta "Migrar de servidor" del panel es de portabilidad desde otros proveedores, no sirve para esto). El despliegue vigente es un VPS de Clouding: ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md). Se conserva el contenido porque los scripts de `scripts/deploy/` (volcado y carga de datos) y la lección sobre finales de línea CRLF siguen siendo útiles.
 
-Guía paso a paso para publicar MotoGP Stats en el hosting Linux "Profesional" (nivel Advanced) de Dinahosting. El despliegue en Railway está en [DEPLOY.md](DEPLOY.md); este documento es independiente y no lo sustituye.
+Guía paso a paso para publicar Rebufo en el hosting Linux "Profesional" (nivel Advanced) de Dinahosting. El despliegue en Railway está en [DEPLOY.md](DEPLOY.md); este documento es independiente y no lo sustituye.
 
 **Estado:** el paquete y los scripts están preparados y probados en local (empaquetado, volcado y carga de datos contra una base de prueba). Solo se ha ejecutado en un servidor real la **Fase 0** (comprobaciones por SSH, resultados en el apartado [0.1](#01-por-ssh)); **el despliegue en sí no se ha ejecutado**. Ese primer servidor no tiene Node.js en el `PATH` ni `psql`, por lo que la guía incluye pasos para instalar Node con NVM (apartado [4.0](#40-instalar-nodejs-con-nvm)) y alternativas para cargar los datos (apartado [4.4](#44-cargar-los-datos)). Lo que depende del hosting está marcado como *según la documentación de Dinahosting* (dato publicado por ellos), *medido en el servidor* (Fase 0) o *pendiente de comprobar*. La lista completa está en [Qué no está verificado](#12-qué-no-está-verificado).
 
@@ -516,7 +516,7 @@ Si Apache devuelve `500` tras añadir el bloque, quita el bloque entre `MOTOGP-S
 | Paquete | Gravedad | Detalle |
 |---|---|---|
 | `next` 16.3.3 | crítica | RCE en `next/og` `ImageResponse` (GHSA-vcvr-r3jv-pc5j). La app **no** usa `next/og` ni `opengraph-image`, así que esa vía no es explotable aquí; conviene actualizar Next cuando haya parche. Desde la página `/pilotos` la app **sí** usa `next/image` (`images.remotePatterns` solo admite `photos.motogp.com`), cosa que esta auditoría no contemplaba |
-| `sharp` 0.35.4 | alta | Lo usa Next para optimizar imágenes. **Desde `/pilotos` la app sí las optimiza** (`/_next/image` redimensiona las fotos `PROFILE` de `photos.motogp.com`), así que este hallazgo ya no es «no afecta»: hay que valorarlo en la decisión sobre `npm audit` |
+| `sharp` 0.35.4 | alta | Lo usa Next para optimizar imágenes. En desarrollo `/pilotos` las optimiza (`/_next/image` con fotos de `photos.motogp.com`); en producción `/pilotos` da 404 y `images.remotePatterns` está vacío, así que `/_next/image` no sirve imágenes remotas. Sigue siendo una dependencia de Next a valorar en la decisión sobre `npm audit` |
 | `source-map-js` | alta | Solo interviene en el build |
 
 ---
