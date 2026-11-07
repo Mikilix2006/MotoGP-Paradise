@@ -473,9 +473,14 @@ export async function importSessionResults(
           sessionId: session.id,
           riderId: rider.id,
           ...resultData,
+          number: item.rider.number ?? null,
         },
 
-        update: resultData,
+        /* El dorsal solo se actualiza si la API lo trae: nunca se pisa con null. */
+        update: {
+          ...resultData,
+          ...(item.rider.number != null ? { number: item.rider.number } : {}),
+        },
       });
 
       if (existingResult) {

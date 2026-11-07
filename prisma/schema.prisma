@@ -557,6 +557,7 @@ model SessionResult {
   averageSpeed Decimal? @map("average_speed") @db.Decimal(10, 3)
   topSpeed     Decimal? @map("top_speed") @db.Decimal(10, 3)
   gridPosition Int? @map("grid_position")
+  number       Int?
 
   session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   rider       Rider        @relation(fields: [riderId], references: [id])

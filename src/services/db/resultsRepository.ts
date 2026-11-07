@@ -90,6 +90,7 @@ async function getClassification(session: VisibleSession): Promise<ResultRow[]> 
     where: { sessionId: session.id },
     select: {
       riderId: true,
+      number: true,
       position: true,
       status: true,
       time: true,
@@ -103,7 +104,7 @@ async function getClassification(session: VisibleSession): Promise<ResultRow[]> 
     },
   });
 
-  // El dorsal sale de la inscripción del piloto en esa temporada y categoría.
+  // Dorsal: el del resultado; si falta, el de la inscripción del piloto en esa temporada y categoría.
   const entries = await prisma.riderSeasonEntry.findMany({
     where: {
       seasonId: session.seasonId,
@@ -119,7 +120,7 @@ async function getClassification(session: VisibleSession): Promise<ResultRow[]> 
       position: r.position,
       rider_name:
         r.rider.fullName ?? ([r.rider.firstName, r.rider.lastName].filter(Boolean).join(" ") || "—"),
-      number: numbers.get(r.riderId) ?? null,
+      number: r.number ?? numbers.get(r.riderId) ?? null,
       team_name: r.team?.name ?? null,
       status: r.status,
       time: r.time || null,
