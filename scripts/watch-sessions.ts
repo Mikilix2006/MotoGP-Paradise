@@ -51,6 +51,16 @@ function report(result: LiveSyncResult): void {
     console.log(`  🚦 Estado del evento: ${change}`);
   }
 
+  if (result.recentEventsRefreshed.length > 0) {
+    console.log(
+      `  🔁 Eventos recientes refrescados: ${result.recentEventsRefreshed.join(", ")}`
+    );
+  }
+
+  if (result.eventDetailsRefreshed) {
+    console.log("  🗓️ Detalles de eventos (API general) actualizados");
+  }
+
   for (const label of result.sessionsImported) {
     console.log(`  ✅ Resultados importados: ${label}`);
   }
