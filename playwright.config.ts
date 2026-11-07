@@ -23,6 +23,8 @@ function testDatabaseUrl(): string {
 
 export default defineConfig({
   testDir: ".",
+  // Los worktrees de agentes (.claude/worktrees) tienen copias de los tests.
+  testIgnore: ["**/.claude/**", "**/node_modules/**"],
   fullyParallel: true,
   // Un único servidor local: con muchos workers los endpoints pesados tardan más de 5 s.
   workers: process.env.CI ? 1 : 4,
