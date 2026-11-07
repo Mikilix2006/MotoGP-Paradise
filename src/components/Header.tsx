@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: "Inicio", href: "/" },
   { label: "Calendario", href: "/calendario" },
   { label: "Resultados", href: "/resultados" },
+  { label: "Gráficas", href: "/graficas" },
   { label: "Predicciones", href: "#" },
 ];
 

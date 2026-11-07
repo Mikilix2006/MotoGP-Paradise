@@ -47,6 +47,7 @@ describe("Header", () => {
       ["Inicio", "/"],
       ["Calendario", "/calendario"],
       ["Resultados", "/resultados"],
+      ["Gráficas", "/graficas"],
       ["Predicciones", "#"],
     ]);
     expect(within(desktop).getByRole("link", { name: "Calendario" })).toHaveAttribute("aria-current", "page");

@@ -22,7 +22,7 @@ function watchErrors(page: Page) {
 }
 
 test.describe("Global", () => {
-  for (const path of ["/", "/calendario", "/resultados", "/aviso-legal"]) {
+  for (const path of ["/", "/calendario", "/resultados", "/graficas", "/aviso-legal"]) {
     test(`GLB-08 ${path} sin errores; GLB-04 pie con aviso legal`, async ({ page }) => {
       const problems = watchErrors(page);
       await page.goto(path);
@@ -47,6 +47,15 @@ test.describe("Global", () => {
     await expect(
       page.getByRole("navigation", { name: "Menú principal" }).filter({ visible: true }).getByRole("link", { name: "Calendario" })
     ).toHaveAttribute("aria-current", "page");
+
+    // En móvil el menú sigue abierto tras la comprobación anterior.
+    await page
+      .getByRole("navigation", { name: "Menú principal" })
+      .filter({ visible: true })
+      .getByRole("link", { name: "Gráficas" })
+      .click();
+    await expect(page).toHaveURL(/\/graficas$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Gráficas");
   });
 
   test("GLB-02 menú móvil: abre, Escape y clic fuera cierran", async ({ page }) => {

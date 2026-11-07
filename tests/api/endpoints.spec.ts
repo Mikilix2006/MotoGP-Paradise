@@ -213,6 +213,81 @@ test.describe("API-06 /api/results", () => {
   });
 });
 
+interface ProgressRider {
+  id: string;
+  full_name: string;
+  final_position: number | null;
+  standing_points: number | null;
+  total_points: number | null;
+  progress: { event_id: string; points: number | null; sprint_points: number | null; race_points: number | null; cumulative: number | null }[];
+}
+interface Progress {
+  season: number;
+  category: number;
+  events: { id: string; sequence: number | null; short_name: string | null }[];
+  riders: ProgressRider[];
+}
+
+test.describe("GRA-A /api/riders/points-progress", () => {
+  const url = "/api/riders/points-progress";
+
+  test("GRA-A01 forma y reglas de nulos y acumulado", async ({ request }) => {
+    const { data } = await getData(request, url, [200, 404]);
+    if (!data) return;
+    const { events, riders } = data as Progress;
+    expect(events.length).toBeGreaterThan(0);
+
+    const sequences = events.map((e) => e.sequence ?? Infinity);
+    expect(sequences, "eventos desordenados").toEqual([...sequences].sort((a, b) => a - b));
+    expect(new Set(events.map((e) => e.id)).size, "eventos repetidos").toBe(events.length);
+
+    expect(new Set(riders.map((r) => r.id)).size, "pilotos repetidos").toBe(riders.length);
+    const positions = riders.map((r) => r.final_position ?? Infinity);
+    expect(positions, "pilotos sin ordenar por posición final").toEqual([...positions].sort((a, b) => a - b));
+
+    for (const rider of riders) {
+      expect(rider.progress.map((p) => p.event_id), `${rider.full_name}: un paso por evento`).toEqual(events.map((e) => e.id));
+      let previous: number | null = null;
+      for (const step of rider.progress) {
+        const where = `${rider.full_name} ${step.event_id}`;
+        if (step.points === null) {
+          // Sin fila: nunca un 0 inventado y acumulado plano.
+          expect(step.sprint_points, `${where}: sprint sin GP`).toBeNull();
+          expect(step.race_points, `${where}: carrera sin GP`).toBeNull();
+          expect(step.cumulative, `${where}: acumulado no plano`).toBe(previous);
+        } else {
+          expect(step.points, `${where}: puntos negativos`).toBeGreaterThanOrEqual(0);
+          expect(step.cumulative, `${where}: acumulado nulo con puntos`).not.toBeNull();
+          expect(Math.abs((step.cumulative as number) - ((previous ?? 0) + step.points)), `${where}: acumulado`).toBeLessThan(0.01);
+        }
+        previous = step.cumulative;
+      }
+      expect(rider.total_points, `${rider.full_name}: total`).toBe(previous);
+    }
+  });
+
+  test("GRA-A02 parámetros inválidos dan 400 con { error }", async ({ request }) => {
+    for (const query of ["year=abc", "year=1800", "year=", "category=9", "category=abc", "category="]) {
+      const response = await request.get(`${url}?${query}`);
+      expect(response.status(), query).toBe(400);
+      expect(typeof ((await response.json()) as Json).error, `${query}: error sin texto`).toBe("string");
+    }
+  });
+
+  test("GRA-A03 el último acumulado coincide con la clasificación (temporada cerrada)", async ({ request }) => {
+    const { data } = await getData(request, `${url}?year=2024&category=3`, [200, 404]);
+    if (!data) return;
+    for (const rider of (data as Progress).riders) {
+      if (rider.standing_points === null) continue;
+      expect(rider.total_points ?? 0, `${rider.full_name}`).toBeCloseTo(rider.standing_points, 2);
+    }
+  });
+
+  test("GRA-A04 otros métodos dan 405", async ({ request }) => {
+    expect((await request.post(url, { data: {} })).status()).toBe(405);
+  });
+});
+
 test.describe("API-07/08/09 rutas ocultas y páginas", () => {
   test("/api/riders/carousel da 404 en producción", async ({ request }) => {
     expect((await request.get("/api/riders/carousel")).status()).toBe(404);

@@ -266,7 +266,7 @@ npm run sync:sessions     # una pasada: importa lo que haya terminado y sale
 npm run watch:sessions    # proceso continuo que vigila el calendario
 ```
 
-> Nota: el proyecto no cuenta actualmente con una suite de tests automatizados (no existe `npm test`) y ESLint no está instalado ni configurado, así que `npm run lint` no funciona. Las comprobaciones disponibles son `npx tsc --noEmit -p tsconfig.json` (el proyecto está en modo `strict`) y `npx prisma validate` si se ha tocado el esquema. Para la lógica pura de `/resultados` hay además un autotest con asserts, sin BD: `npx tsx scripts/check-results.ts`.
+> Nota: las comprobaciones disponibles son `npm run lint` (ESLint, `eslint.config.mjs`), `npm run typecheck` (`tsc --noEmit`, el proyecto está en modo `strict`), `npm test` (Vitest) y, con la base de pruebas, `npm run test:e2e` y `npm run test:api` (Playwright); `npm run test:all` encadena lint, tipos y todos los tests. El plan de tests está en [TESTS.md](TESTS.md). Además, `npx prisma validate` si se ha tocado el esquema y `npx tsx scripts/check-results.ts` (asserts sin BD sobre la lógica de `/resultados`). `npx tsx scripts/check-points-progress.ts [año] [categoría]` cruza la gráfica de puntos con `ChampionshipStanding` (solo lectura, contra `DATABASE_URL`; ver [`/graficas`](#gráficas-graficas)).
 
 ---
 
@@ -1602,9 +1602,17 @@ Los monta `src/app/layout.tsx` en todas las páginas.
 
 ---
 
+## Gráficas (`/graficas`)
+
+Evolución de los puntos de cada piloto titular a lo largo de una temporada (`src/app/graficas/page.tsx`, que monta `GraficasPage` en un `Suspense` porque usa `useSearchParams`). Controles: selector de **Temporada** (de 2014 al año actual; `MIN_YEAR` de `chartModel.ts`), botones de **Categoría** (MotoGP, Moto2, Moto3) y **Vista** (Acumulado | Por carrera), y una lista única de pilotos que hace de leyenda y de selector (casillas, con «Top 5», «Todos» y «Ninguno»). Por defecto: año actual, MotoGP, acumulado y top 5 de la clasificación. Todo vive en la URL: `?temporada=&categoria=&modo=acumulado|carrera&pilotos=` (`pilotos` lleva dorsales o ids separados por comas; sin el parámetro es el top 5 y `pilotos=` vacío es ninguno); cambiar temporada o categoría reinicia la selección al top 5, y los valores inválidos caen al defecto. En «Por carrera» un GP sin participación es un hueco en la línea; en «Acumulado» la línea es continua. El gráfico SVG (`PointsChart.tsx`) admite ratón, toque y teclado con tooltip. Estados de carga (esqueleto), error en español con «Reintentar» y vacío (404 o sin GP). API: `/api/riders/points-progress` (contrato en la [sección 25](#apiriderspoints-progress)).
+
+Código: componentes en `src/components/graficas/` (`GraficasPage.tsx`, `PointsChart.tsx`); escalas, trazados y parámetros de URL en `chartModel.ts`; colores por marca/equipo en `riderColorsModel.ts`; repositorio `src/services/db/pointsProgressRepository.ts`; reglas de cálculo en `src/services/stats/pointsProgressModel.ts`; tipos en `src/types/pointsProgress.ts`.
+
+---
+
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las páginas Inicio, Calendario, Resultados, Pilotos (esta última sin enlace en el menú y con 404 en producción), Aviso legal y la página 404. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «REBUFO» (`SITE_NAME`) en cursiva sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL en desarrollo (404 en producción). Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
+Cabecera común a las páginas Inicio, Calendario, Resultados, Gráficas, Pilotos (esta última sin enlace en el menú y con 404 en producción), Aviso legal y la página 404. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «REBUFO» (`SITE_NAME`) en cursiva sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados, Gráficas (`/graficas`) y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL en desarrollo (404 en producción). Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
 
 ---
 
@@ -1619,7 +1627,7 @@ Las siguientes páginas están planificadas pero no implementadas:
 
 # 25. API interna de la aplicación
 
-El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que leen de PostgreSQL mediante los repositorios de `src/services/db/`. Todas responden `{ "data": ... }` en éxito y `{ "error": "mensaje en español" }` con el status adecuado en caso contrario, y usan nombres en `snake_case`. El nombre del país (`country.name`) de `/api/next-gp`, `/api/calendar`, `/api/riders/standings` y `/api/riders/carousel` va en español: `countryNameEs(iso, fallback)` (`src/utils/country.ts`) usa `Intl.DisplayNames('es')`, con `YU` → «Yugoslavia» y, si Intl no conoce el código (p. ej. «XX»), el nombre guardado en la base de datos. Sus tipos están en `src/types/` (`grandPrix.ts`, `rider.ts`, `favorites.ts`, `riderCarousel.ts`).
+El frontend consulta únicamente rutas internas de Next.js (`src/app/api/`), que leen de PostgreSQL mediante los repositorios de `src/services/db/`. Todas responden `{ "data": ... }` en éxito y `{ "error": "mensaje en español" }` con el status adecuado en caso contrario, y usan nombres en `snake_case`. El nombre del país (`country.name`) de `/api/next-gp`, `/api/calendar`, `/api/riders/standings` y `/api/riders/carousel` va en español: `countryNameEs(iso, fallback)` (`src/utils/country.ts`) usa `Intl.DisplayNames('es')`, con `YU` → «Yugoslavia» y, si Intl no conoce el código (p. ej. «XX»), el nombre guardado en la base de datos. Sus tipos están en `src/types/` (`grandPrix.ts`, `rider.ts`, `favorites.ts`, `riderCarousel.ts`, `pointsProgress.ts`).
 
 ## Endpoints disponibles
 
@@ -1707,6 +1715,36 @@ Clasificación de pilotos de MotoGP de la temporada actual, ordenada por puntos.
 
 ---
 
+### `/api/riders/points-progress`
+
+Evolución de puntos por piloto titular, para `/graficas` ([24.1](#gráficas-graficas)). `GET /api/riders/points-progress?year=&category=`: `year` (4 cifras, de 1949 a año actual + 1; sin él, la temporada actual) y `category` (`legacy_id`: 1 = Moto3, 2 = Moto2, 3 = MotoGP; por defecto 3). Errores: 400 `El año no es válido` o `La categoría no es válida (1 = Moto3, 2 = Moto2, 3 = MotoGP)`; 404 `No hay datos para esa temporada y categoría` (temporada o categoría inexistente); 500 si falla la consulta; otros métodos dan 405. El rango de años de la API es más amplio que el de la interfaz (2014+) porque antes de 2014 faltan carreras en la base de datos y los datos no son fiables. La ruta lee la URL, así que es dinámica y su `export const revalidate = 60` no tiene efecto práctico (no se cachea).
+
+**Respuesta (`data`):** `season`, `category`, `events` y `riders`.
+
+- `events`: GP disputados en orden de calendario (`sequence`), con `id`, `short_name`, `name`, `circuit_name`, `country_iso`, `country_name` (en español) y `sequence`.
+- `riders`: por `final_position` (sin posición al final; luego por `total_points` y nombre), con `id` (`motogpUuid` o id interno), `full_name`, `number`, `team` (`id`, `name`, `color`), `constructor_name`, `final_position` y `standing_points` (de `ChampionshipStanding`, para cruzar), `total_points` (último acumulado) y `progress`.
+- `progress`: exactamente un elemento por cada elemento de `events`, en el mismo orden: `event_id`, `points` (sprint + carrera), `sprint_points`, `race_points` y `cumulative`.
+
+**Reglas de cálculo** (`pointsProgressModel.ts`, lógica pura):
+
+- Puntos del GP = sesión efectiva `RAC` + sesión efectiva `SPR` (`SessionResult.points`). Las sesiones antiguas con `type = 'SESSION'` solo cuentan si su `shortname` empieza por `RAC` o `SPR`.
+- **Una sesión RAC (y una SPR) por evento y categoría.** Si hay varias (carrera reiniciada: `RAC`, `RAC1`, `RAC2`, `shortname` nulo, a veces con la suma completa en las dos) cuenta solo la más tardía que reparte algún punto (si ninguna reparte, la más tardía con resultados), para no doblar puntos.
+- **Eventos:** solo los que no son test ni `CANCELLED` y tienen resultados de carrera o de sprint. Una carrera cancelada con sprint disputada cuenta por su sprint (AUS 2026).
+- **`null` frente a 0:** un piloto que corre y no puntúa tiene fila con `points = 0` (cuenta, da 0); sin fila en la sesión es `null` (no participó), nunca un 0 inventado. `points` es `null` si no tiene fila ni en carrera ni en sprint; `cumulative` se mantiene plano mientras no corre y es `null` antes de su primera participación. Las sumas se redondean a milésimas.
+- **Titulares:** entradas `RiderSeasonEntry` con `type = 'Official'`; con respaldo, los pilotos de `ChampionshipStanding` sin entrada o con `type` nulo también entran. Sustitutos y wildcards quedan fuera aunque puntúen.
+
+**Límites conocidos:**
+
+- Antes de 2014 hay carreras sin filas de resultados en la base de datos (CZE 2005, MAL 2006, JPN y RSM 2009, POR 2010) y el acumulado final queda por debajo de `ChampionshipStanding.points`; la interfaz no ofrece esos años.
+- GER 2010 MotoGP: 4 pilotos solo aparecen en la sesión RAC descartada por la regla de carrera reiniciada y pierden esos puntos; se detecta comparando `total_points` con `standing_points`.
+- Moto2 2022: `ChampionshipStanding.points` trae medios puntos y los resultados los puntos completos; es la única diferencia conocida del cruce 2014-2026.
+- Jorge Navarro (Moto2 2026): `RiderSeasonEntry` es único en `(riderId, seasonId, categoryId)` y `riderImporter` descarta pasos (ver deudas en `AGENTS.md`), así que puede salir como `Substitute` y quedar fuera de los titulares.
+- Moto E no se admite (la regla de una sola sesión RAC perdería una carrera real): la ruta solo acepta las categorías 1, 2 y 3.
+
+`scripts/check-points-progress.ts` (solo lectura) comprueba que el último acumulado de cada titular coincide con `ChampionshipStanding.points` de 2014 al año actual; sale con código 1 si hay diferencias fuera de Moto2 2022.
+
+---
+
 ### `/api/results`
 
 Clasificación de una sesión, para `/resultados` ([24.1](#resultados-resultados)). `GET /api/results?section=season|tests&year=&event=&category=&session=` (todos opcionales; `section` distinto de `tests` es `season`; `category` es el `legacy_id`, `event` el id interno y `session` el `shortname`). Los parámetros inválidos se descartan y caen al valor por defecto, sin 400. La ruta no lleva `revalidate` (lee la URL, es dinámica). Errores: 404 `No hay resultados disponibles` si no hay ninguna sesión visible; 500 si falla la consulta.
@@ -1763,7 +1801,7 @@ El flujo es:
 React Component
       │
       ▼
-/api/next-gp, /api/calendar, /api/riders/standings, /api/riders/carousel, /api/constructors/standings, /api/next-gp/favorites, /api/results
+/api/next-gp, /api/calendar, /api/riders/standings, /api/riders/points-progress, /api/riders/carousel, /api/constructors/standings, /api/next-gp/favorites, /api/results
       │
       ▼
 src/services/db/*Repository.ts
@@ -1803,6 +1841,7 @@ motogp-stats/
 │   │   ├── page.tsx               Inicio (/)
 │   │   ├── calendario/page.tsx    Calendario (/calendario)
 │   │   ├── resultados/page.tsx    Resultados (/resultados)
+│   │   ├── graficas/page.tsx      Gráficas (/graficas)
 │   │   ├── pilotos/page.tsx       Pilotos (/pilotos, fuera del menú; 404 en producción)
 │   │   ├── aviso-legal/page.tsx   Aviso legal (/aviso-legal)
 │   │   ├── not-found.tsx          Página 404 global
@@ -1811,14 +1850,15 @@ motogp-stats/
 │   │       ├── next-gp/           route.ts y favorites/route.ts
 │   │       ├── calendar/
 │   │       ├── constructors/standings/
-│   │       ├── riders/            standings/ y carousel/
+│   │       ├── riders/            standings/, carousel/ y points-progress/
 │   │       └── dev/image-issue/   Solo desarrollo (404 en producción)
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │   │                          GrandPrixFavorites, CalendarView, Countdown,
 │   │   │                          CountryFlag, Footer, Header, StatCard, ThemeToggle,
 │   │   │                          ScrollToTop, RidersPage, ResultsPage
-│   │   └── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
+│   │   ├── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
+│   │   └── graficas/              GraficasPage, PointsChart, chartModel, riderColorsModel (página /graficas)
 │   │
 │   ├── lib/
 │   │   ├── prisma.ts
@@ -1829,9 +1869,9 @@ motogp-stats/
 │   │   ├── importers/             Lógica de importación y sincronización en vivo
 │   │   ├── motogp/                Clientes de las dos APIs externas (solo los usan los importadores)
 │   │   ├── results/               Lógica pura de /resultados (resultsModel.ts)
-│   │   └── stats/                 Modelos estadísticos puros (favoritesModel.ts)
+│   │   └── stats/                 Modelos estadísticos puros (favoritesModel.ts, pointsProgressModel.ts)
 │   │
-│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites, riderCarousel, results)
+│   ├── types/                     Formas de respuesta compartidas (grandPrix, rider, favorites, riderCarousel, results, pointsProgress)
 │   └── utils/
 │       ├── date.ts                getMadridTimestamp y wallClockToInstant
 │       └── text.ts                htmlToPlainText (biografías HTML a texto plano)
