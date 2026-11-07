@@ -1,11 +1,11 @@
 # DATABASE_IMPLEMENTATION_PLAN.md
 
-# MotoGP Stats --- Plan de implementación de la base de datos
+# Rebufo --- Plan de implementación de la base de datos
 
 ## 1. Objetivo
 
 Este documento define el plan técnico para implementar la base de datos
-de MotoGP Stats a partir del modelo conceptual aprobado.
+de Rebufo a partir del modelo conceptual aprobado.
 
 La base de datos deberá permitir:
 

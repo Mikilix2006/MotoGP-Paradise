@@ -325,19 +325,15 @@ export default function ChampionshipStats() {
         <div className="mt-5 grid grid-cols-1 gap-3">
 
           {/* IMAGEN */}
-          <div className="flex items-center justify-center">
-            {track?.infoImageUrl ? (
+          {track?.infoImageUrl && (
+            <div className="flex items-center justify-center">
               <img
                 src={track.infoImageUrl}
                 alt="Información del circuito"
                 className="max-h-40 w-auto max-w-full object-contain"
               />
-            ) : (
-              <p className="text-sm text-zinc-500">
-                Información del circuito no disponible
-              </p>
-            )}
-          </div>
+            </div>
+          )}
           {/* KILÓMETROS */}
           <div>
             <p className="text-2xl font-display font-black tabular-nums text-white">

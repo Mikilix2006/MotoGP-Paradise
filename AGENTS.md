@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guía de coordinación para los agentes que trabajan en **MotoGP Stats**.
+Guía de coordinación para los agentes que trabajan en **Rebufo** (marca visible; ver `src/lib/site.ts`). Los nombres internos siguen siendo `motogp-*` (servicios systemd, `/srv/motogp`, base de datos, carpeta local, variables de entorno, URL del repositorio).
 
 Este documento define quién se ocupa de qué, cómo se pasan el trabajo entre ellos y qué reglas comparten todos. El contexto completo del proyecto está en [README.md](README.md); aquí solo está lo necesario para repartir el trabajo correctamente.
 
@@ -34,7 +34,7 @@ La interfaz no debe hacer ninguna llamada a la API de MotoGP: si falta un dato, 
 Decisiones deliberadas de la página `/pilotos` (detalle en el [README](README.md): [Category](README.md#category), [24.1](README.md#pilotos-pilotos) y [`/api/riders/carousel`](README.md#apiriderscarousel)):
 
 - **La clase reina hasta 2001 es la categoría «500cc»** (`legacyId` -1, sembrada por una migración de datos). `legacyId` 3 es solo MotoGP; para cifras de «clase reina» se suman `legacyId` 3 y -1. Cada importador la resuelve de forma distinta (reglas en [DATABASE_ENDPOINT_MAPPING.md](DATABASE_ENDPOINT_MAPPING.md#categoría-500cc)); ningún importador crea esa fila.
-- **Imágenes de pilotos: único host `photos.motogp.com`** (`images.remotePatterns` de `next.config.ts`). `next/image` solo se usa en la ficha de `/pilotos` (`RiderSlide`); el resto de la aplicación sigue con `<img>`. Una URL de otro host tumba la página en desarrollo, así que `riderImporter` no la guarda y `riderCarouselRepository` devuelve `image_url` nulo.
+- **Imágenes de pilotos: único host `photos.motogp.com`** (`images.remotePatterns` de `next.config.ts`, solo en desarrollo: en producción la lista está vacía, `/pilotos` da 404 y `/api/riders/carousel` responde 404; ver las reglas de contenido oficial en «Reglas que comparten todos»). `next/image` solo se usa en la ficha de `/pilotos` (`RiderSlide`); el resto de la aplicación sigue con `<img>`. Una URL de otro host tumba la página en desarrollo, así que `riderImporter` no la guarda y `riderCarouselRepository` devuelve `image_url` nulo.
 - **Biografías: HTML en la base de datos (`rider_biographies`), texto plano al leer** (`htmlToPlainText`). No se renderiza HTML de la API.
 - **El carrusel de `/pilotos` solo muestra titulares** (`RiderSeasonEntry.type = 'Official'`); no incluye suplentes. Decisión del usuario.
 - **Los países salen en español en las rutas de UI** (`countryNameEs` en `src/utils/country.ts`, con respaldo al nombre de la base de datos).
@@ -164,6 +164,8 @@ ESLint no está instalado ni configurado, así que `npm run lint` no funciona y 
 
 Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interactivos. Usa `prisma migrate diff` para generar el SQL y `prisma migrate deploy` para aplicarlo (procedimiento detallado en `database-guardian`).
 
+11. **No reintroducir en producción recursos servidos desde `photos.motogp.com`** (fotos, mapas de circuito, banderas, etc.) **ni afirmar en la interfaz o la documentación que hay licencia o permiso de MotoGP.** Hoy en producción: `/pilotos` y `/api/riders/carousel` dan 404, `images.remotePatterns` está vacío e `infoImageUrl` es `null`; las banderas son locales (`public/flags`).
+
 ---
 
 ## Deudas conocidas (no las "arregles" sin hablarlo)
@@ -191,6 +193,9 @@ Migraciones: `prisma migrate dev` es interactivo y falla en entornos no interact
 - **Repositorio de GitHub público.** Los documentos de despliegue (`DEPLOY*.md`) describen la arquitectura del servidor; conviene mantener el repositorio privado o asumir que esa información es visible (ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#12-seguridad)).
 - **`graphify-out/` se versiona.** Es el gráfico de conocimiento que genera la herramienta graphify instalada por el usuario; `.gitignore` solo excluye `graphify-out/.graphify_*` (rutas locales de la máquina). No es código ni documentación de referencia: no lo edites a mano.
 - **`LiveTimingSnapshot` y `LiveRiderTiming` están vacíos.** Requieren sondeo de sesiones en directo, no importación histórica.
+- **Antes de abrir el registro de cuentas.** Hoy no hay cuentas; antes de permitirlas faltan: HTTPS obligatorio (hoy se sirve por HTTP en la IP); publicar el nombre del titular como responsable (el aviso actual solo publica un correo); política de privacidad en página propia (finalidades, base legal, plazos, proveedores); condiciones de uso; edad mínima de 14 años (LOPDGDD art. 7); borrado de cuenta desde el perfil; canal para ejercer derechos; contraseñas con hash; plan de notificación de brechas en 72 horas; documentar la cookie de sesión.
+- **`flag_url` sigue guardándose y sirviéndose.** Los importadores (`import:event-details`, `import:riders`) siguen guardando `Event.flagUrl` y `Country.flagUrl`, y `/api/next-gp`, `/api/calendar` y `/api/riders/standings` lo devuelven como texto, aunque la interfaz ya no lo carga (usa `public/flags`). Pendiente decidir si se deja de guardar o servir.
+- **Antes de publicar.** Comprobar «Rebufo» en la OEPM y comprobar en el servidor real que Caddy no guarda registros de acceso, porque el aviso legal afirma que no se conserva la IP. Además, rellenar `CONTACT_EMAIL` en `src/lib/site.ts` (el build de producción falla si está vacío).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

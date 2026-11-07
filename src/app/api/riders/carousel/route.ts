@@ -14,6 +14,11 @@ import type { CarouselCategory } from "@/types/riderCarousel";
 const CATEGORIES: readonly CarouselCategory[] = ["MotoGP", "Moto2", "Moto3"];
 
 export async function GET(request: Request) {
+  // Fotos y biografías oficiales sin permiso: fuera de producción (ver aviso legal).
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
+
   const category =
     new URL(request.url).searchParams.get("category") ?? "MotoGP";
 

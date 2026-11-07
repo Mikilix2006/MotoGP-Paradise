@@ -183,10 +183,7 @@ function ConstructorsTable({
                   country && (
                     <CountryFlag
                       size="sm"
-                      url={
-                        flagUrls[country.iso] ??
-                        `https://photos.motogp.com/countries/flags/iso2/${country.iso}.svg`
-                      }
+                      url={flagUrls[country.iso] ?? null}
                       iso={country.iso}
                       name={country.name}
                     />
