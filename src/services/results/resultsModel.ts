@@ -48,6 +48,8 @@ const SESSION_LABELS: Record<string, string> = {
   SPR: "Sprint",
   WUP: "Warm-up",
   RAC: "Carrera",
+  // Carrera reiniciada: se llama igual que en el calendario (decisión del usuario).
+  RAC2: "Carrera",
 };
 
 // Sin entrada ni patrón conocido se muestra el shortname tal cual.

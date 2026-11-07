@@ -36,8 +36,8 @@ describe("sessionLabel (RES-07)", () => {
     expect(sessionLabel("XYZ")).toBe("XYZ");
   });
 
-  // Decidido por el usuario: RAC2 es "Carrera", como en el calendario. Hoy da "Carrera 2".
-  it.fails("SOSPECHA 6: RAC2 se etiqueta 'Carrera' (igual que el calendario)", () => {
+  // Decidido por el usuario: RAC2 es "Carrera", como en el calendario.
+  it("RAC2 se etiqueta 'Carrera' (igual que el calendario)", () => {
     expect(sessionLabel("RAC2")).toBe("Carrera");
   });
 });
