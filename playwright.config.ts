@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // Dos modos:
 // - Local (sin BASE_URL): build de producción en el puerto 3100 contra la base
 //   motogp_test (scripts/test/preparar-bd-test.sh). Nunca la de desarrollo.
-// - Remoto (BASE_URL=http://www.planetamiguel.com): sin servidor propio; solo
+// - Remoto (BASE_URL=http://rebufo.planetamiguel.com): sin servidor propio; solo
 //   tiene sentido el proyecto "api" (comprobaciones de solo lectura).
 const PORT = 3100;
 const remote = process.env.BASE_URL;

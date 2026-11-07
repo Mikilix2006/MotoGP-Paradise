@@ -17,7 +17,7 @@ Scripts npm previstos: `test` (U+C), `test:e2e` (E), `test:api` (A, con
 `BASE_URL`), `test:all` (lint + `tsc` + todo lo anterior en local).
 
 - **`desplegar.ps1`**: ejecuta `npm run test:all` antes de empaquetar y aborta
-  si falla. Al terminar, `test:api` contra `http://www.planetamiguel.com`.
+  si falla. Al terminar, `test:api` contra `http://rebufo.planetamiguel.com`.
 - **GitHub Actions `pr.yml`**: lint, `tsc` y `npm test` en cada PR.
 - **GitHub Actions `salud.yml`**: `test:api` contra producción cada hora. Si
   falla, GitHub avisa por correo. Si CI no llega al dominio, se cambia por un
