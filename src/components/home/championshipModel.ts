@@ -1,3 +1,5 @@
+// Día y hora de la sprint en la zona del visitante ("Tu hora", como el calendario):
+// así el día y la hora nunca se contradicen cerca de medianoche (INI-06).
 export function formatSprintDate(date: string | null): string {
   if (!date) {
     return "—";
@@ -19,7 +21,6 @@ export function formatSprintTime(date: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "Europe/Madrid",
   }).format(new Date(date));
 }
 
