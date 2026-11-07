@@ -12,9 +12,9 @@ describe("nextGrandPrixModel", () => {
     expect(formatDate("2026-03-06")).toBe("6 de marzo de 2026");
   });
 
-  // INI-02: confirmada, formatDate("") construye new Date("T12:00:00") -> Invalid Date -> RangeError.
-  it.fails("SOSPECHA: formatDate con fecha vacía no lanza (INI-02)", () => {
-    expect(() => formatDate("")).not.toThrow();
+  it("formatDate con fecha vacía o inválida devuelve null en vez de lanzar (INI-02)", () => {
+    expect(formatDate("")).toBeNull();
+    expect(formatDate("no-es-fecha")).toBeNull();
   });
 
   it("formatStatus traduce los estados y deja pasar los desconocidos", () => {

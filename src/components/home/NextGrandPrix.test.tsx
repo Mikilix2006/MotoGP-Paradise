@@ -60,8 +60,7 @@ describe("NextGrandPrix", () => {
     expect(screen.getAllByText("QAT")).toHaveLength(1);
   });
 
-  // INI-02: confirmada, formatDate("") lanza RangeError durante el render y rompe la página.
-  it.fails("SOSPECHA: con date_start vacío la tarjeta se pinta igualmente (INI-02)", async () => {
+  it("con date_start vacío la tarjeta se pinta e informa 'Fecha por confirmar' (INI-02)", async () => {
     mockFetch({ "/api/next-gp": ok(nextGpSinFecha) });
     // Con límite de errores, la excepción de render no llega como error no capturado.
     render(
@@ -71,6 +70,7 @@ describe("NextGrandPrix", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Gran Premio de Qatar" })).toBeInTheDocument();
+    expect(screen.getByText("Fecha por confirmar")).toBeInTheDocument();
   });
 
   it("INI-03: mientras carga muestra el esqueleto accesible", () => {

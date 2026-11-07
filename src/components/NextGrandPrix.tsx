@@ -208,13 +208,14 @@ return ( <article className="section">
 
         <div>
           <p className="text-lg font-bold text-white">
-            {formatDate(grandPrix.date_start)}
+            {formatDate(grandPrix.date_start) ?? "Fecha por confirmar"}
           </p>
 
-          <p className="mt-1 text-sm text-zinc-500">
-            Finaliza el{" "}
-            {formatDate(grandPrix.date_end)}
-          </p>
+          {formatDate(grandPrix.date_end) && (
+            <p className="mt-1 text-sm text-zinc-500">
+              Finaliza el {formatDate(grandPrix.date_end)}
+            </p>
+          )}
         </div>
       </div>
     </div>
