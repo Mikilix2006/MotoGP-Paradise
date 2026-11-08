@@ -46,6 +46,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .section::before { content: ""; position: absolute; top: 0; left: 0; width: 9rem; height: 6px; background: var(--accent-grad); clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 .section::after { content: ""; position: absolute; top: 0; right: 0; width: 12rem; height: 7rem; pointer-events: none; background: repeating-linear-gradient(115deg, rgb(var(--accent-rgb) / .16) 0 6px, transparent 6px 16px); -webkit-mask-image: linear-gradient(to bottom left, #000, transparent 70%); mask-image: linear-gradient(to bottom left, #000, transparent 70%); }
 @media (min-width: 768px) { .section { padding: 2.5rem 2rem 2rem; } }
+/* Card solo en móvil: desde sm el contenido va sin panel. Debe ir después de .section. */
+@media (min-width: 640px) {
+  .section-mobile { overflow: visible; background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+  .section-mobile::before, .section-mobile::after { content: none; }
+}
 /* Corte diagonal en el borde derecho (etiquetas, botones, posiciones). */
 .cut { clip-path: polygon(0 0, 100% 0, calc(100% - .55em) 100%, 0 100%); }
 /* Etiqueta roja rellena con corte diagonal. */

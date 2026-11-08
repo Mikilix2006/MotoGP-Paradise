@@ -19,7 +19,7 @@ export default function ResultadosPage() {
         </div>
 
         {/* useSearchParams exige Suspense en el build. */}
-        <Suspense fallback={<div className="section" role="status" aria-busy="true" aria-label="Cargando resultados" />}>
+        <Suspense fallback={<div className="section section-mobile" role="status" aria-busy="true" aria-label="Cargando resultados" />}>
           <ResultsPage />
         </Suspense>
       </section>
