@@ -71,6 +71,23 @@ export function eventLabel(event: PointsProgressEvent): string {
   return event.short_name ?? event.name.replace(/^GRAND PRIX OF /i, "").slice(0, 3).toUpperCase();
 }
 
+// Comunidad autónoma de cada circuito español (por nombre: las abreviaturas de GP no distinguen).
+// Jerez no está a propósito: usa la bandera de España.
+const SPAIN_REGION_FLAGS: [RegExp, string][] = [
+  [/barcelona|montju/i, "es-ct"], // Cataluña
+  [/jarama/i, "es-md"], // Comunidad de Madrid
+  [/tormo|cheste/i, "es-vc"], // Comunitat Valenciana
+  [/arag[oó]n/i, "es-ar"], // Aragón
+];
+
+/** Ruta de la bandera del GP (en España, la de la comunidad autónoma); `null` sin país. */
+export function eventFlag(event: PointsProgressEvent): string | null {
+  const iso = event.country_iso?.toLowerCase();
+  if (!iso) return null;
+  const region = iso === "es" ? SPAIN_REGION_FLAGS.find(([re]) => re.test(event.circuit_name ?? ""))?.[1] : undefined;
+  return `/flags/${region ?? iso}.svg`;
+}
+
 /** Mayor valor de las series visibles (para el eje Y). */
 export function maxValue(riders: PointsProgressRider[], mode: ChartMode): number {
   let max = 0;
