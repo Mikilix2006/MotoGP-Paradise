@@ -298,7 +298,7 @@ set -a; . ~/.motogp-stats.env; set +a
 npx prisma migrate deploy
 ```
 
-El repositorio tiene 8 migraciones (`ls prisma/migrations`); `comprobaciones.sql` lista las aplicadas y su comentario indica «deben ser 8». Tras `migrate deploy` deben salir todas con `ok = t`.
+El repositorio tiene 10 migraciones (`ls prisma/migrations`); `comprobaciones.sql` lista las aplicadas (su comentario dice «deben ser 8», desfasado). Tras `migrate deploy` deben salir todas con `ok = t`.
 
 `prisma migrate deploy` **no necesita `psql`**: solo Node más el CLI de Prisma, ya sea por SSH en el servidor (como arriba) o desde tu PC con conexión remota a la base de datos (opción B del apartado 4.4).
 
@@ -349,7 +349,7 @@ Comprobaciones posteriores (solo lectura; también requieren `psql`, en el servi
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
 ```
 
-Qué debe salir (viene comentado en el propio SQL): las 8 migraciones con `ok = t`; el recuento por tabla igual al de tu base local; ninguna FK sin validar; 0 secuencias (los id son UUID generados por Prisma); datos clave coherentes; estadísticas al día.
+Qué debe salir (viene comentado en el propio SQL): las 10 migraciones con `ok = t`; el recuento por tabla igual al de tu base local (salvo las tablas de cuentas `auth_*`, que el volcado no incluye); ninguna FK sin validar; 0 secuencias (los id son UUID generados por Prisma); datos clave coherentes; estadísticas al día.
 
 Resultado de la prueba en local: recuentos y hash md5 por tabla idénticos en las 25 tablas con datos y `prisma migrate status` al día; la carga completa tardó 58 s. **Con PostgreSQL 12 real no se ha probado.**
 

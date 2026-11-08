@@ -134,6 +134,22 @@ Vitest (alias `@/`, jsdom) y Playwright, e instalar eslint con
 |---|---|---|
 | LEG-01 | Título "Aviso legal \| Rebufo", fecha de actualización, las 7 secciones con sus anclas, enlace `mailto:` con el correo | E |
 
+### Cuentas de usuario (apagadas por defecto)
+
+Las cuentas dependen del interruptor `REGISTRO_ABIERTO`, **apagado** en el entorno de tests (variable sin definir). Los E2E y los endpoints comprueban solo el estado apagado; el comportamiento con el interruptor encendido se cubre con tests unitarios, de rutas y de componentes (con la base y Better Auth simulados).
+
+| ID | Comprueba | Capa |
+|---|---|---|
+| CUE-01 | `/acceso`, `/registro`, `/recuperar`, `/perfil`, `/privacidad` y `/condiciones` dan 404 con las cuentas apagadas (`e2e/paginas.spec.ts`, «Cuentas apagadas») | E |
+| CUE-02 | El botón de perfil del header es un marcador «Perfil (próximamente)» (`aria-disabled`), no un enlace, y no hay errores de consola | E |
+| CUE-03 | `/aviso-legal` sigue diciendo que no se usan cookies (`#almacenamiento`) | E |
+| CUE-A | `GET /api/cuenta/estado` responde 200 `{ data: { abierto: false, usuario: null } }`; `/api/auth/get-session`, `/api/auth/sign-in/email`, `PUT /api/cuenta/color` y `POST /api/cuenta/eliminar` dan 404 (`tests/api/endpoints.spec.ts`) | A |
+| CUE-U | Color de acento (`src/lib/accent.test.ts`): `parseHex`/`toHex`; `deriveAccent` cumple el contraste AA en claro y oscuro y conserva el tono; el script del `<head>` produce el mismo CSS que `accentCss`, ignora una cookie manipulada y `applyAccent` pinta, recuerda y se deshace. Correo (`src/lib/mail.test.ts`): sin SMTP en desarrollo sale por consola, en producción falla, con SMTP usa servidor, puerto y remitente configurados | U |
+| CUE-R | Rutas (`src/app/api/cuenta/cuenta.test.ts`, `better-auth` y Prisma simulados): interruptor apagado o sin definir da 404 sin tocar nada; `/api/cuenta/estado` sin y con sesión (sin datos internos) y con la lectura de sesión fallando; `PUT/DELETE /api/cuenta/color` (valida `#rrggbb`, 401 sin sesión, 403 desde otro origen); `POST /api/cuenta/eliminar` (contraseña, código TOTP o de recuperación con 2FA, mensaje genérico, 403 desde otro origen) | C |
+| CUE-C | Componentes (`src/components/cuenta/cuenta.test.tsx`, `fetch` y cliente de auth simulados): `traducirError`; `FormRegistro` (exige aceptar las condiciones, alias como usuario, error de alias ocupado); `FormAcceso` (error y reenvío de verificación, 2FA, entrada directa); `PerfilBoton` (cerrado, abierto sin sesión, con sesión, consulta fallida); `PerfilTabs` (5 pestañas, flechas, el código 2FA al eliminar solo con 2FA) | C |
+
+**Deuda: no hay E2E automático del flujo completo con el interruptor encendido** (registro, verificación del correo, inicio de sesión, recuperar contraseña, 2FA, borrado de cuenta y límite de intentos). Exigiría escribir en `motogp_test` y capturar los correos. Se verificó una vez a mano, contra la base local, con un test de integración temporal (registro → verificación → inicio de sesión, recuperar contraseña, 2FA, borrado y 429 por límite de intentos) que se borró después; no es un test permanente. Tampoco se ha visto el login en pantalla (tema claro, oscuro y móvil) ni probado en producción.
+
 ### Endpoints (capa A, reglas para cada respuesta)
 
 Comunes: `200` con `{ data }`, errores con `{ error }` en español, nunca un 500.

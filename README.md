@@ -102,6 +102,7 @@ La aplicación no debe depender de consultar continuamente la API externa para c
 - Next.js Route Handlers
 - TypeScript
 - Servicios de importación
+- Cuentas de usuario opcionales (apagadas por defecto): [Better Auth](https://www.better-auth.com) 1.7 con el adaptador de Prisma (plugins `username`, `twoFactor` y `nextCookies`), `nodemailer` para el correo y `qrcode` para el QR del 2FA. Ver [24.1](#cuentas-de-usuario-acceso-registro-recuperar-perfil)
 
 ## Base de datos
 
@@ -217,6 +218,8 @@ Copiar la plantilla y completar `DATABASE_URL` con la conexión a tu PostgreSQL:
 cp .env.example .env
 ```
 
+Las cuentas de usuario vienen apagadas (`REGISTRO_ABIERTO="false"`); para probarlas en local ver [la sección 4](#4-configuración-de-entorno).
+
 **3. Preparar la base de datos**
 
 ```bash
@@ -266,7 +269,7 @@ npm run sync:sessions     # una pasada: importa lo que haya terminado y sale
 npm run watch:sessions    # proceso continuo que vigila el calendario
 ```
 
-> Nota: las comprobaciones disponibles son `npm run lint` (ESLint, `eslint.config.mjs`), `npm run typecheck` (`tsc --noEmit`, el proyecto está en modo `strict`), `npm test` (Vitest) y, con la base de pruebas, `npm run test:e2e` y `npm run test:api` (Playwright); `npm run test:all` encadena lint, tipos y todos los tests. El plan de tests está en [TESTS.md](TESTS.md). Además, `npx prisma validate` si se ha tocado el esquema y `npx tsx scripts/check-results.ts` (asserts sin BD sobre la lógica de `/resultados`). `npx tsx scripts/check-points-progress.ts [año] [categoría]` cruza la gráfica de puntos con `ChampionshipStanding` (solo lectura, contra `DATABASE_URL`; ver [`/graficas`](#gráficas-graficas)).
+> Nota: las comprobaciones disponibles son `npm run lint` (ESLint, `eslint.config.mjs`), `npm run typecheck` (`tsc --noEmit`, el proyecto está en modo `strict`), `npm test` (Vitest) y, con la base de pruebas, `npm run test:e2e` y `npm run test:api` (Playwright); `npm run test:all` encadena lint, tipos y todos los tests. El plan de tests está en [TESTS.md](TESTS.md). Los tests de las cuentas (`src/lib/accent.test.ts`, `src/lib/mail.test.ts`, `src/app/api/cuenta/cuenta.test.ts`, `src/components/cuenta/cuenta.test.tsx`) corren con `npm test`; los de «cuentas apagadas» de Playwright no necesitan que el interruptor esté encendido (ver [TESTS.md](TESTS.md)). Además, `npx prisma validate` si se ha tocado el esquema y `npx tsx scripts/check-results.ts` (asserts sin BD sobre la lógica de `/resultados`). `npx tsx scripts/check-points-progress.ts [año] [categoría]` cruza la gráfica de puntos con `ChampionshipStanding` (solo lectura, contra `DATABASE_URL`; ver [`/graficas`](#gráficas-graficas)).
 
 ---
 
@@ -285,6 +288,17 @@ MOTOGP_API_URL="https://api.motogp.pulselive.com/motogp/v1"
 
 MOTOGP_RESULTS_API_URL="https://api.motogp.pulselive.com/motogp/v1/results"
 ```
+
+Variables de las cuentas de usuario (`.env.example` y `.env.production.example`):
+
+| Variable | Para qué |
+|---|---|
+| `REGISTRO_ABIERTO` | Interruptor de las cuentas (`src/lib/registro.ts`). **Apagado por defecto**: solo vale `true` exacto. Apagado, `/acceso`, `/registro`, `/recuperar`, `/perfil`, `/privacidad`, `/condiciones`, `/api/auth/*`, `/api/cuenta/color` y `/api/cuenta/eliminar` dan 404 y `/api/cuenta/estado` responde `{ "data": { "abierto": false, "usuario": null } }`. Se lee en cada petición, no al compilar (por eso esas páginas y `/aviso-legal` son `force-dynamic`) |
+| `BETTER_AUTH_URL` | Dirección pública de la web (con `https` en producción); por defecto `http://localhost:3000`. También la usa `origenValido()` (`src/lib/session.ts`) para comprobar el `Origin` de las rutas que cambian datos |
+| `BETTER_AUTH_SECRET` | Secreto largo y aleatorio (p. ej. `openssl rand -base64 32`). Obligatorio en producción; nunca en el repositorio. `getAuth()` (`src/lib/auth.ts`) crea la instancia en el primer uso, no al importar, para que `next build` no lo exija |
+| `SMTP_HOST`, `SMTP_PORT` (587 por defecto), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Correo saliente (`src/lib/mail.ts`, `nodemailer`; `secure` solo con el puerto 465). **Sin `SMTP_HOST`**: en desarrollo el correo se imprime por consola; en producción `enviarCorreo` lanza un error (el correo no se pierde en silencio) |
+
+Para probar las cuentas en local: `REGISTRO_ABIERTO="true"` y cualquier texto largo en `BETTER_AUTH_SECRET` en tu `.env`, `npx prisma generate` y `npm run dev`; los correos de verificación y recuperación salen por la consola. Con el interruptor encendido en **producción**, las páginas de cuenta y las legales lanzan un error si `TITULAR` (`src/lib/site.ts`) está vacío (`titular()` de `src/components/legal.tsx`).
 
 No se debe subir el archivo `.env` a un repositorio público.
 
@@ -326,7 +340,7 @@ npx prisma migrate deploy
 
 Aplica las migraciones pendientes sin interactividad (es lo que ejecuta `npm run start:web` antes de arrancar en Railway, ver [DEPLOY.md](DEPLOY.md); en el VPS de Clouding lo hace `instalar-release.sh`, ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md)). `prisma migrate dev` es interactivo y no funciona en entornos no interactivos.
 
-El esquema contiene **28 modelos** y el historial de `prisma/migrations/` es:
+El esquema contiene **33 modelos** (28 de datos de MotoGP y los 5 de cuentas de usuario, ver [6.2](#62-cuentas-de-usuario-auth)) y el historial de `prisma/migrations/` es:
 
 | Migración | Cambio |
 |---|---|
@@ -339,6 +353,7 @@ El esquema contiene **28 modelos** y el historial de `prisma/migrations/` es:
 | `20261014120000_rider_biography` | Tabla `rider_biographies` (`RiderBiography`), única `(rider_id, language)` y borrado en cascada con el piloto |
 | `20261014120100_category_500cc` | Solo datos, sin cambio de esquema: inserta la categoría «500cc» (`legacy_id` -1) si no existe ninguna con ese `legacy_id` (idempotente). Ver [Category](#category) |
 | `20261107120000_session_result_number` | `SessionResult.number` (columna `number`, opcional): dorsal del piloto en esa sesión |
+| `20261108140000_cuentas_auth` | Solo `CREATE`: las 5 tablas de cuentas `auth_users`, `auth_sessions`, `auth_accounts`, `auth_verifications` y `auth_two_factors` (ver [6.2](#62-cuentas-de-usuario-auth)). No toca ninguna tabla existente |
 
 Las migraciones se aplican solas al desplegar (`start:web`, `instalar-release.sh`). Ninguna carga datos de pilotos: las biografías llegan con `npm run import:riders` y las estadísticas de 500cc con `npm run import:rider-statistics` (sin año), no con la migración.
 
@@ -528,6 +543,20 @@ Circuit
  ├── CircuitAsset
  └── Events
 ```
+
+## 6.2 Cuentas de usuario (`Auth*`)
+
+Cinco modelos para las cuentas de [Better Auth](#2-stack-tecnológico), creados por la migración `20261108140000_cuentas_auth`. Llevan el prefijo `Auth` porque `Session` ya existe (sesiones de carrera); `src/lib/auth.ts` los enlaza con `modelName` (`authUser`, `authSession`, `authAccount`, `authVerification`, `authTwoFactor`). Los nombres de campo los fija la librería; las columnas van en `snake_case`. No tienen relación con ningún modelo de MotoGP.
+
+| Modelo (tabla) | Contenido |
+|---|---|
+| `AuthUser` (`auth_users`) | `id`, `name` (el alias), `email` único, `emailVerified`, `image`, `username` único y `displayUsername` (plugin `username`), `twoFactorEnabled`, `accentColor` (`accent_color`: color `#rrggbb` elegido; `null` = el rojo por defecto), `createdAt`, `updatedAt` |
+| `AuthSession` (`auth_sessions`) | `token` único, `expiresAt`, `userId` (borrado en cascada). `ipAddress` y `userAgent` existen porque la librería los define, pero **se guardan siempre a `null`** (un hook `databaseHooks.session.create.before` los vacía) |
+| `AuthAccount` (`auth_accounts`) | Proveedor `credential` con `password` (hash scrypt), más campos OAuth que hoy no se usan; `userId` en cascada |
+| `AuthVerification` (`auth_verifications`) | Tokens de verificación de correo y de restablecer contraseña (`identifier`, `value`, `expiresAt`) |
+| `AuthTwoFactor` (`auth_two_factors`) | Clave TOTP (`secret`), `backupCodes`, `verified`, `failedVerificationCount`, `lockedUntil`; `userId` en cascada |
+
+Borrar un `AuthUser` borra en cascada sus sesiones, cuentas y claves 2FA. **Estas tablas no viajan en el volcado de datos**: `scripts/deploy/volcar-datos.ps1` las excluye (`--exclude-table='public.auth_*'`) y `scripts/deploy/cargar-datos.sh` no las cuenta al comprobar que el destino está vacío. Las cuentas viven solo en el servidor (la copia diaria `pg_dump` del servidor sí las incluye, ver [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#11-copias-de-seguridad)).
 
 ---
 
@@ -1582,8 +1611,9 @@ Qué muestra:
 
 ## Aviso legal, pie de página y 404
 
-- `src/lib/site.ts` exporta `SITE_NAME` («Rebufo», marca visible: título de `layout.tsx`, logo del `Header`, `Footer`, metadatos) y `CONTACT_EMAIL` (correo de contacto, **vacío hasta que el usuario lo rellene**).
-- `/aviso-legal` (`src/app/aviso-legal/page.tsx`): aviso legal; publica `CONTACT_EMAIL` como contacto. **El build de producción falla a propósito** (lanza un error si `CONTACT_EMAIL` está vacío y `NODE_ENV=production`): hay que rellenarlo en `src/lib/site.ts` antes de compilar.
+- `src/lib/site.ts` exporta `SITE_NAME` («Rebufo», marca visible: título de `layout.tsx`, logo del `Header`, `Footer`, metadatos) y `CONTACT_EMAIL` (correo de contacto, ya rellenado; el build de producción falla si se vacía).
+- `src/lib/site.ts` exporta también `TITULAR` (nombre del responsable del tratamiento de los datos de las cuentas, **vacío hasta que el usuario lo rellene**). Con `REGISTRO_ABIERTO` encendido en producción, las páginas de cuenta y las legales lanzan un error si está vacío (`titular()` en `src/components/legal.tsx`); en desarrollo muestran «[titular pendiente]».
+- `/aviso-legal` (`src/app/aviso-legal/page.tsx`): aviso legal; publica `CONTACT_EMAIL` como contacto. **El build de producción falla a propósito** (lanza un error si `CONTACT_EMAIL` está vacío y `NODE_ENV=production`): hay que rellenarlo en `src/lib/site.ts` antes de compilar. Es `force-dynamic` y sus secciones «Privacidad» y «Almacenamiento en tu navegador» cambian según `REGISTRO_ABIERTO`: apagado, «no usa cookies» y sin registro (el tema va en `localStorage`); encendido, remite a `/privacidad` y `/condiciones` y menciona la cookie de sesión y la del color. Los textos compartidos de las páginas legales están en `src/components/legal.tsx` (`ARTICULO_LEGAL`, `Correo`, `titular()`) y `src/components/PaginaLegal.tsx`.
 - `Footer.tsx` se monta en `layout.tsx` en todas las páginas (`<body>` es una columna `flex min-h-screen`; cada página usa `flex-1` en su `<main>`): «Rebufo · Proyecto personal sin ánimo de lucro · No afiliado a MotoGP · Aviso legal» (enlace a `/aviso-legal`).
 - `src/app/not-found.tsx`: página 404 global con `Header`, mensaje «Te has salido de la trazada» y enlace a `/`.
 
@@ -1593,7 +1623,7 @@ Qué muestra:
 
 Los monta `src/app/layout.tsx` en todas las páginas.
 
-- Tema claro/oscuro: claro por defecto. El script en línea de `layout.tsx` lee `localStorage["theme"]` antes de pintar y, si vale `dark`, pone `data-theme="dark"` en `<html>`. `ThemeToggle.tsx` (botón sol/luna en el `Header`) alterna el atributo y guarda la elección. Los colores salen de variables CSS (`--bg-rgb`, `--fg-rgb`, `--muted*-rgb`, `--accent*-rgb`, `--pos-rgb`, `--warn-rgb`) y por las variables `--surface` (superficie de paneles: `#fff` en claro, `#141414` en oscuro), `--accent-grad` (degradado rojo, solo definido en `:root`), `--shadow-sm` y `--shadow`, definidas en `:root` y `[data-theme="dark"]` de `src/app/globals.css`. El fondo es gris claro (235) en claro y negro en oscuro, con un degradado rojo tenue arriba en `body`; `tailwind.config.ts` reasigna `white`, `black`, `zinc`, `red`, `emerald` y `amber` a esas variables, de modo que las clases existentes (`text-white`, `bg-black`, `text-zinc-400`…) cambian con el tema.
+- Tema claro/oscuro: claro por defecto. El script en línea de `layout.tsx` lee `localStorage["theme"]` antes de pintar y, si vale `dark`, pone `data-theme="dark"` en `<html>`; a continuación `ACCENT_SCRIPT` (`src/lib/accent.ts`) lee la cookie funcional `acento` y, si existe y es válida, inyecta el color de acento del usuario (ver [Cuentas de usuario](#cuentas-de-usuario-acceso-registro-recuperar-perfil)). `ThemeToggle.tsx` (botón sol/luna en el `Header`) alterna el atributo y guarda la elección. Los colores salen de variables CSS (`--bg-rgb`, `--fg-rgb`, `--muted*-rgb`, `--accent*-rgb`, `--pos-rgb`, `--warn-rgb`) y por las variables `--surface` (superficie de paneles: `#fff` en claro, `#141414` en oscuro), `--accent-grad` (degradado rojo, solo definido en `:root`), `--shadow-sm` y `--shadow`, definidas en `:root` y `[data-theme="dark"]` de `src/app/globals.css`. El fondo es gris claro (235) en claro y negro en oscuro, con un degradado rojo tenue arriba en `body`; `tailwind.config.ts` reasigna `white`, `black`, `zinc`, `red`, `emerald` y `amber` a esas variables, de modo que las clases existentes (`text-white`, `bg-black`, `text-zinc-400`…) cambian con el tema.
 - Identidad visual «racing» (clases de `globals.css`): superficies elevadas con esquinas redondeadas, sombra y degradados rojos. `.section` es el gran panel de cada sección de la portada (`NextGrandPrix`, `ChampionshipStats`, `RiderStandings` y `GrandPrixFavorites`): fondo `--surface`, `border-radius: 1.25rem`, `--shadow`, barra roja inclinada arriba a la izquierda (`::before`, con `--accent-grad`) y rayas diagonales rojas en la esquina superior derecha (`::after`). `.card` es un bloque sobre `--surface` (`border-radius: 1rem`, `--shadow-sm`, `padding: 1.25rem`); dentro de una `.section` se tiñe (`fg` al 4 %), sin sombra, con `border-radius: .75rem` y barra roja lateral de 4 px. `.panel` es como `.card` pero con `overflow: hidden` y elevación al pasar el ratón (lo usa `CalendarView` para cada GP). Utilidades: `.cut` (corte diagonal en el borde derecho: logo, posiciones de `RiderStandings`), `.tag` (etiqueta roja con degradado y corte: `RONDA N` en `NextGrandPrix`, `CalendarView` y `RiderSlide`), `.btn-race` / `.btn-ghost` (botón principal rojo y secundario/pestaña inactiva: selector Pilotos/Constructores de `RiderStandings`; `GrandPrixFavorites` usa `.btn-ghost`), `.eyebrow` (doble barra roja inclinada antes de la etiqueta) y `.page-title` (titular de página en mayúsculas cursiva con barra roja inclinada debajo: `/calendario` y `/pilotos`). `h1` y `h2` van en mayúsculas cursiva. Sin rejilla de fondo, cristal/desenfoque, bento ni emojis. `page.tsx` separa las secciones con `gap-x-10 gap-y-12` y `mt-16` entre las dos filas.
 - `ScrollToTop.tsx` — botón flotante redondo con degradado rojo (`--accent-grad`) que aparece al bajar más de 300 px y sube al inicio (sin animación con `prefers-reduced-motion`).
 - Tipografía: `layout.tsx` carga **Barlow Condensed** (`--font-display`) y **Barlow** (`--font-body`) con `next/font/google` y pone ambas variables en `<html>`; `tailwind.config.ts` las expone como `fontFamily.display` y `fontFamily.body` (respaldo Arial). `globals.css` usa Barlow en `body` y la display en `h1`, `h2` y `.uppercase`; las cifras llevan `font-display` y `tabular-nums` en los componentes.
@@ -1610,9 +1640,31 @@ Código: componentes en `src/components/graficas/` (`GraficasPage.tsx`, `PointsC
 
 ---
 
+## Cuentas de usuario (`/acceso`, `/registro`, `/recuperar`, `/perfil`)
+
+Cuentas opcionales con Better Auth, **apagadas por defecto** (interruptor `REGISTRO_ABIERTO`, ver [sección 4](#4-configuración-de-entorno)). Apagado, ninguna de estas páginas existe (404) y el botón de perfil del header es un marcador «Perfil (próximamente)». Todas son `force-dynamic` (la variable se lee en cada petición), llevan `robots: { index: false }` (salvo las legales) y se montan con `PaginaCuenta` (`src/components/cuenta/PaginaCuenta.tsx`), cuyo `exigirRegistroAbierto()` hace `notFound()` si el interruptor está apagado.
+
+- `/acceso` (`FormAcceso`): correo y contraseña; si la cuenta tiene 2FA pide el código TOTP o uno de recuperación; si falta verificar el correo ofrece reenviarlo. Con sesión redirige a `/perfil`. Acepta `?verificado=1` (tras confirmar el correo).
+- `/registro` (`FormRegistro`): correo, alias (obligatorio y único, 3–30 caracteres, plugin `username`), contraseña (10–128, sin reglas de complejidad) y casilla de «14 años o más» y aceptación de las condiciones. Exige verificar el correo antes de poder entrar (`requireEmailVerification`).
+- `/recuperar` (`FormRecuperar`): pide el enlace por correo; con `?token=` permite elegir la nueva contraseña; con `?error=` (enlace caducado o usado) muestra el aviso.
+- `/perfil` (`PerfilTabs`, con la sesión; sin ella redirige a `/acceso`): cinco pestañas navegables con flechas. **Cuenta** (`TabCuenta`: alias, correo, cerrar sesión), **Apariencia** (`TabApariencia`: color de acento libre), **Seguridad** (`TabSeguridad`: cambiar contraseña, activar/desactivar el 2FA TOTP con QR y códigos de recuperación, eliminar la cuenta) y **Predicciones** y **Notificaciones** (`TabProximamente`: «Próximamente», sin función).
+- `/privacidad` y `/condiciones`: textos legales (borrador, no asesoramiento jurídico) con `PaginaLegal`; también dan 404 con el interruptor apagado y fallan en producción si `TITULAR` está vacío.
+- `PerfilBoton.tsx` (en el `Header`) consulta `/api/cuenta/estado` mediante `useEstadoCuenta.ts`: cuentas cerradas o consulta fallida, marcador deshabilitado; abiertas sin sesión, enlace «Acceder» a `/acceso`; con sesión, enlace a `/perfil` con el alias. Mientras consulta reserva el hueco sin mostrarlo.
+
+Reglas de la implementación (`src/lib/auth.ts`):
+
+- **Sesión de 30 días** (`updateAge` 1 día, `freshAge` 10 minutos). Cambiar la contraseña o restablecerla cierra las demás sesiones.
+- **Verificación de correo obligatoria** en el registro; los correos (verificación y restablecer contraseña) se envían sin esperarlos (`await`) para que el tiempo de respuesta no delate si un correo existe.
+- **2FA opcional** (TOTP, emisor «Rebufo») con códigos de recuperación.
+- **Color de acento:** el usuario elige cualquier `#rrggbb`; `src/lib/accent.ts` (`deriveAccent`) ajusta su **luminosidad** (no el tono) para cumplir el contraste AA en tema claro y oscuro. Se guarda el color elegido en `auth_users.accent_color` y el ajuste se calcula al leerlo. Además se escribe una cookie funcional `acento` (tokens ya calculados, un año, `samesite=lax`, `secure` en HTTPS; `accentClient.ts`) que un script del `<head>` de `src/app/layout.tsx` (`ACCENT_SCRIPT`) pinta antes del primer render, sin parpadeo; ignora cualquier valor que no sean tres tripletes de enteros 0–255. Se borra al cerrar sesión y al eliminar la cuenta.
+- **Borrado de cuenta real e inmediato** por `POST /api/cuenta/eliminar` (contraseña y, si hay 2FA, código). La ruta nativa `/api/auth/delete-user` está cerrada con `disabledPaths` para que no se pueda saltar el 2FA.
+- **Privacidad: la IP no se guarda.** El límite de intentos de Better Auth usa memoria (`rateLimit.storage: "memory"`; la IP solo vive en RAM, de `x-forwarded-for`) y el hook de sesión pone `ipAddress` y `userAgent` a `null`. Reglas: 60 peticiones cada 10 s en general y límites propios en `/sign-in/email` (5 por minuto), `/sign-up/email` (5 por hora), `/request-password-reset` (3 por hora), `/send-verification-email` (5 por hora) y `/change-password` (5 por minuto). **Límite conocido:** el contador se reinicia al reiniciar el proceso y solo es válido con un único proceso Node (el caso del VPS).
+
+---
+
 ## Navegación (`Header.tsx`)
 
-Cabecera común a las páginas Inicio, Calendario, Resultados, Gráficas, Pilotos (esta última sin enlace en el menú y con 404 en producción), Aviso legal y la página 404. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «REBUFO» (`SITE_NAME`) en cursiva sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados, Gráficas (`/graficas`) y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL en desarrollo (404 en producción). Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`).
+Cabecera común a las páginas Inicio, Calendario, Resultados, Gráficas, Pilotos (esta última sin enlace en el menú y con 404 en producción), Aviso legal, las páginas de cuenta y legales de cuentas (con el interruptor encendido) y la página 404. Es un componente cliente: marca como activo el enlace de la ruta actual (`usePathname`, `aria-current="page"`), el logo enlaza a `/` y en móvil el menú se abre como desplegable. Es sticky, con fondo `--surface`, sombra y borde inferior rojo de 3 px; el logo es «REBUFO» (`SITE_NAME`) en cursiva sobre degradado rojo con corte diagonal (`.cut`) y el enlace activo lleva una barra roja inclinada en su base. El menú es Inicio, Calendario, Resultados, Gráficas (`/graficas`) y Predicciones; «Resultados» sustituye a «Pilotos» y «Equipos», y `/pilotos` sigue accesible por URL en desarrollo (404 en producción). Predicciones apunta a `#` (aún sin página); el selector «2026» es decorativo (no cambia nada, pendiente de implementar); incluye el botón de tema (`ThemeToggle`) y, a su lado, `PerfilBoton` (marcador «Perfil (próximamente)» mientras las cuentas están apagadas; enlace a `/acceso` o `/perfil` cuando están abiertas, ver [Cuentas de usuario](#cuentas-de-usuario-acceso-registro-recuperar-perfil)).
 
 ---
 
@@ -1793,6 +1845,15 @@ Favoritos del próximo GP, calculados a partir de los resultados importados (`fa
 
 **Respuesta (`data`):** `event` (`id`, `name`, `short_name`, `date_start`, `circuit`), `model.weights` (`circuit`, `form`, `bike`, `reliability`, `trend`) y `favorites[]`, cada uno con `rank`, `rider`, `score`, `win_probability`, `breakdown` (`circuit`, `form`, `bike`, `reliability`, `trend`) y `circuit_history`.
 
+### Rutas de cuentas (`/api/auth/[...all]` y `/api/cuenta/*`)
+
+No leen datos de MotoGP y siguen el interruptor `REGISTRO_ABIERTO` (ver [sección 4](#4-configuración-de-entorno)): todas son `force-dynamic` y, apagado, responden 404 con el texto `Not Found` (no el JSON `{ "error" }`), salvo `estado`. Las rutas que cambian datos comprueban además que el `Origin`, si viene, sea el de la propia web (`origenValido()`; si no, 403 `{ "error": "Origen no permitido" }`).
+
+- **`/api/auth/[...all]`** (GET y POST): el manejador de Better Auth (`toNextJsHandler(getAuth())`): registro, inicio y cierre de sesión, verificación de correo, restablecer contraseña, 2FA, etc. Usa el formato de la librería, no `{ data }`. `/api/auth/delete-user` está cerrada (404) a propósito: el borrado va por `/api/cuenta/eliminar`.
+- **`GET /api/cuenta/estado`**: lo usa el botón de perfil del header. Cerrado: `{ "data": { "abierto": false, "usuario": null } }`. Abierto: `{ "data": { "abierto": true, "usuario": null | { "alias", "email", "color", "tokens", "dosFactores" } } }` (`tokens` = `{ light, dark, darkText }`, tripletes RGB del acento ya ajustado, o `null`). Nunca da error: si leer la sesión falla, responde `usuario: null`.
+- **`PUT /api/cuenta/color`** `{ "color": "#rrggbb" }` guarda el acento (normalizado en minúsculas) y **`DELETE`** vuelve al rojo por defecto. Éxito: `{ "data": { "color", "tokens" } }`. 400 si el color no es `#rrggbb`, 401 sin sesión.
+- **`POST /api/cuenta/eliminar`** `{ "password", "code"? }` borra la cuenta y sus datos al instante. Con 2FA activo exige `code`: seis dígitos se verifican como TOTP y cualquier otra cosa como código de recuperación. Éxito: `{ "data": { "eliminada": true } }`. 400 sin contraseña o sin código requerido, o con mensaje único «La contraseña o el código no son correctos»; 401 sin sesión.
+
 ---
 
 El flujo es:
@@ -1843,7 +1904,9 @@ motogp-stats/
 │   │   ├── resultados/page.tsx    Resultados (/resultados)
 │   │   ├── graficas/page.tsx      Gráficas (/graficas)
 │   │   ├── pilotos/page.tsx       Pilotos (/pilotos, fuera del menú; 404 en producción)
-│   │   ├── aviso-legal/page.tsx   Aviso legal (/aviso-legal)
+│   │   ├── aviso-legal/page.tsx   Aviso legal (/aviso-legal; dinámico)
+│   │   ├── acceso/, registro/, recuperar/, perfil/   Cuentas de usuario (404 con REGISTRO_ABIERTO apagado)
+│   │   ├── privacidad/, condiciones/                 Textos legales de las cuentas (404 con el interruptor apagado)
 │   │   ├── not-found.tsx          Página 404 global
 │   │   └── api/
 │   │       ├── results/           route.ts
@@ -1851,18 +1914,27 @@ motogp-stats/
 │   │       ├── calendar/
 │   │       ├── constructors/standings/
 │   │       ├── riders/            standings/, carousel/ y points-progress/
+│   │       ├── auth/[...all]/     Better Auth (404 con el interruptor apagado)
+│   │       ├── cuenta/            estado/, color/ y eliminar/ (tests en cuenta.test.ts)
 │   │       └── dev/image-issue/   Solo desarrollo (404 en producción)
 │   │
 │   ├── components/                NextGrandPrix, ChampionshipStats, RiderStandings,
 │   │   │                          GrandPrixFavorites, CalendarView, Countdown,
 │   │   │                          CountryFlag, Footer, Header, StatCard, ThemeToggle,
-│   │   │                          ScrollToTop, RidersPage, ResultsPage
+│   │   │                          ScrollToTop, RidersPage, ResultsPage,
+│   │   │                          PaginaLegal, legal (estilo y textos de las páginas legales)
+│   │   ├── cuenta/                FormAcceso, FormRegistro, FormRecuperar, PaginaCuenta, PerfilBoton, PerfilTabs, TabCuenta, TabApariencia, TabSeguridad, TabProximamente, ui, useEstadoCuenta (+ cuenta.test.tsx)
 │   │   ├── riders/                RiderCarousel, RiderSlide, RiderStatsCard (página /pilotos)
 │   │   └── graficas/              GraficasPage, PointsChart, chartModel, riderColorsModel (página /graficas)
 │   │
 │   ├── lib/
 │   │   ├── prisma.ts
-│   │   └── site.ts                SITE_NAME y CONTACT_EMAIL
+│   │   ├── site.ts                SITE_NAME, CONTACT_EMAIL y TITULAR
+│   │   ├── auth.ts                Configuración de Better Auth (getAuth(), perezoso); authClient.ts es el cliente del navegador
+│   │   ├── registro.ts            registroAbierto() (interruptor REGISTRO_ABIERTO)
+│   │   ├── session.ts             getSesion(), usuarioPublico(), origenValido()
+│   │   ├── mail.ts                enviarCorreo() (nodemailer; consola en desarrollo sin SMTP_HOST)
+│   │   └── accent.ts              Color de acento: deriveAccent(), ACCENT_SCRIPT y cookie `acento`; accentClient.ts lo aplica en el navegador
 │   │
 │   ├── services/
 │   │   ├── db/                    Repositorios de lectura que usan las rutas /api
@@ -1903,6 +1975,8 @@ Base de datos
 # 27. Despliegue
 
 El despliegue vigente es un VPS de Clouding (Debian) con Caddy, systemd y PostgreSQL local, descrito en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) (`scripts/clouding/`; `desplegar.ps1` acepta `-Ref` para desplegar exactamente un commit y deja un fichero `REVISION` en cada release). La alternativa documentada es Railway, con dos servicios sobre la misma base de datos: **web** (`npm run start:web`) y **worker** (`npm run watch:sessions`); el procedimiento está en [DEPLOY.md](DEPLOY.md). El intento en el hosting compartido de Dinahosting está abandonado y solo queda como histórico en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+
+La web está en `https://rebufo.planetamiguel.com` (HTTPS con Caddy). Las cuentas de usuario se despliegan **apagadas**: `prisma migrate deploy` (lo hace el despliegue) crea las tablas `auth_*`, pero el interruptor `REGISTRO_ABIERTO` no se enciende hasta cerrar los pendientes de «Antes de abrir el registro de cuentas» en [AGENTS.md](AGENTS.md). Las variables nuevas (sección 4) van en `/etc/motogp-stats.env`, y las tablas `auth_*` no viajan en el volcado de datos (ver [6.2](#62-cuentas-de-usuario-auth)). Detalle en [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md#cuentas-de-usuario-en-producción).
 
 Para desplegar la aplicación se deben considerar dos componentes separados:
 
@@ -2103,7 +2177,7 @@ DATABASE_IMPLEMENTATION_PLAN.md
 DATABASE_ENDPOINT_MAPPING.md
 ```
 
-`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno y primera carga de datos). [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) es la guía práctica, para quien no tiene experiencia en consola, del despliegue vigente en un VPS de Clouding con Debian (scripts de `scripts/clouding/`, volcado y carga de datos de `scripts/deploy/`, temporizadores systemd en lugar del worker); el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual y la carga de datos (recuento de filas medido en el servidor) están verificados, pero la guía lista lo no verificado (HTTPS con dominio, vuelta atrás automática, primera ejecución automática de la copia, `import:*` en el servidor). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es histórico: el hosting compartido de Dinahosting no permite ejecutar la aplicación; se conserva por los scripts de `scripts/deploy/` y la lección sobre CRLF.
+`AGENTS.md` define qué agente se ocupa de cada parte del proyecto y las reglas que comparten. `DEPLOY.md` describe el despliegue en Railway (servicios web y worker, variables de entorno —incluidas las de las cuentas— y primera carga de datos). [DEPLOY_CLOUDING.md](DEPLOY_CLOUDING.md) es la guía práctica, para quien no tiene experiencia en consola, del despliegue vigente en un VPS de Clouding con Debian (scripts de `scripts/clouding/`, volcado y carga de datos de `scripts/deploy/`, temporizadores systemd en lugar del worker); el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual y la carga de datos (recuento de filas medido en el servidor) están verificados, pero la guía lista lo no verificado (vuelta atrás automática, primera ejecución automática de la copia, `import:*` en el servidor). [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md) es histórico: el hosting compartido de Dinahosting no permite ejecutar la aplicación; se conserva por los scripts de `scripts/deploy/` y la lección sobre CRLF.
 
 `DATABASE_IMPLEMENTATION_PLAN.md` describe el plan de implementación y el modelo conceptual de la base de datos.
 

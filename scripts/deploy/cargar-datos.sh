@@ -19,7 +19,8 @@ if [ -f "$ARCHIVO.sha256" ]; then (cd "$(dirname "$ARCHIVO")" && sha256sum -c "$
 gzip -t "$ARCHIVO"
 
 # Las tablas de datos deben estar vacias para no duplicar ni chocar con claves unicas.
-FILAS=$("${PSQL[@]}" -Atc "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', t.table_schema, t.table_name), false, true, '')))[1]::text::int),0) from information_schema.tables t where t.table_schema='public' and t.table_type='BASE TABLE' and t.table_name <> '_prisma_migrations' and not exists (select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=format('%I.%I', t.table_schema, t.table_name)::regclass::oid and d.deptype='e')")
+# Las tablas de cuentas (auth_*) no cuentan: los usuarios viven solo en el servidor y el volcado no las trae.
+FILAS=$("${PSQL[@]}" -Atc "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', t.table_schema, t.table_name), false, true, '')))[1]::text::int),0) from information_schema.tables t where t.table_schema='public' and t.table_type='BASE TABLE' and t.table_name <> '_prisma_migrations' and t.table_name not like 'auth\_%' and not exists (select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=format('%I.%I', t.table_schema, t.table_name)::regclass::oid and d.deptype='e')")
 # (Se excluyen las tablas que pertenecen a extensiones, p. ej. PostGIS: spatial_ref_sys, pagc_*;
 #  el hosting las crea en public y no son nuestras.)
 # La migracion category_500cc siembra la fila 500cc y el volcado la trae con el mismo id:

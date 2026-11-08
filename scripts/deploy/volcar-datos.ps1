@@ -5,7 +5,8 @@
    $env:PGPASSWORD='...'            # solo en la sesion, nunca en el script
    .\scripts\deploy\volcar-datos.ps1 -Salida C:\ruta\motogp-datos.sql.gz
  Opcional: $env:PG_BIN con la carpeta bin de PostgreSQL si pg_dump no esta en el PATH.
- Excluye _prisma_migrations (las crea `prisma migrate deploy` en destino).
+ Excluye _prisma_migrations (las crea `prisma migrate deploy` en destino) y las tablas de
+ cuentas `auth_*`: los usuarios viven solo en el servidor y un volcado nunca debe pisarlos.
 #>
 param([Parameter(Mandatory)][string]$Salida)
 $ErrorActionPreference = 'Stop'
@@ -15,7 +16,7 @@ try {
   $sw = [Diagnostics.Stopwatch]::StartNew()
   # --no-owner/--no-privileges: el destino tiene otro usuario. UTF8 explicito.
   & $pgdump --data-only --no-owner --no-privileges --encoding=UTF8 --schema=public `
-    --exclude-table=public._prisma_migrations --file=$tmp
+    --exclude-table=public._prisma_migrations --exclude-table='public.auth_*' --file=$tmp
   if ($LASTEXITCODE -ne 0) { throw "pg_dump fallo ($LASTEXITCODE)" }
   "pg_dump: {0:n1} s, {1:n1} MB sin filtrar" -f $sw.Elapsed.TotalSeconds, ((Get-Item $tmp).Length/1MB)
 

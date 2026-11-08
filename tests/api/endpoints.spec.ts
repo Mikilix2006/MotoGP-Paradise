@@ -315,3 +315,19 @@ test.describe("API-07/08/09 rutas ocultas y páginas", () => {
     expect(response.status()).toBe(405);
   });
 });
+
+// Cuentas APAGADAS por defecto (REGISTRO_ABIERTO): la API de cuentas no existe y el estado lo dice.
+test.describe("CUE-A cuentas apagadas", () => {
+  test("/api/cuenta/estado responde 200 con abierto=false y sin usuario", async ({ request }) => {
+    const response = await request.get("/api/cuenta/estado");
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toEqual({ data: { abierto: false, usuario: null } });
+  });
+
+  test("las rutas de cuentas dan 404 y no tocan la base", async ({ request }) => {
+    expect((await request.get("/api/auth/get-session")).status()).toBe(404);
+    expect((await request.post("/api/auth/sign-in/email", { data: { email: "a@b.es", password: "x" } })).status()).toBe(404);
+    expect((await request.put("/api/cuenta/color", { data: { color: "#112233" } })).status()).toBe(404);
+    expect((await request.post("/api/cuenta/eliminar", { data: { password: "x" } })).status()).toBe(404);
+  });
+});

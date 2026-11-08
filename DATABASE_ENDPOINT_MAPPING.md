@@ -60,6 +60,16 @@
     LiveTimingSnapshot
     LiveRiderTiming
 
+
+    USER ACCOUNTS (Better Auth, sin endpoint de MotoGP)
+    ─────────────
+
+    AuthUser
+    AuthSession
+    AuthAccount
+    AuthVerification
+    AuthTwoFactor
+
  
                       COUNTRY
                          │
@@ -124,7 +134,7 @@
 
 # Endpoint → tablas
 
-El esquema tiene 28 modelos. Cada importador (`src/services/importers/`) lo ejecuta un script de `npm run` (ver README, sección 20). `MOTOGP_RESULTS_API_URL` = API de resultados; `MOTOGP_API_URL` = API general.
+El esquema tiene 33 modelos: 28 son de datos de MotoGP y los rellenan los importadores; los 5 de cuentas de usuario (`AuthUser`, `AuthSession`, `AuthAccount`, `AuthVerification`, `AuthTwoFactor`) no los alimenta ningún endpoint de MotoGP (los escribe Better Auth y no viajan en el volcado de datos; ver README, sección 6.2). Cada importador (`src/services/importers/`) lo ejecuta un script de `npm run` (ver README, sección 20). `MOTOGP_RESULTS_API_URL` = API de resultados; `MOTOGP_API_URL` = API general.
 
 | Script | API | Endpoint | Rellena |
 |---|---|---|---|

@@ -1,11 +1,20 @@
+import Link from "next/link";
+
 import { Header } from "@/components/Header";
+import { ENLACE_LEGAL } from "@/components/legal";
+import { registroAbierto } from "@/lib/registro";
 import { CONTACT_EMAIL, SITE_NAME } from "@/lib/site";
+
+// Depende de REGISTRO_ABIERTO, que se lee en cada petición (no al compilar).
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: `Aviso legal | ${SITE_NAME}`,
 };
 
 export default function AvisoLegalPage() {
+  const abierto = registroAbierto();
+
   if (!CONTACT_EMAIL && process.env.NODE_ENV === "production") {
     throw new Error("Falta el correo de contacto: rellena CONTACT_EMAIL en src/lib/site.ts antes de compilar para producción.");
   }
@@ -46,12 +55,24 @@ export default function AvisoLegalPage() {
 
         <section id="privacidad">
           <h2>Privacidad</h2>
-          <p>{SITE_NAME} no tiene registro, formularios, analíticas ni publicidad, y no conserva tu dirección IP. La web se aloja en Clouding. Si escribes al correo de contacto, tu dirección y tu mensaje se usarán solo para responderte y se borrarán cuando ya no hagan falta. Puedes ejercer tus derechos en ese mismo correo y reclamar ante la Agencia Española de Protección de Datos.</p>
+          {abierto ? (
+            <p>
+              {SITE_NAME} tiene cuentas de usuario opcionales. Cómo se tratan esos datos (qué se guarda, para qué, durante cuánto tiempo y cómo ejercer tus derechos) está en la{" "}
+              <Link href="/privacidad" className={ENLACE_LEGAL}>política de privacidad</Link> y en las{" "}
+              <Link href="/condiciones" className={ENLACE_LEGAL}>condiciones de uso</Link>. Si solo consultas la web, no se guarda ningún dato tuyo, no hay analíticas ni publicidad, y no se conserva tu dirección IP. La web se aloja en Clouding. Si escribes al correo de contacto, tu dirección y tu mensaje se usarán solo para responderte y se borrarán cuando ya no hagan falta.
+            </p>
+          ) : (
+            <p>{SITE_NAME} no tiene registro, formularios, analíticas ni publicidad, y no conserva tu dirección IP. La web se aloja en Clouding. Si escribes al correo de contacto, tu dirección y tu mensaje se usarán solo para responderte y se borrarán cuando ya no hagan falta. Puedes ejercer tus derechos en ese mismo correo y reclamar ante la Agencia Española de Protección de Datos.</p>
+          )}
         </section>
 
         <section id="almacenamiento">
           <h2>Almacenamiento en tu navegador</h2>
-          <p>{SITE_NAME} no usa cookies. Si cambias entre tema claro y oscuro, tu elección se guarda en tu navegador (localStorage) y no se envía a ningún sitio. Puedes borrarla desde los ajustes del navegador.</p>
+          {abierto ? (
+            <p>Si no tienes cuenta, {SITE_NAME} no usa cookies: el tema claro u oscuro se guarda en tu navegador (localStorage) y no se envía a ningún sitio. Si inicias sesión se usa una cookie de sesión y otra con el color que elijas, ambas imprescindibles y que se borran al cerrar sesión; el detalle está en la política de privacidad.</p>
+          ) : (
+            <p>{SITE_NAME} no usa cookies. Si cambias entre tema claro y oscuro, tu elección se guarda en tu navegador (localStorage) y no se envía a ningún sitio. Puedes borrarla desde los ajustes del navegador.</p>
+          )}
         </section>
 
         <section id="creditos">

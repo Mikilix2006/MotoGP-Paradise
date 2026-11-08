@@ -675,12 +675,27 @@ FAILED
 PARTIAL
 ```
 
+### Cuentas de usuario (Better Auth)
+
+Cinco modelos, fuera de las fases de importación (los escribe la librería, no los importadores ni un endpoint de MotoGP). Llevan el prefijo `Auth` porque `Session` ya existe (sesiones de carrera). Migración `20261108140000_cuentas_auth` (solo `CREATE`).
+
+``` text
+AuthUser          auth_users            email único, username único, two_factor_enabled, accent_color
+AuthSession       auth_sessions         token único; ip_address y user_agent siempre null
+AuthAccount       auth_accounts         proveedor "credential" con el hash de la contraseña
+AuthVerification  auth_verifications    tokens de verificación y de restablecer contraseña
+AuthTwoFactor     auth_two_factors      clave TOTP y códigos de recuperación
+```
+
+`AuthSession`, `AuthAccount` y `AuthTwoFactor` se borran en cascada con su `AuthUser`. Las tablas `auth_*` no entran en el volcado de datos (`scripts/deploy/volcar-datos.ps1`) ni en la comprobación de «destino vacío» de `cargar-datos.sh`. Detalle de campos en el README, sección 6.2.
+
 ## 12. Arquitectura del código
 
 ``` text
 src/
 ├── lib/
-│   └── prisma.ts
+│   ├── prisma.ts
+│   └── auth.ts, authClient.ts, registro.ts, session.ts, mail.ts, accent.ts, accentClient.ts, site.ts
 ├── services/
 │   ├── motogp/
 │   │   ├── resultsClient.ts
@@ -871,6 +886,19 @@ MOTOGP_API_URL=
 MOTOGP_RESULTS_API_URL=
 ```
 
+Variables de las cuentas de usuario (apagadas por defecto; significado en el README, sección 4):
+
+``` env
+REGISTRO_ABIERTO=
+BETTER_AUTH_URL=
+BETTER_AUTH_SECRET=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+```
+
 ## 19. Scripts
 
 Implementados (ver README, sección 20, y `package.json`):
@@ -956,6 +984,12 @@ fix:duplicate-riders
 -   [x] página `/calendario` desde base de datos
 -   [x] `/api/riders/carousel` y página `/pilotos` desde base de datos
 -   [ ] páginas de eventos desde base de datos
+
+### Sprint 9 --- Cuentas de usuario
+
+-   [x] tablas `auth_*` y migración `20261108140000_cuentas_auth`
+-   [x] registro, acceso, recuperación de contraseña, perfil, 2FA, color de acento y borrado de cuenta (apagados con `REGISTRO_ABIERTO`)
+-   [ ] encender el registro en producción (pendientes en `AGENTS.md`, «Antes de abrir el registro de cuentas»)
 
 ## 21. Resultado final esperado
 

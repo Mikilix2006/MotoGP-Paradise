@@ -4,7 +4,7 @@ Guía práctica, paso a paso, para publicar Rebufo en un servidor virtual (VPS) 
 
 **Servidor de referencia:** VPS Debian 13, 2 vCPU, 3,8 GiB de RAM, disco de 9,8 GB, IP pública fija y acceso `root` por SSH. En esta guía la IP es `IP_DEL_SERVIDOR`: sustitúyela por la tuya.
 
-**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual, la carga de datos (con recuento de filas) y el SSH solo con clave están verificados en el servidor real; HTTPS/dominio y la vuelta atrás automática **no se han probado**.
+**Estado:** ver [Qué está verificado y qué no](#qué-está-verificado-y-qué-no). Resumen: el servidor se preparó, la web abre por IP, el despliegue con `-Ref`, la sincronización, la copia manual, la carga de datos (con recuento de filas) y el SSH solo con clave están verificados en el servidor real; la web también responde por HTTPS en `https://rebufo.planetamiguel.com`; la vuelta atrás automática **no se ha probado**.
 
 ## Índice
 
@@ -21,6 +21,7 @@ Guía práctica, paso a paso, para publicar Rebufo en un servidor virtual (VPS) 
 11. [Copias de seguridad](#11-copias-de-seguridad)
 12. [Seguridad](#12-seguridad)
     - [12.1 Endurecer SSH (solo con clave)](#121-endurecer-ssh-solo-con-clave)
+    - [Cuentas de usuario en producción](#cuentas-de-usuario-en-producción)
 13. [Problemas frecuentes](#13-problemas-frecuentes)
 14. [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)
 
@@ -224,11 +225,11 @@ Comprueba el `.sha256` y la integridad del gzip, **aborta si alguna tabla ya tie
 psql "${DATABASE_URL%%\?*}" -X -f comprobaciones.sql
 ```
 
-Cifras de referencia del volcado de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, 239.259 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (las que había entonces en `prisma/migrations/`; hoy hay 8: las dos de `20261014…` se aplican en el servidor con `prisma migrate deploy` al desplegar, ver [README](README.md#5-base-de-datos-y-prisma)). Todas las migraciones aplicadas deben salir con `ok = t` (`comprobaciones.sql` indica «deben ser 8»), el recuento por tabla debe igualar al de origen y no debe haber FK sin validar. Son cifras **orientativas, no exactas**: en el servidor la sincronización cada 5 minutos añade filas después de la carga (ver las cifras medidas en [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)). Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
+Cifras de referencia del volcado de la base local (dato del propietario; no se han recontado aquí): **2.659 pilotos, 1.188 eventos, 12.594 sesiones, 239.259 resultados, 55 países, 146 eventos con bandera, 6 migraciones** (las que había entonces en `prisma/migrations/`; hoy hay 10: las posteriores, como las dos de `20261014…` y `20261108140000_cuentas_auth`, se aplican en el servidor con `prisma migrate deploy` al desplegar, ver [README](README.md#5-base-de-datos-y-prisma)). Todas las migraciones aplicadas deben salir con `ok = t` (el comentario de `comprobaciones.sql` dice «deben ser 8»: está desfasado, hoy son las 10 de `ls prisma/migrations`), el recuento por tabla debe igualar al de origen **salvo las tablas `auth_*`**, que no viajan en el volcado y en el servidor guardan las cuentas (ver [Cuentas de usuario en producción](#cuentas-de-usuario-en-producción)), y no debe haber FK sin validar. Son cifras **orientativas, no exactas**: en el servidor la sincronización cada 5 minutos añade filas después de la carga (ver las cifras medidas en [Qué está verificado y qué no](#qué-está-verificado-y-qué-no)). Los pasos del volcado y la carga se explican con más detalle (aunque pensados para otro servidor) en [DEPLOY_DINAHOSTING.md](DEPLOY_DINAHOSTING.md).
 
 ## 8. Fase 6 — Comprobar la web y comandos útiles
 
-Abre en el navegador `http://IP_DEL_SERVIDOR`. Mientras no haya dominio, la web va por HTTP (sin cifrar).
+Abre en el navegador `https://rebufo.planetamiguel.com` (o `http://IP_DEL_SERVIDOR` si aún no hay dominio: sin cifrar).
 
 Comandos útiles en el servidor:
 
@@ -243,7 +244,7 @@ Comandos útiles en el servidor:
 
 ## 9. Fase 7 — Dominio y HTTPS
 
-Mientras no haya dominio, la web se sirve **solo por HTTP** en la IP. Cuando tengas dominio:
+Sin dominio, la web se sirve **solo por HTTP** en la IP. La web ya tiene dominio y HTTPS (`https://rebufo.planetamiguel.com`). Para otro dominio:
 
 1. En el DNS del dominio, crea un **registro A** que apunte a `IP_DEL_SERVIDOR` y espera a que se propague.
 2. En el servidor: `DOMINIO=su.dominio.es bash /root/clouding/instalar-servidor.sh`. Caddy obtendrá el certificado HTTPS automáticamente (requiere 80 y 443 abiertos, también en el cortafuegos del panel).
@@ -258,7 +259,7 @@ Aviso: las **migraciones de base de datos se aplican antes del cambio de versió
 
 ## 11. Copias de seguridad
 
-- **Copia diaria automática** (`motogp-backup`, 03:30 con hasta 15 min de retraso aleatorio): `pg_dump` comprimido en `/var/backups/motogp/motogp-AAAAMMDD-HHMMSS.sql.gz`, modo 600, se conservan las **14** últimas. Para restaurar en una base **vacía**: `gunzip -c FICHERO.sql.gz | sudo -u postgres psql -v ON_ERROR_STOP=1 motogp`.
+- **Copia diaria automática** (`motogp-backup`, 03:30 con hasta 15 min de retraso aleatorio): `pg_dump` comprimido en `/var/backups/motogp/motogp-AAAAMMDD-HHMMSS.sql.gz`, modo 600, se conservan las **14** últimas. Incluye las tablas de cuentas `auth_*`; por eso la política de privacidad de la web dice que un usuario eliminado desaparece también de las copias en 14 días. Para restaurar en una base **vacía**: `gunzip -c FICHERO.sql.gz | sudo -u postgres psql -v ON_ERROR_STOP=1 motogp`.
 - **Instantáneas del panel de Clouding:** se recomienda usarlas además (según la web de Clouding el servicio las permite; no se han probado aquí).
 - **Una copia fuera del servidor**, porque las copias locales se pierden si se pierde el servidor. Desde tu PC: `scp root@IP_DEL_SERVIDOR:/var/backups/motogp/FICHERO.sql.gz .`
 
@@ -306,6 +307,17 @@ Verificado en el servidor real. **Orden seguro:** instalar la clave, comprobarla
 
 Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contraseña (siguen entrando como `root`).
 
+### Cuentas de usuario en producción
+
+Las cuentas (Better Auth, ver [README](README.md#cuentas-de-usuario-acceso-registro-recuperar-perfil)) se despliegan **apagadas** y no cambian el procedimiento de despliegue:
+
+- **Variables nuevas en `/etc/motogp-stats.env`** (`instalar-servidor.sh` no las crea; se añaden a mano, ver `.env.production.example`): `REGISTRO_ABIERTO` (déjala sin definir o en `false`), `BETTER_AUTH_URL` (`https://rebufo.planetamiguel.com`), `BETTER_AUTH_SECRET` (largo y aleatorio, `openssl rand -base64 32`; solo en ese fichero, nunca en el repositorio) y `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. systemd lee el fichero al arrancar el servicio: tras editarlo, `systemctl restart motogp-stats`. Sin `SMTP_HOST`, los correos de cuenta fallan en producción.
+- **Migración:** `prisma migrate deploy` (lo ejecuta `instalar-release.sh`) crea las cinco tablas `auth_*` con `20261108140000_cuentas_auth`. Solo hace `CREATE`, pero conviene una copia antes (`motogp-copia-bd`).
+- **Volcados:** `volcar-datos.ps1` excluye `public.auth_*` y `cargar-datos.sh` no las cuenta al comprobar que el destino está vacío, así que cargar un volcado nunca pisa ni bloquea las cuentas. Las cuentas existen solo en el servidor. Esta exclusión solo se ha comprobado leyendo los scripts, no con una carga real en el servidor.
+- **No encender `REGISTRO_ABIERTO=true`** hasta cerrar los pendientes de «Antes de abrir el registro de cuentas» en [AGENTS.md](AGENTS.md): nombre del titular en `TITULAR` (`src/lib/site.ts`; con el interruptor encendido en producción las páginas fallan si está vacío), SMTP real, textos legales revisados y `BETTER_AUTH_SECRET` en el servidor.
+- **Un solo proceso:** el límite de intentos de acceso está en memoria (no se guarda la IP) y se reinicia al reiniciar `motogp-stats`; solo es válido con un único proceso Node, como en este VPS.
+- Con las cuentas apagadas, `/acceso`, `/registro`, `/recuperar`, `/perfil`, `/privacidad`, `/condiciones`, `/api/auth/*`, `/api/cuenta/color` y `/api/cuenta/eliminar` dan 404 en producción.
+
 ## 13. Problemas frecuentes
 
 | Síntoma | Causa y solución |
@@ -335,6 +347,7 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 - `motogp-copia-bd` manual creó `/var/backups/motogp/motogp-FECHA.sql.gz` de 22 MB con permisos 600 y propietario root. El temporizador `motogp-backup` está programado.
 - Disco: 4,7 GB usados de 9,8 GB; cada release ocupa unos 650 MB (1,6 GB en `/srv/motogp` con dos).
 - SSH endurecido (solo clave, `PermitRootLogin prohibit-password`): ver [12.1](#121-endurecer-ssh-solo-con-clave).
+- HTTPS con dominio: `https://rebufo.planetamiguel.com` responde (comprobado por el propietario el 8 de noviembre de 2026).
 - Carga de datos **verificada** con `comprobaciones.sql` (solo lectura) ejecutado en el servidor; salida medida:
   - PostgreSQL 17.11 (Debian 17.11-0+deb13u1), `server_encoding` UTF8.
   - Las 6 migraciones con `ok = t` y sin `rolled_back_at`.
@@ -371,7 +384,6 @@ Con esto, `desplegar.ps1` y los `scp` de la guía usan la clave sin pedir contra
 
 **NO verificado en el servidor** (no lo des por hecho):
 
-- HTTPS con dominio.
 - La vuelta atrás automática.
 - La primera ejecución automática de madrugada de `motogp-backup` (solo se ha probado la copia manual).
 - `systemd-analyze verify` sobre las unidades.

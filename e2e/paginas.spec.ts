@@ -254,3 +254,29 @@ test.describe("Aviso legal", () => {
     await expect(page.locator('a[href^="mailto:"]').first()).toBeVisible();
   });
 });
+
+// Las cuentas vienen APAGADAS (REGISTRO_ABIERTO sin definir). El flujo completo con el interruptor
+// encendido se prueba a mano y en src/components/cuenta/ y src/app/api/cuenta/ (ver TESTS.md).
+test.describe("Cuentas apagadas", () => {
+  for (const path of ["/acceso", "/registro", "/recuperar", "/perfil", "/privacidad", "/condiciones"]) {
+    test(`CUE-01 ${path} no existe (404)`, async ({ page }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+    });
+  }
+
+  test("CUE-02 el botón de perfil del header es un marcador «próximamente», no un enlace", async ({ page }) => {
+    const problems = watchErrors(page);
+    await page.goto("/");
+    const boton = page.getByRole("button", { name: "Perfil (próximamente)" });
+    await expect(boton).toBeVisible();
+    await expect(boton).toHaveAttribute("aria-disabled", "true");
+    await expect(page.getByRole("link", { name: /Acceder|Mi perfil/ })).toHaveCount(0);
+    expect(problems).toEqual([]);
+  });
+
+  test("CUE-03 el aviso legal sigue diciendo que no hay cookies", async ({ page }) => {
+    await page.goto("/aviso-legal");
+    await expect(page.locator("#almacenamiento")).toContainText("no usa cookies");
+  });
+});

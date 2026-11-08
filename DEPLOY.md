@@ -34,7 +34,7 @@ En el servicio que Railway creó del repo:
 
 `start:web` ejecuta `prisma migrate deploy` antes de `next start`, así que las migraciones se aplican solas en cada despliegue — no hace falta correrlas a mano.
 
-En producción (`NODE_ENV=production`) `/pilotos` da 404, `/api/riders/carousel` responde 404 y `images.remotePatterns` de `next.config.ts` está vacío, así que `/_next/image` no sirve imágenes remotas (ver [README](README.md#pilotos-pilotos)). El build de producción falla si `CONTACT_EMAIL` de `src/lib/site.ts` está vacío. No hace falta ninguna variable nueva.
+En producción (`NODE_ENV=production`) `/pilotos` da 404, `/api/riders/carousel` responde 404 y `images.remotePatterns` de `next.config.ts` está vacío, así que `/_next/image` no sirve imágenes remotas (ver [README](README.md#pilotos-pilotos)). El build de producción falla si `CONTACT_EMAIL` de `src/lib/site.ts` está vacío. Las cuentas de usuario vienen **apagadas** (`REGISTRO_ABIERTO` sin definir o distinto de `true`) y, apagadas, no hace falta ninguna variable más: `start:web` aplica la migración `20261108140000_cuentas_auth`, que solo crea las tablas `auth_*`. Para encenderlas en este servicio hacen falta las variables de la tabla final (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` y el SMTP), `TITULAR` rellenado en `src/lib/site.ts` (con las cuentas abiertas en producción las páginas fallan si está vacío) y haber cerrado los pendientes de «Antes de abrir el registro de cuentas» en [AGENTS.md](AGENTS.md). El límite de intentos de acceso vive en memoria (se reinicia con el proceso y solo vale con una instancia de **web**); el servicio **worker** no necesita ninguna de estas variables.
 
 ## 4. Añadir el servicio **worker**
 
@@ -82,3 +82,7 @@ Railway cobra por uso (no por servicio fijo). Un sitio Next.js de tráfico bajo/
 | `DATABASE_URL` | web + worker | `${{Postgres.DATABASE_URL}}` |
 | `MOTOGP_API_URL` | web + worker | `https://api.motogp.pulselive.com/motogp/v1` |
 | `MOTOGP_RESULTS_API_URL` | web + worker | `https://api.motogp.pulselive.com/motogp/v1/results` |
+| `REGISTRO_ABIERTO` | web | Opcional; solo `true` enciende las cuentas (apagado por defecto) |
+| `BETTER_AUTH_URL` | web | Solo con cuentas: URL pública con `https` (la del dominio de Railway) |
+| `BETTER_AUTH_SECRET` | web | Solo con cuentas: secreto largo y aleatorio (`openssl rand -base64 32`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | web | Solo con cuentas: correo saliente; sin `SMTP_HOST` en producción los correos de cuenta fallan |

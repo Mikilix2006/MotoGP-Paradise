@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
-import { Menu, User, X } from "lucide-react";
+import PerfilBoton from "./cuenta/PerfilBoton";
+import { Menu, X } from "lucide-react";
 import { SITE_NAME } from "@/lib/site";
 
 // Enlaces del menú. `href` "#" = página aún sin crear (nunca se marca activa).
@@ -111,17 +112,7 @@ export function Header() {
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          {/* Hueco del futuro perfil (login). Aún sin acción: cuando exista, pasa a enlace/menú. */}
-          <button
-            type="button"
-            aria-disabled="true"
-            aria-label="Perfil (próximamente)"
-            title="Perfil (próximamente)"
-            className={`cut flex min-h-9 cursor-default items-center gap-2 bg-[image:var(--accent-grad)] pl-3 pr-5 font-display text-sm font-black uppercase tracking-wider text-[#fff] shadow-md ${FOCUS_RING}`}
-          >
-            <User size={18} aria-hidden />
-            <span className="hidden md:inline">Perfil</span>
-          </button>
+          <PerfilBoton />
           {/* Zona táctil de ~45 px (21 + 2×12) sin alterar la maquetación (margen negativo). */}
           <button
             ref={buttonRef}
