@@ -13,7 +13,7 @@ const SELECT_CLASS = `min-h-11 w-full rounded-lg border border-white/15 bg-[var(
 const LABEL_CLASS = "mb-1 block text-[11px] font-bold uppercase tracking-widest text-zinc-500";
 
 // Equipo y dorsal se ocultan en móvil (sin scroll horizontal).
-const GRID_BASE = "grid items-center gap-1.5 px-1 sm:gap-4 sm:px-6";
+const GRID_BASE = "grid items-center gap-1.5 px-1 sm:gap-4 sm:px-2";
 const GRID = `${GRID_BASE} grid-cols-[40px_minmax(0,1fr)_76px_46px] sm:grid-cols-[52px_52px_minmax(0,1fr)_minmax(0,1fr)_130px_72px]`;
 // Los tests no traen mejor vuelta: sin esa columna solo queda la diferencia.
 const GRID_NO_LAP = `${GRID_BASE} grid-cols-[40px_minmax(0,1fr)_76px] sm:grid-cols-[52px_52px_minmax(0,1fr)_minmax(0,1fr)_72px]`;
@@ -91,9 +91,9 @@ export default function ResultsPage() {
   const grid = showMain ? GRID : GRID_NO_LAP;
 
   return (
-    <section className="section">
+    <section className="section section-mobile">
       {/* SECCIÓN */}
-      <div className="flex gap-2 border-b border-white/10 px-4 pb-4 sm:px-6">
+      <div className="flex gap-2 border-b border-white/10 px-4 pb-4 sm:px-0">
         {(
           [
             ["season", "Temporada"],
@@ -115,7 +115,7 @@ export default function ResultsPage() {
       {/* SELECTORES. Móvil: Año y Sesión en una fila (izquierda y derecha) y Circuito
           debajo a todo el ancho; desde sm, las tres en columnas en el orden del DOM. */}
       {data && (
-        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-4 border-b border-white/10 px-4 py-4 sm:grid-cols-[repeat(3,minmax(0,1fr))] sm:px-6">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-4 border-b border-white/10 px-4 py-4 sm:grid-cols-[repeat(3,minmax(0,1fr))] sm:px-0">
           <div className="min-w-0">
             <label htmlFor="res-year" className={LABEL_CLASS}>Año</label>
             <select id="res-year" className={SELECT_CLASS} value={data.selected.year} onChange={(e) => navigate({ year: e.target.value })}>
@@ -168,7 +168,7 @@ export default function ResultsPage() {
 
       {/* ERROR */}
       {error && (
-        <div role="alert" className="px-4 py-10 text-center sm:px-6">
+        <div role="alert" className="px-4 py-10 text-center sm:px-0">
           <p className="text-sm text-red-400">{error}</p>
           <p className="mt-1 text-xs text-zinc-500">Inténtalo de nuevo en unos segundos.</p>
           <button type="button" onClick={() => setAttempt((n) => n + 1)} className="btn-ghost mt-4">
@@ -184,7 +184,7 @@ export default function ResultsPage() {
       {data && !loading && !error && (
         <div>
           {formatted.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-zinc-500">
+            <p className="px-4 py-10 text-center text-sm text-zinc-500 sm:px-0">
               Esta sesión no tiene resultados publicados todavía.
             </p>
           ) : (
