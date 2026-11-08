@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { PointsProgress, PointsProgressRider } from "@/types/pointsProgress";
+import type { PointsProgress, PointsProgressEvent, PointsProgressRider } from "@/types/pointsProgress";
 
 import {
+  eventFlag,
   eventLabel,
   labelStep,
   linePath,
@@ -21,6 +22,8 @@ const NUMBER = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 3 });
 const M = { top: 22, right: 14, bottom: 30, left: 42 };
 const PAD_X = 10;
 const MAX_TIP_ROWS = 10;
+const FLAG_W = 20; // 4:3, cabe en el hueco de M.bottom y por debajo del paso mínimo entre rótulos (28)
+const FLAG_H = 15;
 
 export function Marker({ shape, x, y, r, color }: { shape: MarkerShape; x: number; y: number; r: number; color: string }) {
   if (shape === "square") return <rect x={x - r} y={y - r} width={2 * r} height={2 * r} fill={color} />;
@@ -37,6 +40,24 @@ export function LineSample({ style }: { style: SeriesStyle }) {
       <line x1="1" y1="6" x2="29" y2="6" stroke={style.color} strokeWidth="2.5" strokeDasharray={style.dash ?? undefined} />
       <Marker shape={style.marker} x={15} y={6} r={3.2} color={style.color} />
     </svg>
+  );
+}
+
+/** Rótulo del eje X: bandera del GP; si no hay bandera o falla la imagen, el código. */
+function FlagTick({ event, x, y }: { event: PointsProgressEvent; x: number; y: number }) {
+  const [failed, setFailed] = useState(false);
+  const src = eventFlag(event);
+  if (!src || failed) {
+    return (
+      <text x={x} y={y} fontSize="10.5" fontWeight="600" textAnchor="middle" style={{ fill: "var(--muted)" }}>
+        {eventLabel(event)}
+      </text>
+    );
+  }
+  return (
+    <image href={src} x={x - FLAG_W / 2} y={y - FLAG_H - 1} width={FLAG_W} height={FLAG_H} preserveAspectRatio="xMidYMid slice" onError={() => setFailed(true)}>
+      <title>{event.country_name ?? eventLabel(event)}</title>
+    </image>
   );
 }
 
@@ -133,9 +154,7 @@ export default function PointsChart({ data, riders, styles, mode }: Props) {
         ))}
         {data.events.map((ev, i) =>
           i % every === 0 ? (
-            <text key={ev.id} x={x(i)} y={height - 10} fontSize="10.5" fontWeight="600" textAnchor="middle" style={{ fill: "var(--muted)" }}>
-              {eventLabel(ev)}
-            </text>
+            <FlagTick key={ev.id} event={ev} x={x(i)} y={height - 10} />
           ) : null
         )}
         {active !== null && (

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PointsProgressRider } from "@/types/pointsProgress";
 
 import {
+  eventFlag,
   eventLabel,
   labelStep,
   linePath,
@@ -64,6 +65,21 @@ describe("escalas y ejes (GRA-U10)", () => {
     const base = { id: "1", name: "GRAND PRIX OF THAILAND", circuit_name: null, country_iso: null, country_name: null, sequence: 1 };
     expect(eventLabel({ ...base, short_name: "THA" })).toBe("THA");
     expect(eventLabel({ ...base, short_name: null })).toBe("THA");
+  });
+
+  it("eventFlag: bandera del país y, en España, la de la comunidad del circuito", () => {
+    const ev = (country_iso: string | null, circuit_name: string | null) => ({
+      id: "1", short_name: "X", name: "GP", circuit_name, country_iso, country_name: null, sequence: 1,
+    });
+    expect(eventFlag(ev("QA", "Lusail"))).toBe("/flags/qa.svg");
+    expect(eventFlag(ev(null, null))).toBeNull();
+    expect(eventFlag(ev("ES", "Circuito de Jerez - Ángel Nieto"))).toBe("/flags/es.svg");
+    expect(eventFlag(ev("ES", "Circuit de Barcelona-Catalunya"))).toBe("/flags/es-ct.svg");
+    expect(eventFlag(ev("ES", "Montjuïc"))).toBe("/flags/es-ct.svg");
+    expect(eventFlag(ev("ES", "Jarama"))).toBe("/flags/es-md.svg");
+    expect(eventFlag(ev("ES", "Circuit Ricardo Tormo"))).toBe("/flags/es-vc.svg");
+    expect(eventFlag(ev("ES", "MotorLand Aragón"))).toBe("/flags/es-ar.svg");
+    expect(eventFlag(ev("ES", "Circuito desconocido"))).toBe("/flags/es.svg");
   });
 });
 
