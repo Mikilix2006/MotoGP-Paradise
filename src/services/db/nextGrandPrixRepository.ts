@@ -6,6 +6,7 @@ import { getCurrentSeason } from "./seasonRepository";
 
 import {
   MOTOGP_CATEGORY_LEGACY_ID,
+  findProvisionalCorrector,
   toCalendarSessions,
   toDateOnly,
   toInstantIso,
@@ -96,13 +97,11 @@ const eventInclude = {
   },
 
   sessions: {
+    // Todas las sesiones de MotoGP (no solo carrera y sprint): findProvisionalCorrector
+    // decide con ellas, igual que el calendario, si las fechas son provisionales.
     where: {
       category: {
         legacyId: MOTOGP_CATEGORY_LEGACY_ID,
-      },
-
-      type: {
-        in: [RACE_SESSION_TYPE, SPRINT_SESSION_TYPE],
       },
     },
 
@@ -110,6 +109,7 @@ const eventInclude = {
       category: {
         select: {
           motogpUuid: true,
+          legacyId: true,
         },
       },
     },
@@ -282,7 +282,8 @@ function pickTrack(tracks: Track[]): Track | null {
 }
 
 function buildTrackDetails(
-  event: EventWithDetails
+  event: EventWithDetails,
+  correct: ReturnType<typeof findProvisionalCorrector>
 ): CircuitTrackDetails {
   const track = event.circuit
     ? pickTrack(event.circuit.tracks)
@@ -329,8 +330,9 @@ function buildTrackDetails(
     infoImageUrl:
       process.env.NODE_ENV === "production" ? null : infoAsset?.path ?? null,
 
+    // Mismo reloj de pared corregido que usa el calendario (ver findProvisionalCorrector).
     sprintDate: sprintSession?.dateStart
-      ? toInstantIso(sprintSession.dateStart, event.timeZone)
+      ? toInstantIso(correct?.(sprintSession) ?? sprintSession.dateStart, event.timeZone)
       : null,
 
     sprintLaps,
@@ -371,6 +373,9 @@ function toNextGrandPrixData(
     return null;
   }
 
+  // La API de resultados puede dar fechas de sesión provisionales (días desplazados).
+  const correct = findProvisionalCorrector(event);
+
   return {
     id: event.resultsUuid ?? event.id,
 
@@ -388,7 +393,7 @@ function toNextGrandPrixData(
       nation: circuit.nation ?? "",
       events_id: null,
 
-      track: buildTrackDetails(event),
+      track: buildTrackDetails(event, correct),
     },
 
     sponsored_name: event.sponsoredName ?? event.name,
@@ -410,7 +415,10 @@ function toNextGrandPrixData(
 
     round,
 
-    nextMotoGPRace: toInstantIso(raceSession.dateStart, event.timeZone),
+    nextMotoGPRace: toInstantIso(
+      correct?.(raceSession) ?? raceSession.dateStart,
+      event.timeZone
+    ),
 
     race: {
       seasonUuid: season.motogpUuid ?? season.id,
