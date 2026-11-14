@@ -47,9 +47,17 @@ export function toLocalDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+// Forma mínima que necesita el corrector: la comparten el calendario y la portada.
+type CorrectorEvent = Pick<
+  CalendarEventWithDetails,
+  "timeZone" | "dateStart" | "dateEnd" | "scheduleDays"
+> & {
+  sessions: { dateStart: Date | null; category: { legacyId: number | null } }[];
+};
+
 export function findProvisionalCorrector(
-  event: CalendarEventWithDetails
-): ((session: CalendarSessionRow) => Date | null) | null {
+  event: CorrectorEvent
+): ((session: Pick<CalendarSessionRow, "dateStart" | "gpDay">) => Date | null) | null {
   if (!event.timeZone || !event.dateStart || !event.dateEnd) {
     return null;
   }
