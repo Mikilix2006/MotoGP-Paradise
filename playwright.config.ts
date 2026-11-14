@@ -49,6 +49,8 @@ export default defineConfig({
         url: `http://localhost:${PORT}`,
         timeout: 300_000,
         reuseExistingServer: false,
-        env: { NODE_ENV: "production", DATABASE_URL: testDatabaseUrl() },
+        // REGISTRO_ABIERTO apagado a propósito: los tests CUE-* prueban producción (cuentas apagadas)
+        // y Next, si no, lee el valor del .env local.
+        env: { NODE_ENV: "production", DATABASE_URL: testDatabaseUrl(), REGISTRO_ABIERTO: "false" },
       },
 });
